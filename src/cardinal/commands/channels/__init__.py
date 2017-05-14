@@ -156,11 +156,11 @@ async def disable(ctx, channel: str = None):
 
         if role is None:
             await bot.say('Could not find role. Was it already deleted?')
-
-        try:
-            await bot.delete_role(ctx.message.server, role)
-        except:
-            await bot.say('Unable to delete role "%s". Please do so manually.' % role.name)
+        else:
+            try:
+                await bot.delete_role(ctx.message.server, role)
+            except:
+                await bot.say('Unable to delete role "%s". Please do so manually.' % role.name)
 
         everyone_role = ctx.message.server.default_role
         overwrite = discord.PermissionOverwrite()

@@ -1,8 +1,8 @@
-from sqlalchemy import Column, BigInteger, ForeignKey
+from sqlalchemy import Column, BigInteger
 from cardinal import Base, engine
 
 class Channel(Base):
-    __tablename__ = 'channels'
+    __tablename__ = 'optin_channels'
 
     channelid = Column(BigInteger, primary_key=True, autoincrement=False)
     roleid = Column(BigInteger, unique=True)
