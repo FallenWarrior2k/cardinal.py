@@ -73,7 +73,6 @@ async def _opt_in(ctx):
 @_opt_in.command(pass_context=True)
 async def enable(ctx, channel: str = None):
     """Makes a channel opt-in."""
-    print('In subcommand function.')
     if channel is None:
         channel_obj = ctx.message.channel
     else:
@@ -92,7 +91,7 @@ async def enable(ctx, channel: str = None):
         return
 
     try:
-        role = await bot.create_role(ctx.message.server, name='test')
+        role = await bot.create_role(ctx.message.server, name=channel_obj.name)
         print('Created role: Role(name="%s", id=%s)' % (role.name, role.id))
     except Exception as e:
         await bot.say('Could not make channel "%s" opt-in, please consult the dev or try again.' % channel_obj.name)
@@ -153,7 +152,6 @@ async def disable(ctx, channel: str = None):
 
         if role is None:
             await bot.say('Could not find role. Was it already deleted?')
-            return
 
         try:
             await bot.delete_role(ctx.message.server, role)
