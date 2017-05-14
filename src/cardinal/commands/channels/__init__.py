@@ -32,7 +32,7 @@ async def show(ctx, channel: str):
     channel_db = dbsession.query(Channel).get(channel_obj.id)
 
     if channel_db:
-        role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+        role = discord.utils.get(ctx.message.server.roles, id=str(channel_db.roleid))
 
         try:
             await bot.add_roles(ctx.message.author, role)
@@ -55,7 +55,7 @@ async def hide(ctx, channel: str):
     channel_db = dbsession.query(Channel).get(channel_obj.id)
 
     if channel_db:
-        role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+        role = discord.utils.get(ctx.message.server.roles, id=str(channel_db.roleid))
 
         try:
             await bot.remove_roles(ctx.message.author, role)
