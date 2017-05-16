@@ -8,7 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import __main__ as main
 
 logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
 bot = _discord.Bot(command_prefix=main.config['cmd_prefix'], description='cardinal.py', formatter=_discord.HelpFormatter(show_check_failure=True))

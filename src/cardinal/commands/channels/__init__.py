@@ -100,7 +100,6 @@ async def enable(ctx, channelname: str = None):
 
     try:
         role = await bot.create_role(ctx.message.server, name=channel_obj.name)
-        print('Created role: Role(name="{0.name}", id="{0.id}")'.format(role))
     except:
         await bot.say('Could not make channel {0} opt-in, please consult the dev or try again.'.format(channel_obj.mention))
         await bot.say('Error while creating role.')
