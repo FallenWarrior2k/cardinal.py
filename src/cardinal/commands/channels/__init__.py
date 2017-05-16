@@ -41,7 +41,7 @@ async def show(ctx, channelname: str):
 
         await bot.say('User {user} joined channel {channel}.'.format(user=ctx.message.author.mention, channel=channel_obj.mention))
     else:
-        await bot.say('Channel "{0}" is not specified as an opt-in channel.'.format(channel_obj.mention))
+        await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel_obj.mention))
 
 
 @channel.command(pass_context=True, aliases=['leave'])
@@ -50,7 +50,7 @@ async def hide(ctx, channelname: str):
     channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
-        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
+        await bot.say('Channel {0} not found. Please check the spelling.'.format(channelname))
         return
 
     dbsession = Session()
@@ -65,9 +65,9 @@ async def hide(ctx, channelname: str):
         except:
             await bot.say('Could not remove role, please consult a moderator or try again.')
 
-        await bot.say('User {user} left channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.mention))
+        await bot.say('User {user} left channel {channel}.'.format(user=ctx.message.author.mention, channel=channel_obj.mention))
     else:
-        await bot.say('Channel "{0}" is not specified as an opt-in channel.'.format(channel_obj.name))
+        await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel_obj.name))
 
 
 @channel.group(pass_context=True, name='opt-in')
@@ -87,7 +87,7 @@ async def enable(ctx, channelname: str = None):
         channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
-        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
+        await bot.say('Channel {0} not found. Please check the spelling.'.format(channelname))
         return
     else:
         channel_id = channel_obj.id
@@ -95,14 +95,14 @@ async def enable(ctx, channelname: str = None):
     dbsession = Session()
 
     if dbsession.query(Channel).get(channel_id):
-        await bot.say('Channel "{0}" is already opt-in.'.format(channel_obj.mention))
+        await bot.say('Channel {0} is already opt-in.'.format(channel_obj.mention))
         return
 
     try:
         role = await bot.create_role(ctx.message.server, name=channel_obj.name)
         print('Created role: Role(name="{0.name}", id="{0.id}")'.format(role))
     except:
-        await bot.say('Could not make channel "{0}" opt-in, please consult the dev or try again.'.format(channel_obj.mention))
+        await bot.say('Could not make channel {0} opt-in, please consult the dev or try again.'.format(channel_obj.mention))
         await bot.say('Error while creating role.')
         return
 
@@ -113,7 +113,7 @@ async def enable(ctx, channelname: str = None):
     try:
         await bot.edit_channel_permissions(channel_obj, everyone_role, overwrite)
     except:
-        await bot.say('Could not make channel "{0}" opt-in, please consult the dev or try again'.format(channel_obj.mention))
+        await bot.say('Could not make channel {0} opt-in, please consult the dev or try again'.format(channel_obj.mention))
         await bot.say('Error while overriding everyone permissions.')
         return
 
@@ -121,7 +121,7 @@ async def enable(ctx, channelname: str = None):
     try:
         await bot.edit_channel_permissions(channel_obj, role, overwrite)
     except:
-        await bot.say('Could not make channel "{0}" opt-in, please consult the dev or try again'.format(channel_obj.mention))
+        await bot.say('Could not make channel {0} opt-in, please consult the dev or try again'.format(channel_obj.mention))
         await bot.say('Error while overriding permissions for role members.')
 
         try:
@@ -134,7 +134,7 @@ async def enable(ctx, channelname: str = None):
     channel_db = Channel(channelid=channel_obj.id, roleid=role.id)
     dbsession.add(channel_db)
     dbsession.commit()
-    await bot.say('Opt-in enabled for channel "{0}".' .format(channel_obj.mention))
+    await bot.say('Opt-in enabled for channel {0}.' .format(channel_obj.mention))
 
 
 @_opt_in.command(pass_context=True)
@@ -146,7 +146,7 @@ async def disable(ctx, channelname: str = None):
         channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
-        await bot.say('Channel not found. Please check the spelling.')
+        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
         return
     else:
         channel_id = channel_obj.id
@@ -173,11 +173,11 @@ async def disable(ctx, channelname: str = None):
         try:
             await bot.edit_channel_permissions(channel_obj, everyone_role, overwrite)
         except:
-            await bot.say('Could not remove opt-in attribute from channel "{0}", please consult the dev or try again.'.format(channel_obj.mention))
-            await bot.say('Unable to unhide channel "{0}". Please do so manually.'.format(channel_obj.name))
+            await bot.say('Could not remove opt-in attribute from channel {0}, please consult the dev or try again.'.format(channel_obj.mention))
+            await bot.say('Unable to unhide channel {0}. Please do so manually.'.format(channel_obj.mention))
 
         dbsession.delete(channel_db)
         dbsession.commit()
-        await bot.say('Opt-in disabled for channel "{0}".'.format(channel_obj.mention))
+        await bot.say('Opt-in disabled for channel {0}.'.format(channel_obj.mention))
     else:
-        await bot.say('Channel "{0}" is not opt-in'.format(channel_obj.mention))
+        await bot.say('Channel {0} is not opt-in'.format(channel_obj.mention))
