@@ -39,7 +39,7 @@ async def show(ctx, channelname: str):
         except:
             await bot.say('Could not add role, please consult a moderator or try again.')
 
-        await bot.say('User "{user}" joined channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.name))
+        await bot.say('User {user} joined channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.name))
     else:
         await bot.say('Channel "{0}" is not specified as an opt-in channel.'.format(channel_obj.name))
 
@@ -65,7 +65,7 @@ async def hide(ctx, channelname: str):
         except:
             await bot.say('Could not remove role, please consult a moderator or try again.')
 
-        await bot.say('User "{user}" left channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.name))
+        await bot.say('User {user} left channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.name))
     else:
         await bot.say('Channel "{0}" is not specified as an opt-in channel.'.format(channel_obj.name))
 
