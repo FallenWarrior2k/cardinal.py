@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger
-from cardinal import Base, engine
+from sqlalchemy import Column, String
+import cardinal as db
 
-class Channel(Base):
+
+class Channel(db.Base):
     __tablename__ = 'optin_channels'
 
-    channelid = Column(BigInteger, primary_key=True, autoincrement=False)
-    roleid = Column(BigInteger, unique=True)
+    channelid = Column(String, primary_key=True, autoincrement=False)
+    roleid = Column(String, unique=True)
 
     def __repr__(self):
         return "<Channel(channelid='%s', roleid='%s')>" % (self.channelid, self.roleid)
 
-Base.metadata.create_all(engine)
+db.Base.metadata.create_all(db.engine)

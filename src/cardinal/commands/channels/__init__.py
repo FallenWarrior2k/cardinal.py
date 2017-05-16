@@ -1,30 +1,30 @@
 import discord.utils
 from discord.ext import commands
 from cardinal import bot, Session
+from cardinal.utils import get_channel_by_name, channel_whitelisted
 from .models import Channel
-from .utils import *
 
 
 @bot.group(pass_context=True)
+@channel_whitelisted()
 async def channel(ctx):
+    """Provides facilities to work with opt-in channels"""
     if ctx.invoked_subcommand is None:
-        await bot.say('Invalid command passed: possible choices are "show", "hide", and "opt_in"(mod only).')
+        await bot.say('Invalid command passed: possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{0.prefix}help {0.command}` for further information'.format(ctx))
         return
 
     if ctx.message.server is None:
         await bot.say('Command not available outside of a server.')
         return
 
-    bot.delete_message(ctx.message)
-
 
 @channel.command(pass_context=True, aliases=['join'])
-async def show(ctx, channel: str):
+async def show(ctx, channelname: str):
     """Enables a user to access a channel."""
-    channel_obj = get_channel(ctx, channel)
+    channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
-        await bot.say('Channel not found. Please check the spelling.')
+        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
         return
 
     dbsession = Session()
@@ -32,24 +32,25 @@ async def show(ctx, channel: str):
     channel_db = dbsession.query(Channel).get(channel_obj.id)
 
     if channel_db:
-        role = discord.utils.get(ctx.message.server.roles, id=str(channel_db.roleid))
+        role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
 
         try:
             await bot.add_roles(ctx.message.author, role)
         except:
             await bot.say('Could not add role, please consult a moderator or try again.')
 
-        await bot.say('User "%s" joined channel "%s".' % (ctx.message.author.name, channel_obj.name))
+        await bot.say('User "{user}" joined channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.name))
     else:
-        await bot.say('Channel "%s" is not specified as an opt-in channel.' % channel_obj.name)
+        await bot.say('Channel "{0}" is not specified as an opt-in channel.'.format(channel_obj.name))
+
 
 @channel.command(pass_context=True, aliases=['leave'])
-async def hide(ctx, channel: str):
+async def hide(ctx, channelname: str):
     """Hides a channel from the user's view."""
-    channel_obj = get_channel(ctx, channel)
+    channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
-        await bot.say('Channel not found. Please check the spelling.')
+        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
         return
 
     dbsession = Session()
@@ -57,33 +58,36 @@ async def hide(ctx, channel: str):
     channel_db = dbsession.query(Channel).get(channel_obj.id)
 
     if channel_db:
-        role = discord.utils.get(ctx.message.server.roles, id=str(channel_db.roleid))
+        role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
 
         try:
             await bot.remove_roles(ctx.message.author, role)
         except:
             await bot.say('Could not remove role, please consult a moderator or try again.')
 
-        await bot.say('User "%s" left channel "%s".' % (ctx.message.author.name, channel_obj.name))
+        await bot.say('User "{user}" left channel "{channel}".'.format(user=ctx.message.author.mention, channel=channel_obj.name))
     else:
-        await bot.say('Channel "%s" is not specified as an opt-in channel.' % channel_obj.name)
+        await bot.say('Channel "{0}" is not specified as an opt-in channel.'.format(channel_obj.name))
+
 
 @channel.group(pass_context=True, name='opt-in')
 @commands.has_permissions(manage_channels=True)
 async def _opt_in(ctx):
+    """Allows moderators to toggle a channel's opt-in status."""
     if ctx.invoked_subcommand is None:
         await bot.say('Invalid command passed: possible options are "enable" and "disable".')
 
+
 @_opt_in.command(pass_context=True)
-async def enable(ctx, channel: str = None):
+async def enable(ctx, channelname: str = None):
     """Makes a channel opt-in."""
-    if channel is None:
+    if channelname is None:
         channel_obj = ctx.message.channel
     else:
-        channel_obj = get_channel(ctx, channel)
+        channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
-        await bot.say('Channel not found. Please check the spelling.')
+        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
         return
     else:
         channel_id = channel_obj.id
@@ -91,16 +95,15 @@ async def enable(ctx, channel: str = None):
     dbsession = Session()
 
     if dbsession.query(Channel).get(channel_id):
-        await bot.say('Channel "%s" is already opt-in.' % channel_obj.name)
+        await bot.say('Channel "{0}" is already opt-in.'.format(channel_obj.name))
         return
 
     try:
         role = await bot.create_role(ctx.message.server, name=channel_obj.name)
-        print('Created role: Role(name="%s", id=%s)' % (role.name, role.id))
-    except Exception as e:
-        await bot.say('Could not make channel "%s" opt-in, please consult the dev or try again.' % channel_obj.name)
+        print('Created role: Role(name="{0.name}", id="{0.id}")'.format(role))
+    except:
+        await bot.say('Could not make channel "{0}" opt-in, please consult the dev or try again.'.format(channel_obj.name))
         await bot.say('Error while creating role.')
-        print(e)
         return
 
     everyone_role = ctx.message.server.default_role
@@ -110,7 +113,7 @@ async def enable(ctx, channel: str = None):
     try:
         await bot.edit_channel_permissions(channel_obj, everyone_role, overwrite)
     except:
-        await bot.say('Could not make channel "%s" opt-in, please consult the dev or try again' % channel_obj.name)
+        await bot.say('Could not make channel "{0}" opt-in, please consult the dev or try again'.format(channel_obj.name))
         await bot.say('Error while overriding everyone permissions.')
         return
 
@@ -118,11 +121,11 @@ async def enable(ctx, channel: str = None):
     try:
         await bot.edit_channel_permissions(channel_obj, role, overwrite)
     except:
-        await bot.say('Could not make channel "%s" opt-in, please consult the dev or try again' % channel_obj.name)
+        await bot.say('Could not make channel "{0}" opt-in, please consult the dev or try again'.format(channel_obj.name))
         await bot.say('Error while overriding permissions for role members.')
 
         try:
-            bot.edit_channel_permissions(channel_obj, everyone_role, overwrite)
+            await bot.edit_channel_permissions(channel_obj, everyone_role, overwrite)
         except:
             await bot.say('Could not unhide the channel. Please do so manually.')
 
@@ -131,15 +134,16 @@ async def enable(ctx, channel: str = None):
     channel_db = Channel(channelid=channel_obj.id, roleid=role.id)
     dbsession.add(channel_db)
     dbsession.commit()
-    await bot.say('Opt-in enabled for channel "%s".' % channel_obj.name)
+    await bot.say('Opt-in enabled for channel "{0}".' .format(channel_obj.name))
+
 
 @_opt_in.command(pass_context=True)
-async def disable(ctx, channel: str = None):
+async def disable(ctx, channelname: str = None):
     """Removes a channel's opt-in attribute"""
-    if channel is None:
+    if channelname is None:
         channel_obj = ctx.message.channel
     else:
-        channel_obj = get_channel(ctx, channel)
+        channel_obj = get_channel_by_name(ctx, channelname)
 
     if channel_obj is None:
         await bot.say('Channel not found. Please check the spelling.')
@@ -152,7 +156,7 @@ async def disable(ctx, channel: str = None):
     channel_db = dbsession.query(Channel).get(channel_id)
 
     if channel_db:
-        role = discord.utils.get(ctx.message.server.roles, id=str(channel_db.roleid))
+        role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
 
         if role is None:
             await bot.say('Could not find role. Was it already deleted?')
@@ -160,7 +164,7 @@ async def disable(ctx, channel: str = None):
             try:
                 await bot.delete_role(ctx.message.server, role)
             except:
-                await bot.say('Unable to delete role "%s". Please do so manually.' % role.name)
+                await bot.say('Unable to delete role "{0}". Please do so manually.'.format(role.name))
 
         everyone_role = ctx.message.server.default_role
         overwrite = discord.PermissionOverwrite()
@@ -169,11 +173,11 @@ async def disable(ctx, channel: str = None):
         try:
             await bot.edit_channel_permissions(channel_obj, everyone_role, overwrite)
         except:
-            await bot.say('Could not remove opt-in attribute from channel "%s", please consult the dev or try again.' % channel_obj.name)
-            await bot.say('Unable to unhide channel "%s". Please do so manually.' % channel_obj.name)
+            await bot.say('Could not remove opt-in attribute from channel "{0}", please consult the dev or try again.'.format(channel_obj.name))
+            await bot.say('Unable to unhide channel "{0}". Please do so manually.'.format(channel_obj.name))
 
         dbsession.delete(channel_db)
         dbsession.commit()
-        await bot.say('Opt-in disabled for channel "%s".' % channel_obj.name)
+        await bot.say('Opt-in disabled for channel "{0}".'.format(channel_obj.name))
     else:
-        await bot.say('Channel "%s" is not opt-in' % channel_obj.name)
+        await bot.say('Channel "{0}" is not opt-in'.format(channel_obj.name))

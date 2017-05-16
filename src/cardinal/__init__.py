@@ -1,22 +1,19 @@
 import logging
-import sys
-from discord.ext import commands
+import discord
+import discord.ext.commands as _discord
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from cardinal.config import load_config
+
+import __main__ as main
 
 logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-if not len(sys.argv) > 1:
-    print('Please pass the path of the config file as the first command-line argument')
-    sys.exit(1)
+bot = _discord.Bot(command_prefix=main.config['cmd_prefix'], description='cardinal.py', formatter=_discord.HelpFormatter(show_check_failure=True))
 
-config = load_config(sys.argv[1])
-
-bot = commands.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py')
-
-engine = create_engine(config['db_connectstring'])
+engine = create_engine(main.config['db_connectstring'])
 Base = declarative_base()
 Session = sessionmaker()
 Session.configure(bind=engine)
@@ -24,14 +21,48 @@ Session.configure(bind=engine)
 
 @bot.event
 async def on_ready():
-    print('Logged into Discord as')
     try:
-        print('%s#%s' % (bot.user.name, bot.user.discriminator))
+        print('Logged into Discord as {user}'.format(user=bot.user))
     except:
         pass
 
-    print('\n')
 
-from cardinal.commands import channels
+@bot.event
+async def on_command_error(ex, ctx):
+    error_msg = ''
 
-bot.run(config['token'])
+    if isinstance(ex, _discord.errors.CheckFailure):
+        error_msg = 'You are not allowed to use this command (here).'
+    elif isinstance(ex, _discord.errors.MissingRequiredArgument):
+        error_msg = 'Too few arguments.'
+    elif isinstance(ex, _discord.errors.TooManyArguments):
+        error_msg = 'Too many arguments.'
+    elif isinstance(ex, _discord.errors.BadArgument):
+        error_msg = 'Arguments parsing failed.'
+    elif isinstance(ex, _discord.errors.NoPrivateMessage):
+        error_msg = 'Command must not be used in private message channels.'
+    elif isinstance(ex, _discord.errors.CommandOnCooldown):
+        error_msg = str(ex)
+
+    if isinstance(ex, _discord.errors.UserInputError):
+        error_msg += ' See `{0.prefix}help {0.command}` for information on the command.'.format(ctx)
+
+    if error_msg != '':
+        await bot.send_message(ctx.message.channel, error_msg)
+
+    if isinstance(ex, _discord.errors.CommandInvokeError):
+        logger.log(logging.ERROR, ex.original)
+
+
+@bot.event
+async def on_command(cmd, ctx):
+    if ctx.message.server is None:
+        log_msg = '[PM] {user.name} ({user.id}): {message.content}'.format(user=ctx.message.author, message=ctx.message)
+    else:
+        log_msg = '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(ctx.message)
+
+    logger.log(logging.INFO, log_msg)
+
+from cardinal.commands import *
+
+bot.run(main.config['token'])
