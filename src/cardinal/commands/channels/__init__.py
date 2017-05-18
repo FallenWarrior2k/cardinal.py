@@ -57,9 +57,9 @@ async def hide(ctx, channel: discord.Channel = None):
         except:
             await bot.say('Could not remove role, please consult a moderator or try again.')
 
-        await bot.say('User {user} left channel {channel}.'.format(user=ctx.message.author.mention, channel=channel_obj.mention))
+        await bot.say('User {user} left channel {channel}.'.format(user=ctx.message.author.mention, channel=channel.mention))
     else:
-        await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel_obj.name))
+        await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.name))
 
 
 @channels.group(pass_context=True, name='opt-in')
