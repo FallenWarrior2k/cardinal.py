@@ -5,7 +5,7 @@ from cardinal.utils import channel_whitelisted
 from .models import Channel
 
 
-@bot.group(pass_context=True)
+@bot.group(name='channel', pass_context=True)
 @channel_whitelisted()
 async def channels(ctx):
     """Provides facilities to work with opt-in channels"""
