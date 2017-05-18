@@ -22,7 +22,7 @@ Session.configure(bind=engine)
 @bot.event
 async def on_ready():
     try:
-        print('Logged into Discord as {user}'.format(user=bot.user))
+        logger.log(logging.INFO, 'Logged into Discord as {0}'.format(bot.user))
     except:
         pass
 
