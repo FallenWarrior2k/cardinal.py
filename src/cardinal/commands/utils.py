@@ -1,7 +1,7 @@
+import discord
 from discord.ext import commands
 from cardinal import bot, Session
 from cardinal.models import WhitelistedChannel
-from cardinal.utils import get_channel_by_name
 
 
 @bot.group(pass_context=True)
@@ -13,47 +13,35 @@ async def whitelist(ctx):
         return
 
 @whitelist.command(pass_context=True)
-async def add(ctx, channelname: str = None):
+async def add(ctx, channel: discord.Channel = None):
     """Adds a channel to the whitelist."""
-    if channelname is None:
-        channel_obj = ctx.message.channel
-    else:
-        channel_obj = get_channel_by_name(ctx, channelname)
-
-    if channel_obj is None:
-        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
-        return
+    if channel is None:
+        channel = ctx.message.channel
 
     dbsession = Session()
 
-    if dbsession.query(WhitelistedChannel).get(channel_obj.id):
-        await bot.say('Channel {0} is already whitelisted.'.format(channel_obj.name))
+    if dbsession.query(WhitelistedChannel).get(channel.id):
+        await bot.say('Channel {0} is already whitelisted.'.format(channel.mention))
         return
 
-    channel_db = WhitelistedChannel(channelid=channel_obj.id)
+    channel_db = WhitelistedChannel(channelid=channel.id)
     dbsession.add(channel_db)
     dbsession.commit()
-    await bot.say('Whitelisted channel "{0}".'.format(channel_obj.name))
+    await bot.say('Whitelisted channel {0}.'.format(channel.mention))
 
 @whitelist.command(pass_context=True)
-async def remove(ctx, channelname: str = None):
+async def remove(ctx, channel: discord.Channel = None):
     """Removes a channel from the whitelist."""
-    if channelname is None:
-        channel_obj = ctx.message.channel
-    else:
-        channel_obj = get_channel_by_name(ctx, channelname)
-
-    if channel_obj is None:
-        await bot.say('Channel "{0}" not found. Please check the spelling.'.format(channelname))
-        return
+    if channel is None:
+        channel = ctx.message.channel
 
     dbsession = Session()
 
-    channel_db = dbsession.query(WhitelistedChannel).get(channel_obj.id)
+    channel_db = dbsession.query(WhitelistedChannel).get(channel.id)
     if not channel_db:
-        await bot.say('Channel "{0}" is not whitelisted.'.format(channel_obj.name))
+        await bot.say('Channel {0} is not whitelisted.'.format(channel.mention))
         return
 
     dbsession.delete(channel_db)
     dbsession.commit()
-    await bot.say('Removed channel "{0}" from whitelist.'.format(channel_obj.name))
+    await bot.say('Removed channel {0} from whitelist.'.format(channel.mention))
