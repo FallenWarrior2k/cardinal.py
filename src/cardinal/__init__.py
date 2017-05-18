@@ -23,6 +23,7 @@ Session.configure(bind=engine)
 async def on_ready():
     try:
         logger.log(logging.INFO, 'Logged into Discord as {0}'.format(bot.user))
+        await bot.change_presence(game=discord.Game(name=main.config['default_game']))
     except:
         pass
 
