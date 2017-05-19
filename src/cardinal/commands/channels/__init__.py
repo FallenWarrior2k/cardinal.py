@@ -59,7 +59,7 @@ async def hide(ctx, channel: discord.Channel = None):
 
         await bot.say('User {user} left channel {channel}.'.format(user=ctx.message.author.mention, channel=channel.mention))
     else:
-        await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.name))
+        await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
 
 @channels.group(pass_context=True, name='opt-in')
@@ -121,7 +121,7 @@ async def enable(ctx, channel: discord.Channel = None):
 
 
 @_opt_in.command(pass_context=True)
-async def disable(ctx, channelname: discord.Channel = None):
+async def disable(ctx, channel: discord.Channel = None):
     """Removes a channel's opt-in attribute"""
     if channel is None:
         channel = ctx.message.channel
