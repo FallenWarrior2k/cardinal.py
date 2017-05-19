@@ -18,8 +18,8 @@ async def channels(ctx):
         return
 
 
-@channels.command(pass_context=True, aliases=['join'])
-async def show(ctx, channel: discord.Channel):
+@channels.command(pass_context=True, aliases=['show'])
+async def join(ctx, channel: discord.Channel):
     """Enables a user to access a channel."""
 
     dbsession = Session()
@@ -39,8 +39,8 @@ async def show(ctx, channel: discord.Channel):
         await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
 
-@channels.command(pass_context=True, aliases=['leave'])
-async def hide(ctx, channel: discord.Channel = None):
+@channels.command(pass_context=True, aliases=['hide'])
+async def leave(ctx, channel: discord.Channel = None):
     """Hides a channel from the user's view."""
     if channel is None:
         channel = ctx.message.channel
