@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
-bot = _discord.Bot(command_prefix=main.config['cmd_prefix'], description='cardinal.py', formatter=_discord.HelpFormatter(show_check_failure=True))
+bot = _discord.Bot(command_prefix=main.config['cmd_prefix'], description='cardinal.py')
 
 engine = create_engine(main.config['db_connectstring'])
 Base = declarative_base()
