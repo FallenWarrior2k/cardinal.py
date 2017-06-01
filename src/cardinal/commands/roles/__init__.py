@@ -82,9 +82,9 @@ async def stats(ctx):
     for role in role_list:
         role_dict[role.name] = sum(1 for member in ctx.message.server.members if role in member.roles)
 
-    em = discord.Embed(title='Role stats for ' + ctx.message.server.name)
+    em = discord.Embed(title='Role stats for ' + ctx.message.server.name, color=0x38CBF0)
     for role, count in role_dict.items():
-        em.add_field(role, count)
+        em.add_field(name=role, value=count)
 
     await bot.say(embed=em)
 
