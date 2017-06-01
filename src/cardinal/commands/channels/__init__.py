@@ -68,7 +68,7 @@ async def leave(ctx, channel: discord.Channel = None):
 async def list(ctx):
     """Lists all channels that can be joined through the bot."""
     dbsession = Session()
-    channel_list = [channel.name for channel in ctx.message.server if dbsession.query(Channel).get(channel.id)]
+    channel_list = [channel.name for channel in ctx.message.server.channels if dbsession.query(Channel).get(channel.id)]
 
     answer = 'Channels that can be joined through this bot:```\n'
 
