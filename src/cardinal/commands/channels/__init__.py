@@ -82,6 +82,23 @@ async def list(ctx):
     await bot.say(answer)
 
 
+@channels.command(pass_context=True)
+async def stats(ctx):
+    """Shows the member count for each channel."""
+    dbsession = Session()
+    role_list = [role for role in ctx.message.server.roles if dbsession.query(Channel).filter_by(roleid=role.id)]
+    role_dict = {}
+
+    for role in role_list:
+        role_dict[role.name] = sum(1 for member in ctx.message.server.members if role in member.roles)
+
+    em = discord.Embed(title='Role stats for ' + ctx.message.server.name, color=0x38CBF0)
+    for role, count in role_dict.items():
+        em.add_field(name=role, value=count)
+
+    await bot.say(embed=em)
+
+
 @channels.group(pass_context=True, name='opt-in')
 @commands.has_permissions(manage_channels=True)
 async def _opt_in(ctx):

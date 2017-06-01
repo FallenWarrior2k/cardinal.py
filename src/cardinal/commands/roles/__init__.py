@@ -75,6 +75,7 @@ async def list(ctx):
 
 @roles.command(pass_context=True)
 async def stats(ctx):
+    """Shows the member count for each role."""
     dbsession = Session()
     role_list = [role for role in ctx.message.server.roles if dbsession.query(Role).get(role.id)]
     role_dict = {}
