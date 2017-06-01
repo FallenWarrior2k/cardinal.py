@@ -1,4 +1,5 @@
 from discord.ext.commands import check
+
 from cardinal import Session
 from cardinal.models import WhitelistedChannel
 
@@ -16,3 +17,8 @@ def channel_whitelisted():
             return False
 
     return check(predicate)
+
+
+def clean_prefix(ctx):
+    user = ctx.bot.user
+    return ctx.prefix.replace(user.mention, '@' + user.name)

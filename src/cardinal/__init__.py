@@ -8,10 +8,10 @@ from sqlalchemy.ext.declarative import declarative_base
 import __main__ as main
 
 logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-bot = _discord.Bot(command_prefix=main.config['cmd_prefix'], description='cardinal.py')
+bot = _discord.Bot(command_prefix=_discord.when_mentioned_or(main.config['cmd_prefix']), description='cardinal.py')
 
 engine = create_engine(main.config['db_connectstring'])
 Base = declarative_base()
@@ -63,7 +63,3 @@ async def on_command(cmd, ctx):
         log_msg = '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(ctx.message)
 
     logger.log(logging.INFO, log_msg)
-
-from cardinal.commands import *
-
-bot.run(main.config['token'])

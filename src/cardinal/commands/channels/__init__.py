@@ -1,16 +1,16 @@
 import discord.utils
 from discord.ext import commands
 from cardinal import bot, Session
-from cardinal.utils import channel_whitelisted
+from cardinal.utils import channel_whitelisted, clean_prefix
 from .models import Channel
 
 
-@bot.group(name='channel', pass_context=True)
+@bot.group(name='channel', pass_context=True, no_pm=True)
 @channel_whitelisted()
 async def channels(ctx):
     """Provides facilities to work with opt-in channels"""
     if ctx.invoked_subcommand is None:
-        await bot.say('Invalid command passed: possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{0.prefix}help {0.command}` for further information'.format(ctx))
+        await bot.say(f'Invalid command passed. Possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` for further information')
         return
 
     if ctx.message.server is None:
@@ -21,7 +21,6 @@ async def channels(ctx):
 @channels.command(pass_context=True, aliases=['show'])
 async def join(ctx, channel: discord.Channel):
     """Enables a user to access a channel."""
-
     dbsession = Session()
 
     channel_db = dbsession.query(Channel).get(channel.id)
@@ -33,6 +32,7 @@ async def join(ctx, channel: discord.Channel):
             await bot.add_roles(ctx.message.author, role)
         except:
             await bot.say('Could not add role, please consult a moderator or try again.')
+            return
 
         await bot.say('User {user} joined channel {channel}.'.format(user=ctx.message.author.mention, channel=channel.mention))
     else:
@@ -56,10 +56,29 @@ async def leave(ctx, channel: discord.Channel = None):
             await bot.remove_roles(ctx.message.author, role)
         except:
             await bot.say('Could not remove role, please consult a moderator or try again.')
+            return
 
         await bot.say('User {user} left channel {channel}.'.format(user=ctx.message.author.mention, channel=channel.mention))
     else:
         await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
+
+
+@channels.command(pass_context=True)
+async def list(ctx):
+    """Lists all channels that can be joined through the bot."""
+    dbsession = Session()
+    channel_list = [channel.name for channel in ctx.message.server if dbsession.query(Channel).get(channel.id)]
+
+    answer = 'Channels that can be joined through this bot:```\n'
+
+    for channel in channel_list:
+        answer += '#'
+        answer += channel
+        answer += '\n'
+
+    answer += '```'
+    
+    await bot.say(answer)
 
 
 @channels.group(pass_context=True, name='opt-in')

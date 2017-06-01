@@ -2,14 +2,16 @@ import discord
 from discord.ext import commands
 from cardinal import bot, Session
 from cardinal.models import WhitelistedChannel
+from cardinal.utils import clean_prefix
 
 
-@bot.group(pass_context=True)
+@bot.group(pass_context=True, no_pm=True)
 @commands.has_permissions(manage_channels=True)
 async def whitelist(ctx):
     """Provides functionality for whitelisting channels to allow usage of channel-restricted commands."""
     if ctx.invoked_subcommand is None:
-        await bot.say('Invalid command passed. Possible choices are "add" and "remove".\nPlease refer to `{0.prefix}help {0.command}` for further information.'.format(ctx))
+        await bot.say(
+            f'Invalid command passed. Possible choices are "add" and "remove".\nPlease refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` for further information.')
         return
 
 @whitelist.command(pass_context=True)
