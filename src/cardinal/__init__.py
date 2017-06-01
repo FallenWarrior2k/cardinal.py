@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 import __main__ as main
+import cardinal.utils as utils
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ async def on_command_error(ex, ctx):
         error_msg = str(ex)
 
     if isinstance(ex, _discord.errors.UserInputError):
-        error_msg += ' See `{0.prefix}help {0.command}` for information on the command.'.format(ctx)
+        error_msg += ' See `{prefix}help {command}` for information on the command.'.format(prefix=utils.clean_prefix(ctx), command=ctx.invoked_with)
 
     if error_msg != '':
         await bot.send_message(ctx.message.channel, error_msg)

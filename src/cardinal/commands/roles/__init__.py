@@ -2,7 +2,8 @@ import logging
 import discord
 from discord.ext import commands
 from cardinal import bot, Session
-from cardinal.utils import channel_whitelisted, clean_prefix
+from cardinal.utils import clean_prefix
+from cardinal.commands.whitelist.utils import channel_whitelisted
 from .models import Role
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,23 @@ async def list(ctx):
     answer += '```'
 
     await bot.say(answer)
+
+
+@roles.command(pass_context=True)
+async def stats(ctx):
+    dbsession = Session()
+    role_list = [role for role in ctx.message.server.roles if dbsession.query(Role).get(role.id)]
+    role_dict = {}
+
+    for role in role_list:
+        role_dict[role.name] = sum(1 for member in ctx.message.server.members if role in member.roles)
+
+    em = discord.Embed(title='Role stats for ' + ctx.message.server.name)
+    for role, count in role_dict.items():
+        em.add_field(role, count)
+
+    await bot.say(embed=em)
+
 
 
 @roles.command()
