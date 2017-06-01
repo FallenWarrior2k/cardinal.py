@@ -10,7 +10,7 @@ from .models import Channel
 async def channels(ctx):
     """Provides facilities to work with opt-in channels"""
     if ctx.invoked_subcommand is None:
-        await bot.say(f'Invalid command passed. Possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` for further information')
+        await bot.say('Invalid command passed. Possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{prefix}help {command}` for further information'.format(prefix=clean_prefix(ctx), command=ctx.invoked_with))
         return
 
     if ctx.message.server is None:
@@ -77,7 +77,7 @@ async def list(ctx):
         answer += '\n'
 
     answer += '```'
-    
+
     await bot.say(answer)
 
 

@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 async def roles(ctx):
     """Provides functionality for managing roles."""
     if ctx.invoked_subcommand is None:
-        await bot.say(f'Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` for further information.')
+        await bot.say('Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{prefix}help {command}` for further information.'.format(prefix=clean_prefix(ctx), command=ctx.invoked_with))
         return
 
 

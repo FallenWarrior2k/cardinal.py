@@ -10,8 +10,7 @@ from cardinal.utils import clean_prefix
 async def whitelist(ctx):
     """Provides functionality for whitelisting channels to allow usage of channel-restricted commands."""
     if ctx.invoked_subcommand is None:
-        await bot.say(
-            f'Invalid command passed. Possible choices are "add" and "remove".\nPlease refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` for further information.')
+        await bot.say('Invalid command passed. Possible choices are "add" and "remove".\nPlease refer to `{prefix}help {command}` for further information.'.format(prefix=clean_prefix(ctx), command=ctx.invoked_with))
         return
 
 @whitelist.command(pass_context=True)
