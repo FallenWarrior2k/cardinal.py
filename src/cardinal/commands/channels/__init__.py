@@ -94,7 +94,7 @@ async def stats(ctx):
 
     em = discord.Embed(title='Channel stats for ' + ctx.message.server.name, color=0x38CBF0)
     for role, count in role_dict.items():
-        em.add_field(name=role, value=count)
+        em.add_field(name='#'+role, value=count)
 
     await bot.say(embed=em)
 
