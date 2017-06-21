@@ -1,8 +1,9 @@
 import discord
 from discord.ext import commands
 
-from cardinal import bot, Session
-from cardinal.commands.whitelist.models import WhitelistedChannel
+from cardinal import bot
+from cardinal.db import Session
+from cardinal.db.whitelist import WhitelistedChannel
 from cardinal.utils import clean_prefix
 
 

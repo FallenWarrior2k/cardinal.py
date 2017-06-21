@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String
-import cardinal as db
+import cardinal.db as db
+
 
 class Role(db.Base):
     __tablename__ = 'join_roles'

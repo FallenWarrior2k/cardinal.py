@@ -1,30 +1,23 @@
 import logging
 import discord
 import discord.ext.commands as _discord
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 
-import __main__ as main
 import cardinal.utils as utils
+from __main__ import config
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-bot = _discord.Bot(command_prefix=_discord.when_mentioned_or(main.config['cmd_prefix']), description='cardinal.py')
-
-engine = create_engine(main.config['db_connectstring'])
-Base = declarative_base()
-Session = sessionmaker()
-Session.configure(bind=engine)
+#TODO: Use cogs instead of bare commands/groups (kinda like Flask blueprint objects) to prevent circular imports
+bot = _discord.Bot(command_prefix=_discord.when_mentioned_or(config['cmd_prefix']), description='cardinal.py')
 
 
 @bot.event
 async def on_ready():
     try:
         logger.log(logging.INFO, 'Logged into Discord as {0}'.format(bot.user))
-        await bot.change_presence(game=discord.Game(name=main.config['default_game']))
+        await bot.change_presence(game=discord.Game(name=config['default_game']))
     except:
         pass
 
@@ -47,7 +40,7 @@ async def on_command_error(ex, ctx):
         error_msg = str(ex)
 
     if isinstance(ex, _discord.errors.UserInputError):
-        error_msg += ' See `{prefix}help {command}` for information on the command.'.format(prefix=utils.clean_prefix(ctx), command=ctx.invoked_with)
+        error_msg += ' See `{prefix}help {command}` for information on the command.'.format(prefix=utils.clean_prefix(ctx), command=ctx.command.qualified_name)
 
     if error_msg != '':
         await bot.send_message(ctx.message.channel, error_msg)

@@ -1,21 +1,20 @@
 import discord.utils
 from discord.ext import commands
-from cardinal import bot, Session
-from cardinal.utils import clean_prefix
-from cardinal.commands.whitelist.utils import channel_whitelisted
-from .models import Channel
+
+from cardinal import bot
+from cardinal.db import Session
+from cardinal.db.channels import Channel
+from cardinal.utils import clean_prefix, channel_whitelisted
 
 
-@bot.group(name='channel', pass_context=True, no_pm=True)
+@bot.group(pass_context=True, no_pm=True, name='channel')
 @channel_whitelisted()
 async def channels(ctx):
     """Provides facilities to work with opt-in channels"""
     if ctx.invoked_subcommand is None:
-        await bot.say('Invalid command passed. Possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{prefix}help {command}` for further information'.format(prefix=clean_prefix(ctx), command=ctx.invoked_with))
-        return
-
-    if ctx.message.server is None:
-        await bot.say('Command not available outside of a server.')
+        await bot.say('Invalid command passed. Possible choices are "show", "hide", and "opt-in"(mod only). \
+                              \nPlease refer to `{prefix}help {command}` for further information'
+                      .format(prefix=clean_prefix(ctx), command=ctx.command.qualified_name))
         return
 
 
@@ -35,7 +34,8 @@ async def join(ctx, channel: discord.Channel):
             await bot.say('Could not add role, please consult a moderator or try again.')
             return
 
-        await bot.say('User {user} joined channel {channel}.'.format(user=ctx.message.author.mention, channel=channel.mention))
+        await bot.say('User {user} joined channel {channel}.'
+                      .format(user=ctx.message.author.mention, channel=channel.mention))
     else:
         await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
@@ -59,20 +59,21 @@ async def leave(ctx, channel: discord.Channel = None):
             await bot.say('Could not remove role, please consult a moderator or try again.')
             return
 
-        await bot.say('User {user} left channel {channel}.'.format(user=ctx.message.author.mention, channel=channel.mention))
+        await bot.say('User {user} left channel {channel}.'
+                      .format(user=ctx.message.author.mention, channel=channel.mention))
     else:
         await bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
 
-@channels.command(pass_context=True)
-async def list(ctx):
+@channels.command(pass_context=True, name='list')
+async def _list(ctx):
     """Lists all channels that can be joined through the bot."""
     dbsession = Session()
-    channel_list = [channel.name for channel in ctx.message.server.channels if dbsession.query(Channel).get(channel.id)]
+    channel_iter = (channel.name for channel in ctx.message.server.channels if dbsession.query(Channel).get(channel.id))
 
     answer = 'Channels that can be joined through this bot:```\n'
 
-    for channel in channel_list:
+    for channel in channel_iter:
         answer += '#'
         answer += channel
         answer += '\n'
@@ -86,10 +87,10 @@ async def list(ctx):
 async def stats(ctx):
     """Shows the member count for each channel."""
     dbsession = Session()
-    role_list = [role for role in ctx.message.server.roles if dbsession.query(Channel).filter_by(roleid=role.id).first()]
+    role_iter = (role for role in ctx.message.server.roles if dbsession.query(Channel).filter_by(roleid=role.id).first())
     role_dict = {}
 
-    for role in role_list:
+    for role in role_iter:
         role_dict[role.name] = sum(1 for member in ctx.message.server.members if role in member.roles)
 
     em = discord.Embed(title='Channel stats for ' + ctx.message.server.name, color=0x38CBF0)
@@ -185,8 +186,9 @@ async def disable(ctx, channel: discord.Channel = None):
         try:
             await bot.edit_channel_permissions(channel, everyone_role, overwrite)
         except:
-            await bot.say('Could not remove opt-in attribute from channel {0}, please consult the dev or try again.'.format(channel.mention))
-            await bot.say('Unable to unhide channel {0}. Please do so manually.'.format(channel.mention))
+            await bot.say('Could not remove opt-in attribute from channel {0}, please consult the dev or try again.'
+                          .format(channel.mention))
+            await bot.say('Unable to un-hide channel {0}. Please do so manually.'.format(channel.mention))
 
         dbsession.delete(channel_db)
         dbsession.commit()

@@ -1,10 +1,12 @@
 import logging
+
 import discord
 from discord.ext import commands
-from cardinal import bot, Session
-from cardinal.utils import clean_prefix
-from cardinal.commands.whitelist.utils import channel_whitelisted
-from .models import Role
+
+from cardinal import bot
+from cardinal.db import Session
+from cardinal.db.roles import Role
+from cardinal.utils import clean_prefix, channel_whitelisted
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

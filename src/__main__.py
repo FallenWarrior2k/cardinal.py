@@ -11,7 +11,6 @@ if not len(sys.argv) > 1:
 with open(sys.argv[1]) as config_file:
     config = json.load(config_file)
 
-
 from cardinal import bot
 from cardinal.commands import *
 
