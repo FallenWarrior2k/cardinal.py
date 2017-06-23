@@ -1,6 +1,6 @@
 import logging
 import discord
-import discord.ext.commands as _discord
+import discord.ext.commands as commands
 
 import cardinal.utils as utils
 from __main__ import config
@@ -9,51 +9,44 @@ logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-#TODO: Use cogs instead of bare commands/groups (kinda like Flask blueprint objects) to prevent circular imports
-bot = _discord.Bot(command_prefix=_discord.when_mentioned_or(config['cmd_prefix']), description='cardinal.py')
+# TODO: Implement server-specific prefixes
+bot = commands.Bot(command_prefix=commands.when_mentioned_or(config['cmd_prefix']), description='cardinal.py')
 
 
 @bot.event
 async def on_ready():
-    try:
-        logger.log(logging.INFO, 'Logged into Discord as {0}'.format(bot.user))
-        await bot.change_presence(game=discord.Game(name=config['default_game']))
-    except:
-        pass
+    logger.log(logging.INFO, 'Logged into Discord as {0}'.format(bot.user))
+    await bot.change_presence(game=discord.Game(name=config['default_game']))
 
 
 @bot.event
 async def on_command_error(ex, ctx):
     error_msg = ''
 
-    if isinstance(ex, _discord.errors.CheckFailure):
+    if isinstance(ex, commands.errors.CheckFailure):
         error_msg = 'You are not allowed to use this command (here).'
-    elif isinstance(ex, _discord.errors.MissingRequiredArgument):
+    elif isinstance(ex, commands.errors.MissingRequiredArgument):
         error_msg = 'Too few arguments.'
-    elif isinstance(ex, _discord.errors.TooManyArguments):
+    elif isinstance(ex, commands.errors.TooManyArguments):
         error_msg = 'Too many arguments.'
-    elif isinstance(ex, _discord.errors.BadArgument):
+    elif isinstance(ex, commands.errors.BadArgument):
         error_msg = 'Arguments parsing failed.'
-    elif isinstance(ex, _discord.errors.NoPrivateMessage):
+    elif isinstance(ex, commands.errors.NoPrivateMessage):
         error_msg = 'Command must not be used in private message channels.'
-    elif isinstance(ex, _discord.errors.CommandOnCooldown):
+    elif isinstance(ex, commands.errors.CommandOnCooldown):
         error_msg = str(ex)
 
-    if isinstance(ex, _discord.errors.UserInputError):
-        error_msg += ' See `{prefix}help {command}` for information on the command.'.format(prefix=utils.clean_prefix(ctx), command=ctx.command.qualified_name)
+    if isinstance(ex, commands.errors.UserInputError):
+        error_msg += ' See `{}help {}` for information on the command.'\
+            .format(utils.clean_prefix(ctx), ctx.command.qualified_name)
 
     if error_msg != '':
         await bot.send_message(ctx.message.channel, error_msg)
 
-    if isinstance(ex, _discord.errors.CommandInvokeError):
-        logger.log(logging.ERROR, ex.original)
+    if isinstance(ex, commands.errors.CommandInvokeError):
+        logger.log(logging.ERROR, utils.format_exception(ex.original))
 
 
 @bot.event
 async def on_command(cmd, ctx):
-    if ctx.message.server is None:
-        log_msg = '[PM] {user.name} ({user.id}): {message.content}'.format(user=ctx.message.author, message=ctx.message)
-    else:
-        log_msg = '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(ctx.message)
-
-    logger.log(logging.INFO, log_msg)
+    logger.log(logging.INFO, utils.format_message(ctx.message))
