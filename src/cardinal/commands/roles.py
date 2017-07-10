@@ -3,7 +3,7 @@ import discord
 import discord.ext.commands as commands
 
 from cardinal.commands import Cog
-from cardinal.db import Session
+from cardinal.db import session_scope
 from cardinal.db.roles import Role
 from cardinal.utils import clean_prefix, channel_whitelisted
 
@@ -29,9 +29,9 @@ class Roles(Cog):
     async def join(self, ctx, *, role: discord.Role):
         """Adds the user to the specified role."""
 
-        with Session() as dbsession:
-            if not dbsession.query(Role).get(role.id):
-                await self.bot.say('Role "{0}" is not marked as a joinable role.')
+        with session_scope() as session:
+            if not session.query(Role).get(role.id):
+                await self.bot.say('Role "{}" is not marked as a joinable role.'.format(role.name))
                 return
 
         try:
@@ -46,8 +46,8 @@ class Roles(Cog):
     async def leave(self, ctx, *, role: discord.Role):
         """Removes the user from the specified role."""
 
-        with Session() as dbsession:
-            if not dbsession.query(Role).get(role.id):
+        with session_scope() as session:
+            if not session.query(Role).get(role.id):
                 await self.bot.say('Role "{0}" cannot be left through this bot.')
                 return
 
@@ -63,8 +63,8 @@ class Roles(Cog):
     async def list(self, ctx):
         """Lists the roles that can be joined through the bot."""
 
-        with Session() as dbsession:
-            role_list = [role.name for role in ctx.message.server.roles if dbsession.query(Role).get(role.id)]
+        with session_scope() as session:
+            role_list = [role.name for role in ctx.message.server.roles if session.query(Role).get(role.id)]
 
         answer = 'Roles that can be joined through this bot:```\n'
 
@@ -80,8 +80,8 @@ class Roles(Cog):
     async def stats(self, ctx):
         """Shows the member count for each role."""
 
-        with Session() as dbsession:
-            role_list = [role for role in ctx.message.server.roles if dbsession.query(Role).get(role.id)]
+        with session_scope() as session:
+            role_list = [role for role in ctx.message.server.roles if session.query(Role).get(role.id)]
 
         role_dict = {}
 
@@ -99,13 +99,13 @@ class Roles(Cog):
     async def add(self, *, role: discord.Role):
         """Marks a role as joinable."""
 
-        with Session() as dbsession:
-            if dbsession.query(Role).get(role.id):
+        with session_scope() as session:
+            if session.query(Role).get(role.id):
                 await self.bot.say('Role "{0}" is already marked as a joinable role.'.format(role.name))
                 return
 
-            dbsession.add(Role(roleid=role.id))
-            dbsession.commit()
+            session.add(Role(roleid=role.id))
+            session.commit()
 
         await self.bot.say('Marked role "{0}" as joinable.'.format(role.name))
 
@@ -114,15 +114,15 @@ class Roles(Cog):
     async def remove(self, *, role: discord.Role):
         """Removes a role from the list of joinable roles."""
 
-        with Session() as dbsession:
-            role_db = dbsession.query(Role).get(role.id)
+        with session_scope() as session:
+            role_db = session.query(Role).get(role.id)
 
             if not role_db:
                 await self.bot.say('Role "{0}" is not marked as a joinable role'.format(role.name))
                 return
 
-            dbsession.delete(role_db)
-            dbsession.commit()
+            session.delete(role_db)
+            session.commit()
 
         await self.bot.say('Removed role "{0}" from list of joinable roles.'.format(role.name))
 
@@ -137,9 +137,9 @@ class Roles(Cog):
             await self.bot.say('Could not create role "{0}".'.format(rolename))
             return
 
-        with Session() as dbsession:
-            dbsession.add(Role(roleid=role.id))
-            dbsession.commit()
+        with session_scope() as session:
+            session.add(Role(roleid=role.id))
+            session.commit()
 
         await self.bot.say('Created role "{0}" and marked it as joinable.'.format(rolename))
 
@@ -148,11 +148,11 @@ class Roles(Cog):
     async def delete(self, *, role: discord.Role):
         """Deletes a role."""
 
-        with Session() as dbsession:
-            role_db = dbsession.query(Role).get(role.id)
+        with session_scope() as session:
+            role_db = session.query(Role).get(role.id)
             if role_db:
-                dbsession.delete(role_db)
-                dbsession.commit()
+                session.delete(role_db)
+                session.commit()
 
         try:
             await self.bot.delete_role(role.server, role)
