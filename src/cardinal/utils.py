@@ -1,8 +1,7 @@
 import logging
 from discord.ext.commands import check
 
-import cardinal
-import cardinal.db
+from cardinal.db import session_scope
 from cardinal.db.whitelist import WhitelistedChannel
 
 logger = logging.getLogger(__name__)
@@ -24,8 +23,8 @@ def channel_whitelisted(exception_predicate=None):
     def predicate(ctx):
         channel_obj = ctx.message.channel
 
-        dbsession = cardinal.db.Session()
-        channel_db = dbsession.query(WhitelistedChannel).get(channel_obj.id)
+        with session_scope() as session:
+            channel_db = session.query(WhitelistedChannel).get(channel_obj.id)
 
         if channel_db or (callable(exception_predicate) and exception_predicate(ctx)):
             return True
