@@ -22,7 +22,7 @@ class Roles(Cog):
         """Provides functionality for managing roles."""
         if ctx.invoked_subcommand is None:
             await self.bot.say('Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{prefix}help {command}` for further information.'
-                               .format(prefix=clean_prefix(ctx), command=ctx.invoked_with))
+                               .format(prefix=clean_prefix(ctx), command=ctx.command.qualified_name))
             return
 
     @roles.command(pass_context=True)
@@ -96,12 +96,6 @@ class Roles(Cog):
     @commands.has_permissions(manage_roles=True)
     async def add(self, *, role: discord.Role):
         """Marks a role as joinable."""
-        try:
-            await self.bot.edit_role(role.server, role, mentionable=True)
-        except:
-            await self.bot.say('Could not make role "{0}" mentionable.'.format(role.name))
-            return
-
         dbsession = Session()
 
         if dbsession.query(Role).get(role.id):
@@ -116,11 +110,6 @@ class Roles(Cog):
     @commands.has_permissions(manage_roles=True)
     async def remove(self, *, role: discord.Role):
         """Removes a role from the list of joinable roles."""
-        try:
-            await self.bot.edit_role(role.server, role, mentionable=False)
-        except:
-            await self.bot.say('Could not make role "{0}" non-mentionable.'.format(role.name))
-            return
 
         dbsession = Session()
 
@@ -139,7 +128,7 @@ class Roles(Cog):
     async def create(self, ctx, *, rolename: str):
         """Creates a new role and makes it joinable through the bot."""
         try:
-            role = await self.bot.create_role(ctx.message.server, name=rolename, mentionable=True)
+            role = await self.bot.create_role(ctx.message.server, name=rolename)
         except:
             await self.bot.say('Could not create role "{0}".'.format(rolename))
             return

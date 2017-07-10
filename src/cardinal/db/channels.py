@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String
+
 import cardinal.db as db
 
 
