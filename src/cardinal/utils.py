@@ -27,7 +27,7 @@ def channel_whitelisted(exception_predicate=None):
         dbsession = cardinal.db.Session()
         channel_db = dbsession.query(WhitelistedChannel).get(channel_obj.id)
 
-        if channel_db or exception_predicate(ctx):
+        if channel_db or (callable(exception_predicate) and exception_predicate(ctx)):
             return True
         else:
             return False
