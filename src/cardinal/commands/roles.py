@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class RoleCog(Cog):
+class Roles(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)

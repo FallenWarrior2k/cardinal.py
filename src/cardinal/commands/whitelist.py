@@ -7,7 +7,7 @@ from cardinal.db.whitelist import WhitelistedChannel
 from cardinal.utils import clean_prefix
 
 
-class WhitelistCog(Cog):
+class Whitelisting(Cog):
     def __init__(self, bot):
         super().__init__(bot)
 
@@ -21,7 +21,7 @@ class WhitelistCog(Cog):
             return
 
     @whitelist.command(pass_context=True)
-    async def add(self, ctx, channel: discord.Channel = None):
+    async def add(self, ctx, *, channel: discord.Channel = None):
         """Adds a channel to the whitelist."""
         if channel is None:
             channel = ctx.message.channel
@@ -38,7 +38,7 @@ class WhitelistCog(Cog):
         await self.bot.say('Whitelisted channel {0}.'.format(channel.mention))
 
     @whitelist.command(pass_context=True)
-    async def remove(self, ctx, channel: discord.Channel = None):
+    async def remove(self, ctx, *, channel: discord.Channel = None):
         """Removes a channel from the whitelist."""
         if channel is None:
             channel = ctx.message.channel

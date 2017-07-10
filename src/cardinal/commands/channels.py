@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ChannelCog(Cog):
+class Channels(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -28,7 +28,7 @@ class ChannelCog(Cog):
             return
 
     @channels.command(pass_context=True, aliases=['show'])
-    async def join(self, ctx, channel: discord.Channel):
+    async def join(self, ctx, *, channel: discord.Channel):
         """Enables a user to access a channel."""
         dbsession = Session()
 
@@ -49,7 +49,7 @@ class ChannelCog(Cog):
             await self.bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
     @channels.command(pass_context=True, aliases=['hide'])
-    async def leave(self, ctx, channel: discord.Channel = None):
+    async def leave(self, ctx, *, channel: discord.Channel = None):
         """Hides a channel from the user's view."""
         if channel is None:
             channel = ctx.message.channel
@@ -114,7 +114,7 @@ class ChannelCog(Cog):
             await self.bot.say('Invalid command passed: possible options are "enable" and "disable".')
 
     @_opt_in.command(pass_context=True)
-    async def enable(self, ctx, channel: discord.Channel = None):
+    async def enable(self, ctx, *, channel: discord.Channel = None):
         """Makes a channel opt-in."""
         if channel is None:
             channel = ctx.message.channel
@@ -166,7 +166,7 @@ class ChannelCog(Cog):
         await self.bot.say('Opt-in enabled for channel {0}.' .format(channel.mention))
 
     @_opt_in.command(pass_context=True)
-    async def disable(self, ctx, channel: discord.Channel = None):
+    async def disable(self, ctx, *, channel: discord.Channel = None):
         """Removes a channel's opt-in attribute"""
         if channel is None:
             channel = ctx.message.channel
