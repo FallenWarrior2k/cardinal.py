@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from __main__ import config
 
-engine = create_engine(config['db_connectstring'])
+engine = create_engine(config['db_connectstring'], pool_size=20, max_overflow=100)
 Base = declarative_base()
 _Session = sessionmaker()
 _Session.configure(bind=engine)

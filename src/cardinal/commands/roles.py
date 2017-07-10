@@ -48,7 +48,7 @@ class Roles(Cog):
 
         with session_scope() as session:
             if not session.query(Role).get(role.id):
-                await self.bot.say('Role "{0}" cannot be left through this bot.')
+                await self.bot.say('Role "{}" cannot be left through this bot.'.format(role.name))
                 return
 
         try:
