@@ -21,13 +21,12 @@ class RoleCog(Cog):
     async def roles(self, ctx):
         """Provides functionality for managing roles."""
         if ctx.invoked_subcommand is None:
-            await self.bot.say('Invalid command passed. Possible choices are "join", "leave",... \n\
-                          Please refer to `{prefix}help {command}` for further information.'
+            await self.bot.say('Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{prefix}help {command}` for further information.'
                                .format(prefix=clean_prefix(ctx), command=ctx.invoked_with))
             return
 
     @roles.command(pass_context=True)
-    async def join(self, ctx, role: discord.Role):
+    async def join(self, ctx, *, role: discord.Role):
         """Adds the user to the specified role."""
         dbsession = Session()
 
@@ -44,7 +43,7 @@ class RoleCog(Cog):
         await self.bot.say('User {user} joined role "{role}"'.format(user=ctx.message.author.mention, role=role.name))
 
     @roles.command(pass_context=True)
-    async def leave(self, ctx, role: discord.Role):
+    async def leave(self, ctx, *, role: discord.Role):
         """Removes the user from the specified role."""
         dbsession = Session()
 
@@ -95,7 +94,7 @@ class RoleCog(Cog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def add(self, role: discord.Role):
+    async def add(self, *, role: discord.Role):
         """Marks a role as joinable."""
         try:
             await self.bot.edit_role(role.server, role, mentionable=True)
@@ -115,7 +114,7 @@ class RoleCog(Cog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def remove(self, role: discord.Role):
+    async def remove(self, *, role: discord.Role):
         """Removes a role from the list of joinable roles."""
         try:
             await self.bot.edit_role(role.server, role, mentionable=False)
@@ -137,7 +136,7 @@ class RoleCog(Cog):
 
     @roles.command(pass_context=True)
     @commands.has_permissions(manage_roles=True)
-    async def create(self, ctx, rolename: str):
+    async def create(self, ctx, *, rolename: str):
         """Creates a new role and makes it joinable through the bot."""
         try:
             role = await self.bot.create_role(ctx.message.server, name=rolename, mentionable=True)
@@ -152,7 +151,7 @@ class RoleCog(Cog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def delete(self, role: discord.Role):
+    async def delete(self, *, role: discord.Role):
         """Deletes a role."""
         dbsession = Session()
 
