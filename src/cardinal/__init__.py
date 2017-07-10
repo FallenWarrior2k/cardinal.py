@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # TODO: Implement server-specific prefixes
-bot = _commands.Bot(command_prefix=_commands.when_mentioned_or(config['cmd_prefix']), description='cardinal.py')
+bot = _commands.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py')
 
 
 @bot.event
@@ -26,27 +26,27 @@ async def on_ready():
 async def on_command_error(ex, ctx):
     error_msg = ''
 
-    if isinstance(ex, _commands.errors.CheckFailure):
+    if isinstance(ex, _commands.CheckFailure):
         error_msg = 'You are not allowed to use this command (here).'
-    elif isinstance(ex, _commands.errors.MissingRequiredArgument):
+    elif isinstance(ex, _commands.MissingRequiredArgument):
         error_msg = 'Too few arguments.'
-    elif isinstance(ex, _commands.errors.TooManyArguments):
+    elif isinstance(ex, _commands.TooManyArguments):
         error_msg = 'Too many arguments.'
-    elif isinstance(ex, _commands.errors.BadArgument):
+    elif isinstance(ex, _commands.BadArgument):
         error_msg = 'Arguments parsing failed.'
-    elif isinstance(ex, _commands.errors.NoPrivateMessage):
+    elif isinstance(ex, _commands.NoPrivateMessage):
         error_msg = 'Command must not be used in private message channels.'
-    elif isinstance(ex, _commands.errors.CommandOnCooldown):
+    elif isinstance(ex, _commands.CommandOnCooldown):
         error_msg = str(ex)
 
-    if isinstance(ex, _commands.errors.UserInputError):
+    if isinstance(ex, _commands.UserInputError):
         error_msg += ' See `{}help {}` for information on the command.'\
             .format(utils.clean_prefix(ctx), ctx.command.qualified_name)
 
     if error_msg != '':
         await bot.send_message(ctx.message.channel, error_msg)
 
-    if isinstance(ex, _commands.errors.CommandInvokeError):
+    if isinstance(ex, _commands.CommandInvokeError):
         logger.log(logging.ERROR, utils.format_exception(ex.original))
 
 
