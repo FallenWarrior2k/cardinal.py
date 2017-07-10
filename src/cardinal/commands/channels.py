@@ -35,19 +35,19 @@ class Channels(Cog):
         with session_scope() as session:
             channel_db = session.query(Channel).get(channel.id)
 
-        if channel_db:
-            role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+            if channel_db:
+                role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
 
-            try:
-                await self.bot.add_roles(ctx.message.author, role)
-            except:
-                await self.bot.say('Could not add role, please consult a moderator or try again.')
-                return
+                try:
+                    await self.bot.add_roles(ctx.message.author, role)
+                except:
+                    await self.bot.say('Could not add role, please consult a moderator or try again.')
+                    return
 
-            await self.bot.say('User {user} joined channel {channel}.'
-                               .format(user=ctx.message.author.mention, channel=channel.mention))
-        else:
-            await self.bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
+                await self.bot.say('User {user} joined channel {channel}.'
+                                   .format(user=ctx.message.author.mention, channel=channel.mention))
+            else:
+                await self.bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
     @channels.command(pass_context=True, aliases=['hide'])
     async def leave(self, ctx, *, channel: discord.Channel = None):
@@ -59,19 +59,19 @@ class Channels(Cog):
         with session_scope() as session:
             channel_db = session.query(Channel).get(channel.id)
 
-        if channel_db:
-            role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+            if channel_db:
+                role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
 
-            try:
-                await self.bot.remove_roles(ctx.message.author, role)
-            except:
-                await self.bot.say('Could not remove role, please consult a moderator or try again.')
-                return
+                try:
+                    await self.bot.remove_roles(ctx.message.author, role)
+                except:
+                    await self.bot.say('Could not remove role, please consult a moderator or try again.')
+                    return
 
-            await self.bot.say('User {user} left channel {channel}.'
-                          .format(user=ctx.message.author.mention, channel=channel.mention))
-        else:
-            await self.bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
+                await self.bot.say('User {user} left channel {channel}.'
+                              .format(user=ctx.message.author.mention, channel=channel.mention))
+            else:
+                await self.bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
     @channels.command(pass_context=True, name='list')
     async def _list(self, ctx):
