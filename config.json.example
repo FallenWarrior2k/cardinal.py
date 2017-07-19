@@ -1,0 +1,9 @@
+{
+  "token": "YOURTOKENHERE",
+  "cmd_prefix": "%",
+  "db": {
+    "connectstring": "sqlite:///cardinal.sqlite",
+    "options": {}
+  },
+  "default_game": "type %help"
+}
