@@ -64,11 +64,11 @@ class Roles(Cog):
         """Lists the roles that can be joined through the bot."""
 
         with session_scope() as session:
-            role_list = [role.name for role in ctx.message.server.roles if session.query(Role).get(role.id)]
+            role_iter = (role.name for role in ctx.message.server.roles if session.query(Role).get(role.id))
 
         answer = 'Roles that can be joined through this bot:```\n'
 
-        for role in role_list:
+        for role in role_iter:
             answer += role
             answer += '\n'
 
@@ -81,16 +81,12 @@ class Roles(Cog):
         """Shows the member count for each role."""
 
         with session_scope() as session:
-            role_list = [role for role in ctx.message.server.roles if session.query(Role).get(role.id)]
-
-        role_dict = {}
-
-        for role in role_list:
-            role_dict[role.name] = sum(1 for member in ctx.message.server.members if role in member.roles)
+            role_dict = dict((role, sum(1 for member in ctx.message.server.members if role in member.roles))
+                             for role in ctx.message.server.roles if session.query(Role).get(role.id))
 
         em = discord.Embed(title='Role stats for ' + ctx.message.server.name, color=0x38CBF0)
-        for role, count in role_dict.items():
-            em.add_field(name=role, value=count)
+        for role in sorted(role_dict.keys(), key=lambda r: r.position):
+            em.add_field(name=role.name, value=role_dict[role])
 
         await self.bot.say(embed=em)
 
@@ -105,7 +101,6 @@ class Roles(Cog):
                 return
 
             session.add(Role(roleid=role.id))
-            session.commit()
 
         await self.bot.say('Marked role "{0}" as joinable.'.format(role.name))
 
@@ -122,7 +117,6 @@ class Roles(Cog):
                 return
 
             session.delete(role_db)
-            session.commit()
 
         await self.bot.say('Removed role "{0}" from list of joinable roles.'.format(role.name))
 
@@ -139,7 +133,6 @@ class Roles(Cog):
 
         with session_scope() as session:
             session.add(Role(roleid=role.id))
-            session.commit()
 
         await self.bot.say('Created role "{0}" and marked it as joinable.'.format(rolename))
 
@@ -152,7 +145,6 @@ class Roles(Cog):
             role_db = session.query(Role).get(role.id)
             if role_db:
                 session.delete(role_db)
-                session.commit()
 
         try:
             await self.bot.delete_role(role.server, role)

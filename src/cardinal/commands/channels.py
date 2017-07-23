@@ -96,17 +96,13 @@ class Channels(Cog):
         """Shows the member count for each channel."""
 
         with session_scope() as session:
-            role_iter = (role for role in ctx.message.server.roles
-                         if session.query(Channel).filter_by(roleid=role.id).first())
-
-        role_dict = {}
-
-        for role in role_iter:
-            role_dict[role.name] = sum(1 for member in ctx.message.server.members if role in member.roles)
+            role_dict = dict((role, sum(1 for member in ctx.message.server.members if role in member.roles))
+                             for role in ctx.message.server.roles
+                             if session.query(Channel).filter_by(roleid=role.id).first())
 
         em = discord.Embed(title='Channel stats for ' + ctx.message.server.name, color=0x38CBF0)
-        for role, count in role_dict.items():
-            em.add_field(name='#'+role, value=count)
+        for role in sorted(role_dict.keys(), key=lambda r: r.position):
+            em.add_field(name='#'+role.name, value=role_dict[role])
 
         await self.bot.say(embed=em)
 
@@ -167,7 +163,6 @@ class Channels(Cog):
 
             channel_db = Channel(channelid=channel.id, roleid=role.id)
             session.add(channel_db)
-            session.commit()
 
         await self.bot.say('Opt-in enabled for channel {0}.' .format(channel.mention))
 
@@ -204,7 +199,6 @@ class Channels(Cog):
                     await self.bot.say('Unable to un-hide channel {0}. Please do so manually.'.format(channel.mention))
 
                 session.delete(channel_db)
-                session.commit()
                 await self.bot.say('Opt-in disabled for channel {0}.'.format(channel.mention))
             else:
                 await self.bot.say('Channel {0} is not opt-in'.format(channel.mention))

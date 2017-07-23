@@ -35,7 +35,6 @@ class Whitelisting(Cog):
     
             channel_db = WhitelistedChannel(channelid=channel.id)
             session.add(channel_db)
-            session.commit()
             
         await self.bot.say('Whitelisted channel {0}.'.format(channel.mention))
 
@@ -53,5 +52,4 @@ class Whitelisting(Cog):
                 return
     
             session.delete(channel_db)
-            session.commit()
         await self.bot.say('Removed channel {0} from whitelist.'.format(channel.mention))
