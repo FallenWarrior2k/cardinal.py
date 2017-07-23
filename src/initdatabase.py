@@ -15,7 +15,7 @@ if len(sys.argv) <= 2 and not path.isfile('config.json'):
 
 config_file_path = sys.argv[1] if len(sys.argv) >= 2 else 'config.json'
 if not path.isfile(config_file_path):
-    logger.log(logging.FATAl, 'Config file not found. Please make sure the provided path is correct.')
+    logger.log(logging.FATAL, 'Config file not found. Please make sure the provided path is correct.')
     sys.exit(1)
 
 with open(config_file_path) as config_file:
