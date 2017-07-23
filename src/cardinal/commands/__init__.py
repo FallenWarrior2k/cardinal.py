@@ -1,9 +1,8 @@
 # Please kindly ignore this craftiness
 
-import glob
 import importlib
 import logging
-from os.path import dirname, basename, isfile, isdir
+import pkgutil
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -31,14 +30,5 @@ def setup(bot):
             logger.log(logging.INFO, 'Successfully initialized "{0}".'.format(cog.__name__))
 
 
-nodes = glob.glob(dirname(__file__) + '/*')
-modules = (basename(f)[:-3] for f in nodes if isfile(f) and basename(f).endswith('.py') and not basename(f).startswith('__'))
-packages = (basename(f) for f in nodes if isdir(f) and isfile(f + '/__init__.py'))
-
-imports = {}
-
-for _module in modules:
-    imports[_module] = importlib.import_module('.' + _module, __name__)
-
-for package in packages:
-    imports[package] = importlib.import_module('.' + package, __name__)
+imports = [importlib.import_module('.' + mod_name, __name__)
+           for finder, mod_name, is_pkg in pkgutil.iter_modules(__path__) if not is_pkg]

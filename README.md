@@ -28,5 +28,7 @@ Note that this might require root permissions on Linux systems.
     For those who want to make changes, `connect_string` is the first positional parameter passed to 
     [`create_engine`](http://docs.sqlalchemy.org/en/latest/core/engines.html?highlight=create_engine#sqlalchemy.create_engine),
     while `options` is a (possibly empty, but necessary) JSON object, which will be passed as `**kwargs`.
-  
-5. Run the bot with the command `python3 src` (Linux) or `python src` (Windows).
+
+5. Initialize your database (creating tables, etc.) with 
+`python3 src/initdatabase.py` (Linux) or `python src/initdatabase.py` (Windows)
+6. Run the bot with the command `python3 src` (Linux) or `python src` (Windows).

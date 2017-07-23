@@ -8,5 +8,3 @@ class Channel(db.Base):
 
     channelid = Column(String, primary_key=True, autoincrement=False)
     roleid = Column(String, unique=True)
-
-db.Base.metadata.create_all(db.engine)
