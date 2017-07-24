@@ -83,7 +83,7 @@ class Channels(Cog):
 
         answer = 'Channels that can be joined through this bot:```\n'
 
-        for channel in channel_iter:
+        for channel in sorted(channel_iter, key=lambda r: r.position):
             answer += '#'
             answer += channel
             answer += '\n'

@@ -69,7 +69,7 @@ class Roles(Cog):
 
         answer = 'Roles that can be joined through this bot:```\n'
 
-        for role in role_iter:
+        for role in sorted(role_iter, key=lambda r: r.position):
             answer += role
             answer += '\n'
 
