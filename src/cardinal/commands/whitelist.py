@@ -15,16 +15,17 @@ class Whitelisting(Cog):
     @commands.has_permissions(manage_channels=True)
     async def whitelist(self, ctx):
         """Provides functionality for whitelisting channels to allow usage of channel-restricted commands."""
-        
+
         if ctx.invoked_subcommand is None:
-            await self.bot.say('Invalid command passed. Possible choices are "add" and "remove".\n Please refer to `{}help {}` for further information.'
-                               .format(clean_prefix(ctx), ctx.invoked_with))
+            await self.bot.say(
+                'Invalid command passed. Possible choices are "add" and "remove".\n Please refer to `{}help {}` for further information.'
+                .format(clean_prefix(ctx), ctx.invoked_with))
             return
 
     @whitelist.command(pass_context=True)
     async def add(self, ctx, *, channel: discord.Channel = None):
         """Adds a channel to the whitelist."""
-        
+
         if channel is None:
             channel = ctx.message.channel
 
@@ -32,16 +33,16 @@ class Whitelisting(Cog):
             if session.query(WhitelistedChannel).get(channel.id):
                 await self.bot.say('Channel {0} is already whitelisted.'.format(channel.mention))
                 return
-    
+
             channel_db = WhitelistedChannel(channelid=channel.id)
             session.add(channel_db)
-            
+
         await self.bot.say('Whitelisted channel {0}.'.format(channel.mention))
 
     @whitelist.command(pass_context=True)
     async def remove(self, ctx, *, channel: discord.Channel = None):
         """Removes a channel from the whitelist."""
-        
+
         if channel is None:
             channel = ctx.message.channel
 
@@ -50,6 +51,6 @@ class Whitelisting(Cog):
             if not channel_db:
                 await self.bot.say('Channel {0} is not whitelisted.'.format(channel.mention))
                 return
-    
+
             session.delete(channel_db)
         await self.bot.say('Removed channel {0} from whitelist.'.format(channel.mention))

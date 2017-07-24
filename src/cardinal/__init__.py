@@ -1,11 +1,11 @@
 import logging
+
 import discord
 import discord.ext.commands as _commands
 
 import cardinal.utils as utils
 from __main__ import config
 
-logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -40,7 +40,7 @@ async def on_command_error(ex, ctx):
         error_msg = str(ex)
 
     if isinstance(ex, _commands.UserInputError):
-        error_msg += ' See `{}help {}` for information on the command.'\
+        error_msg += ' See `{}help {}` for information on the command.' \
             .format(utils.clean_prefix(ctx), ctx.command.qualified_name)
 
     if error_msg != '':

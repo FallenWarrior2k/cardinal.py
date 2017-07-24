@@ -1,4 +1,5 @@
 import logging
+
 from discord.ext.commands import check
 
 from cardinal.db import session_scope
@@ -20,6 +21,7 @@ def channel_whitelisted(exception_predicate=None):
     :param exception_predicate: A predicate taking a context as its only argument, returning a boolean value.
     :type exception_predicate: callable
     """
+
     def predicate(ctx):
         channel_obj = ctx.message.channel
 
@@ -59,4 +61,5 @@ def format_message(msg):
     if msg.server is None:
         return '[PM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
     else:
-        return '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(
+            msg)

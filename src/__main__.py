@@ -3,6 +3,7 @@ import logging
 import sys
 from os import path
 
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 

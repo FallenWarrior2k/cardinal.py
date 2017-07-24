@@ -1,4 +1,5 @@
 import logging
+
 import discord
 import discord.ext.commands as commands
 
@@ -12,7 +13,6 @@ logger.setLevel(logging.INFO)
 
 
 class Roles(Cog):
-
     def __init__(self, bot):
         super().__init__(bot)
 
@@ -21,8 +21,9 @@ class Roles(Cog):
     async def roles(self, ctx):
         """Provides functionality for managing roles."""
         if ctx.invoked_subcommand is None:
-            await self.bot.say('Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{prefix}help {command}` for further information.'
-                               .format(prefix=clean_prefix(ctx), command=ctx.command.qualified_name))
+            await self.bot.say(
+                'Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{prefix}help {command}` for further information.'
+                .format(prefix=clean_prefix(ctx), command=ctx.command.qualified_name))
             return
 
     @roles.command(pass_context=True)

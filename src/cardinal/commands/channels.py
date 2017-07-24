@@ -1,7 +1,8 @@
 import logging
+
 import discord
-import discord.utils
 import discord.ext.commands as commands
+import discord.utils
 
 from cardinal.commands import Cog
 from cardinal.db import session_scope
@@ -13,7 +14,6 @@ logger.setLevel(logging.INFO)
 
 
 class Channels(Cog):
-
     def __init__(self, bot):
         super().__init__(bot)
 
@@ -69,7 +69,7 @@ class Channels(Cog):
                     return
 
                 await self.bot.say('User {user} left channel {channel}.'
-                              .format(user=ctx.message.author.mention, channel=channel.mention))
+                                   .format(user=ctx.message.author.mention, channel=channel.mention))
             else:
                 await self.bot.say('Channel {0} is not specified as an opt-in channel.'.format(channel.mention))
 
@@ -78,7 +78,8 @@ class Channels(Cog):
         """Lists all channels that can be joined through the self.bot."""
 
         with session_scope() as session:
-            channel_iter = (channel.name for channel in ctx.message.server.channels if session.query(Channel).get(channel.id))
+            channel_iter = (channel.name for channel in ctx.message.server.channels if
+                            session.query(Channel).get(channel.id))
 
         answer = 'Channels that can be joined through this bot:```\n'
 
@@ -102,7 +103,7 @@ class Channels(Cog):
 
         em = discord.Embed(title='Channel stats for ' + ctx.message.server.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position):
-            em.add_field(name='#'+role.name, value=role_dict[role])
+            em.add_field(name='#' + role.name, value=role_dict[role])
 
         await self.bot.say(embed=em)
 
@@ -164,7 +165,7 @@ class Channels(Cog):
             channel_db = Channel(channelid=channel.id, roleid=role.id)
             session.add(channel_db)
 
-        await self.bot.say('Opt-in enabled for channel {0}.' .format(channel.mention))
+        await self.bot.say('Opt-in enabled for channel {0}.'.format(channel.mention))
 
     @_opt_in.command(pass_context=True)
     async def disable(self, ctx, *, channel: discord.Channel = None):
