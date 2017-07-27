@@ -1,5 +1,7 @@
 import logging
 
+import discord
+
 from discord.ext.commands import check
 
 from cardinal.db import session_scope
@@ -61,5 +63,16 @@ def format_message(msg):
     if msg.server is None:
         return '[PM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
     else:
-        return '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(
-            msg)
+        return '[{0.server.name} ({0.server.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+
+
+def format_discord_user(user: discord.User):
+    return '"{0.name}" ({0.id})'.format(user)
+
+
+def format_discord_guild(guild: discord.Server):
+    return '"{0.name}" ({0.id})'.format(guild)
+
+
+def format_discord_channel(channel: discord.Channel):
+    return '"{0.name}" ({0.id})'.format(channel)

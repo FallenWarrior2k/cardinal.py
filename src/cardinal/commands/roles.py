@@ -17,8 +17,9 @@ class Roles(Cog):
         super().__init__(bot)
 
     @commands.group(name='role', pass_context=True, no_pm=True)
+    @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
-    async def roles(self, ctx):
+    async def roles(self, ctx: commands.Context):
         """Provides functionality for managing roles."""
         if ctx.invoked_subcommand is None:
             await self.bot.say(
@@ -27,7 +28,7 @@ class Roles(Cog):
             return
 
     @roles.command(pass_context=True)
-    async def join(self, ctx, *, role: discord.Role):
+    async def join(self, ctx: commands.Context, *, role: discord.Role):
         """Adds the user to the specified role."""
 
         with session_scope() as session:
@@ -35,16 +36,12 @@ class Roles(Cog):
                 await self.bot.say('Role "{}" is not marked as a joinable role.'.format(role.name))
                 return
 
-        try:
-            await self.bot.add_roles(ctx.message.author, role)
-        except:
-            await self.bot.say('Could not add role, please consult a moderator or try again.')
-            return
+        await self.bot.add_roles(ctx.message.author, role)
 
         await self.bot.say('User {user} joined role "{role}"'.format(user=ctx.message.author.mention, role=role.name))
 
     @roles.command(pass_context=True)
-    async def leave(self, ctx, *, role: discord.Role):
+    async def leave(self, ctx: commands.Context, *, role: discord.Role):
         """Removes the user from the specified role."""
 
         with session_scope() as session:
@@ -52,24 +49,22 @@ class Roles(Cog):
                 await self.bot.say('Role "{}" cannot be left through this bot.'.format(role.name))
                 return
 
-        try:
-            await self.bot.remove_roles(ctx.message.author, role)
-        except:
-            await self.bot.say('Could not remove role, please consult a moderator or try again.')
-            return
+        await self.bot.remove_roles(ctx.message.author, role)
+
 
         await self.bot.say('User {user} left role "{role}"'.format(user=ctx.message.author.mention, role=role.name))
 
     @roles.command(pass_context=True)
-    async def list(self, ctx):
+    async def list(self, ctx: commands.Context):
         """Lists the roles that can be joined through the bot."""
 
         with session_scope() as session:
             role_iter = (role.name for role in ctx.message.server.roles if session.query(Role).get(role.id))
+            role_list = sorted(role_iter, key=lambda r: r.position)
 
         answer = 'Roles that can be joined through this bot:```\n'
 
-        for role in sorted(role_iter, key=lambda r: r.position):
+        for role in role_list:
             answer += role
             answer += '\n'
 
@@ -78,7 +73,7 @@ class Roles(Cog):
         await self.bot.say(answer)
 
     @roles.command(pass_context=True)
-    async def stats(self, ctx):
+    async def stats(self, ctx: commands.Context):
         """Shows the member count for each role."""
 
         with session_scope() as session:
@@ -123,14 +118,10 @@ class Roles(Cog):
 
     @roles.command(pass_context=True)
     @commands.has_permissions(manage_roles=True)
-    async def create(self, ctx, *, rolename: str):
+    async def create(self, ctx: commands.Context, *, rolename: str):
         """Creates a new role and makes it joinable through the bot."""
 
-        try:
-            role = await self.bot.create_role(ctx.message.server, name=rolename)
-        except:
-            await self.bot.say('Could not create role "{0}".'.format(rolename))
-            return
+        role = await self.bot.create_role(ctx.message.server, name=rolename)
 
         with session_scope() as session:
             session.add(Role(roleid=role.id))
@@ -147,10 +138,5 @@ class Roles(Cog):
             if role_db:
                 session.delete(role_db)
 
-        try:
-            await self.bot.delete_role(role.server, role)
-        except:
-            await self.bot.say('Could not delete role "{0}".'.format(role.name))
-            return
-
+        await self.bot.delete_role(role.server, role)
         await self.bot.say('Successfully deleted role "{0}".'.format(role.name))

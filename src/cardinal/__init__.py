@@ -27,7 +27,7 @@ async def on_command_error(ex, ctx):
     error_msg = ''
 
     if isinstance(ex, _commands.CheckFailure):
-        error_msg = 'You are not allowed to use this command (here).'
+        error_msg = 'This command cannot be used in this context.'
     elif isinstance(ex, _commands.MissingRequiredArgument):
         error_msg = 'Too few arguments.'
     elif isinstance(ex, _commands.TooManyArguments):
