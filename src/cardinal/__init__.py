@@ -1,9 +1,10 @@
 import logging
+import traceback
 
 import discord
 import discord.ext.commands as _commands
 
-import cardinal.utils as utils
+from cardinal.utils import format_message
 from __main__ import config
 
 logger = logging.getLogger(__name__)
@@ -47,9 +48,9 @@ async def on_command_error(ex, ctx):
         await bot.send_message(ctx.message.channel, error_msg)
 
     if isinstance(ex, _commands.CommandInvokeError):
-        logger.log(logging.ERROR, utils.format_exception(ex.original))
+        logger.log(logging.ERROR, traceback.format_exc())
 
 
 @bot.event
 async def on_command(cmd, ctx):
-    logger.log(logging.INFO, utils.format_message(ctx.message))
+    logger.log(logging.INFO, format_message(ctx.message))

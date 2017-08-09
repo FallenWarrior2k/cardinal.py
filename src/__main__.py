@@ -1,6 +1,8 @@
 import json
 import logging
 import sys
+import traceback
+
 from os import path
 
 logging.basicConfig(level=logging.WARNING)
@@ -28,6 +30,6 @@ try:
     logger.log(logging.INFO, 'Loaded all commands.')
 except Exception as e:
     logger.log(logging.ERROR, 'Failed to load commands.')
-    logger.log(logging.ERROR, '{0}: {1}'.format(type(e).__name__, e))
+    logger.log(logging.ERROR, traceback.format_exc())
 
 bot.run(config['token'])

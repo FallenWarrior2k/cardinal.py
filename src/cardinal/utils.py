@@ -38,18 +38,6 @@ def channel_whitelisted(exception_predicate=None):
     return check(predicate)
 
 
-def format_exception(e):
-    """
-    Formats an :class:`Exception` for convenient output to e.g. loggers.
-
-    :param e: The exception to format.
-    :type e: Exception
-    :return: The formatted exception as a string.
-    :rtype: str
-    """
-    return '{}: {}'.format(type(e).__name__, e)
-
-
 def format_message(msg):
     """
     Formats a :class:`discord.Message` for convenient output to e.g. loggers.

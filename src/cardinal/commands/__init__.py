@@ -4,6 +4,8 @@ import importlib
 import logging
 import pkgutil
 
+import traceback
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -25,7 +27,7 @@ def setup(bot):
             bot.add_cog(cog(bot))
         except Exception as e:
             logger.log(logging.ERROR, 'Error during initialization.')
-            logger.log(logging.ERROR, '{0}: {1}'.format(type(e).__name__, e))
+            logger.log(logging.ERROR, traceback.format_exc())
         else:
             logger.log(logging.INFO, 'Successfully initialized "{0}".'.format(cog.__name__))
 
