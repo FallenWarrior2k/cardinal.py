@@ -48,7 +48,7 @@ async def on_command_error(ex, ctx):
         await bot.send_message(ctx.message.channel, error_msg)
 
     if isinstance(ex, _commands.CommandInvokeError):
-        logger.log(logging.ERROR, traceback.format_exc())
+        logger.log(logging.ERROR, traceback.format_exception(None, ex, ex.__traceback__))
 
 
 @bot.event

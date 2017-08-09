@@ -81,7 +81,7 @@ class Newbies(Cog):
                             logger.log(logging.ERROR,
                                        'Lacking permissions to kick user {} from guild {}.'
                                        .format(format_discord_user(member), format_discord_guild(guild)))
-                        except discord.HTTPException as e:
+                        except discord.HTTPException:
                             logger.log(logging.ERROR,
                                        'Failed kicking user {} from guild {} due to an internal HTTP error.'
                                        .format(format_discord_user(member), format_discord_guild(guild)))

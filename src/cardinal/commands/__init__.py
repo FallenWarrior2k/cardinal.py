@@ -25,7 +25,7 @@ def setup(bot):
         logger.log(logging.INFO, 'Initializing "{0}".'.format(cog.__name__))
         try:
             bot.add_cog(cog(bot))
-        except Exception as e:
+        except:
             logger.log(logging.ERROR, 'Error during initialization.')
             logger.log(logging.ERROR, traceback.format_exc())
         else:
