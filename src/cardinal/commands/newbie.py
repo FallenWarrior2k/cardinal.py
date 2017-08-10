@@ -29,9 +29,6 @@ class Newbies(Cog):
             if guild is None:
                 return
 
-            # role = discord.utils.get(member.server.roles, id=guild.roleid)
-            # await self.bot.add_roles(member, role)
-
             paginator = commands.formatter.Paginator(prefix='', suffix='')
             for line in guild.welcome_message.splitlines():
                 paginator.add_line(line)
@@ -46,6 +43,12 @@ class Newbies(Cog):
 
             for page in paginator.pages:
                 await self.bot.send_message(member, page)
+
+            await self.bot.send_message(member, 'Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.server.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+
+    async def on_member_leave(self, member: discord.Member):
+        with session_scope() as session:
+            session.query(User).filter(User.userid == member.id, User.guildid == member.server.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_message(self, msg: discord.Message):
         if msg.author.id == self.bot.user.id:
