@@ -162,7 +162,7 @@ class Newbies(Cog):
                 await self.bot.say('Terminating process due to timeout.')
                 return
 
-            await self.bot.say('Enter a timeout for new users in hours.')
+            await self.bot.say('Enter a timeout for new users in hours. Enter 0 to disable timeouts.')
             timeout_message = await self.bot.wait_for_message(timeout=60.0, author=ctx.message.author,
                                                               channel=ctx.message.channel)
             if not timeout_message:
