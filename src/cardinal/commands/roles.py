@@ -96,7 +96,7 @@ class Roles(Cog):
                 await self.bot.say('Role "{}" is already marked as a joinable role.'.format(role.name))
                 return
 
-            session.add(Role(roleid=role.id))
+            session.add(Role(role_id=role.id))
 
         await self.bot.say('Marked role "{}" as joinable.'.format(role.name))
 
@@ -124,7 +124,7 @@ class Roles(Cog):
         role = await self.bot.create_role(ctx.message.server, name=rolename)
 
         with session_scope() as session:
-            session.add(Role(roleid=role.id))
+            session.add(Role(role_id=role.id))
 
         await self.bot.say('Created role "{}" and marked it as joinable.'.format(rolename))
 

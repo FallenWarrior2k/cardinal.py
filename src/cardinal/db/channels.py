@@ -6,8 +6,8 @@ import cardinal.db as db
 class Channel(db.Base):
     __tablename__ = 'optin_channels'
 
-    channelid = Column(String, primary_key=True, autoincrement=False)
-    roleid = Column(String, unique=True)
+    channel_id = Column(String, primary_key=True, autoincrement=False)
+    role_id = Column(String, unique=True)
 
 
 db.Base.metadata.create_all(db.engine)

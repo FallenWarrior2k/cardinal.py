@@ -37,7 +37,7 @@ class Channels(Cog):
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
-                role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+                role = discord.utils.get(ctx.message.server.roles, id=channel_db.role_id)
 
                 await self.bot.add_roles(ctx.message.author, role)
 
@@ -57,7 +57,7 @@ class Channels(Cog):
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
-                role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+                role = discord.utils.get(ctx.message.server.roles, id=channel_db.role_id)
 
                 await self.bot.remove_roles(ctx.message.author, role)
 
@@ -93,7 +93,7 @@ class Channels(Cog):
         with session_scope() as session:
             role_dict = dict((role, sum(1 for member in ctx.message.server.members if role in member.roles))
                              for role in ctx.message.server.roles
-                             if session.query(Channel).filter_by(roleid=role.id).first())
+                             if session.query(Channel).filter_by(role_id=role.id).first())
 
         em = discord.Embed(title='Channel stats for ' + ctx.message.server.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position):
@@ -133,7 +133,7 @@ class Channels(Cog):
             overwrite.read_messages = True
             await self.bot.edit_channel_permissions(channel, role, overwrite)
 
-            channel_db = Channel(channelid=channel.id, roleid=role.id)
+            channel_db = Channel(channel_id=channel.id, role_id=role.id)
             session.add(channel_db)
 
         await self.bot.say('Opt-in enabled for channel {}.'.format(channel.mention))
@@ -148,7 +148,7 @@ class Channels(Cog):
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
-                role = discord.utils.get(ctx.message.server.roles, id=channel_db.roleid)
+                role = discord.utils.get(ctx.message.server.roles, id=channel_db.role_id)
 
                 if role is None:
                     await self.bot.say('Could not find role. Was it already deleted?')

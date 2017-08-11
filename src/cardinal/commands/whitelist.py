@@ -34,7 +34,7 @@ class Whitelisting(Cog):
                 await self.bot.say('Channel {} is already whitelisted.'.format(channel.mention))
                 return
 
-            channel_db = WhitelistedChannel(channelid=channel.id)
+            channel_db = WhitelistedChannel(channel_id=channel.id)
             session.add(channel_db)
 
         await self.bot.say('Whitelisted channel {}.'.format(channel.mention))

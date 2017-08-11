@@ -68,7 +68,7 @@ class Newbies(Cog):
 
             message = await self.bot.send_message(member, message_content)
 
-            user = User(guildid=member.server.id, userid=member.id, messageid=message.id, joined_at=member.joined_at)
+            user = User(guild_id=member.server.id, userid=member.id, message_id=message.id, joined_at=member.joined_at)
             session.add(user)
 
             await self.bot.send_message(member, 'Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.server.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
@@ -76,7 +76,7 @@ class Newbies(Cog):
     async def on_member_remove(self, member: discord.Member):
         with session_scope() as session:
             # Using query instead of object deletion to prevent redundant SELECT query
-            session.query(User).filter(User.userid == member.id, User.guildid == member.server.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            session.query(User).filter(User.user_id == member.id, User.guild_id == member.server.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_message(self, msg: discord.Message):
         if msg.author.id == self.bot.user.id:
@@ -86,13 +86,13 @@ class Newbies(Cog):
             return
 
         with session_scope() as session:
-            for db_user in session.query(User).filter(User.userid == msg.author.id):
+            for db_user in session.query(User).filter(User.user_id == msg.author.id):
                 db_guild = db_user.guild  # Get guild
                 if not db_guild:  # If guild not set, delete row
                     session.delete(db_user)
                     continue
 
-                guild = self.bot.get_server(db_user.guildid)
+                guild = self.bot.get_server(db_user.guild_id)
                 if not guild:
                     # session.delete(db_user)  # Unnecessary because ON DELETE CASCADE / 'delete-orphan' should clean it up automatically
                     session.delete(db_guild)  # Delete guild if bot no longer has access to it
@@ -125,7 +125,7 @@ class Newbies(Cog):
                 if not msg.content.lower().strip() == db_guild.response_message.lower():
                     continue
 
-                member_role = discord.utils.get(guild.roles, id=db_guild.roleid)
+                member_role = discord.utils.get(guild.roles, id=db_guild.role_id)
                 if not member_role:
                     continue
 
@@ -204,7 +204,7 @@ class Newbies(Cog):
 
             await self.bot.edit_role(ctx.message.server, everyone_role, permissions=everyone_permissions)
 
-            db_guild = Guild(guildid=ctx.message.server.id, roleid=member_role.id,
+            db_guild = Guild(guild_id=ctx.message.server.id, role_id=member_role.id,
                              welcome_message=welcome_message.content.strip(),
                              response_message=response_message.content.strip())
 
@@ -220,7 +220,7 @@ class Newbies(Cog):
                     channel_obj = discord.utils.get(ctx.message.server.channels, id=channel_id)
                     if channel_obj and channel_obj.server.id == ctx.message.server.id:
                         await self.bot.edit_channel_permissions(channel_obj, everyone_role, self.everyone_overwrite)
-                        db_channel = Channel(channelid=channel_obj.id, guildid=ctx.message.server.id)
+                        db_channel = Channel(channel_id=channel_obj.id, guild_id=ctx.message.server.id)
                         session.add(db_channel)
 
                 else:
@@ -239,7 +239,7 @@ class Newbies(Cog):
             if not db_guild:
                 await self.bot.say('Automatic newbie roling is not enabled for this server.')
 
-            role = discord.utils.get(ctx.message.server.roles, id=db_guild.roleid)
+            role = discord.utils.get(ctx.message.server.roles, id=db_guild.role_id)
             if not role:
                 await self.bot.say('Role has already been deleted.')
 
@@ -338,7 +338,7 @@ class Newbies(Cog):
             everyone_role = ctx.message.server.default_role
             await self.bot.edit_channel_permissions(channel, everyone_role, self.everyone_overwrite)
 
-            db_channel = Channel(channelid=channel.id, guildid=ctx.message.server.id)
+            db_channel = Channel(channel_id=channel.id, guild_id=ctx.message.server.id)
             session.add(db_channel)
 
         await self.bot.say('{} is now visible to unconfirmed users.'.format(channel.mention))
@@ -372,8 +372,8 @@ class Newbies(Cog):
 
         with session_scope() as session:
             answer = 'The following channels are visible to unconfirmed users of this server.```'
-            for db_channel in session.query(Channel).filter(Channel.guildid == ctx.message.server.id):
-                channel = discord.utils.get(ctx.message.server.channels, id=db_channel.channelid)
+            for db_channel in session.query(Channel).filter(Channel.guild_id == ctx.message.server.id):
+                channel = discord.utils.get(ctx.message.server.channels, id=db_channel.channel_id)
                 if channel:
                     answer += '#'
                     answer += channel.name
