@@ -31,13 +31,13 @@ class Whitelisting(Cog):
 
         with session_scope() as session:
             if session.query(WhitelistedChannel).get(channel.id):
-                await self.bot.say('Channel {0} is already whitelisted.'.format(channel.mention))
+                await self.bot.say('Channel {} is already whitelisted.'.format(channel.mention))
                 return
 
             channel_db = WhitelistedChannel(channelid=channel.id)
             session.add(channel_db)
 
-        await self.bot.say('Whitelisted channel {0}.'.format(channel.mention))
+        await self.bot.say('Whitelisted channel {}.'.format(channel.mention))
 
     @whitelist.command(pass_context=True)
     async def remove(self, ctx: commands.Context, *, channel: discord.Channel = None):
@@ -49,8 +49,8 @@ class Whitelisting(Cog):
         with session_scope() as session:
             channel_db = session.query(WhitelistedChannel).get(channel.id)
             if not channel_db:
-                await self.bot.say('Channel {0} is not whitelisted.'.format(channel.mention))
+                await self.bot.say('Channel {} is not whitelisted.'.format(channel.mention))
                 return
 
             session.delete(channel_db)
-        await self.bot.say('Removed channel {0} from whitelist.'.format(channel.mention))
+        await self.bot.say('Removed channel {} from whitelist.'.format(channel.mention))

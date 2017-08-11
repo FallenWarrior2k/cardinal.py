@@ -16,7 +16,7 @@ bot = _commands.Bot(command_prefix=config['cmd_prefix'], description='cardinal.p
 
 @bot.event
 async def on_ready():
-    logger.log(logging.INFO, 'Logged into Discord as {0}'.format(bot.user))
+    logger.log(logging.INFO, 'Logged into Discord as {}'.format(bot.user))
     try:
         await bot.change_presence(game=discord.Game(name=config['default_game']))
     except KeyError:

@@ -23,8 +23,8 @@ class Roles(Cog):
         """Provides functionality for managing roles."""
         if ctx.invoked_subcommand is None:
             await self.bot.say(
-                'Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{prefix}help {command}` for further information.'
-                .format(prefix=clean_prefix(ctx), command=ctx.command.qualified_name))
+                'Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{}help {}` for further information.'
+                .format(clean_prefix(ctx), ctx.command.qualified_name))
             return
 
     @roles.command(pass_context=True)
@@ -93,12 +93,12 @@ class Roles(Cog):
 
         with session_scope() as session:
             if session.query(Role).get(role.id):
-                await self.bot.say('Role "{0}" is already marked as a joinable role.'.format(role.name))
+                await self.bot.say('Role "{}" is already marked as a joinable role.'.format(role.name))
                 return
 
             session.add(Role(roleid=role.id))
 
-        await self.bot.say('Marked role "{0}" as joinable.'.format(role.name))
+        await self.bot.say('Marked role "{}" as joinable.'.format(role.name))
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
@@ -109,12 +109,12 @@ class Roles(Cog):
             role_db = session.query(Role).get(role.id)
 
             if not role_db:
-                await self.bot.say('Role "{0}" is not marked as a joinable role'.format(role.name))
+                await self.bot.say('Role "{}" is not marked as a joinable role'.format(role.name))
                 return
 
             session.delete(role_db)
 
-        await self.bot.say('Removed role "{0}" from list of joinable roles.'.format(role.name))
+        await self.bot.say('Removed role "{}" from list of joinable roles.'.format(role.name))
 
     @roles.command(pass_context=True)
     @commands.has_permissions(manage_roles=True)
@@ -126,7 +126,7 @@ class Roles(Cog):
         with session_scope() as session:
             session.add(Role(roleid=role.id))
 
-        await self.bot.say('Created role "{0}" and marked it as joinable.'.format(rolename))
+        await self.bot.say('Created role "{}" and marked it as joinable.'.format(rolename))
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
@@ -139,4 +139,4 @@ class Roles(Cog):
                 session.delete(role_db)
 
         await self.bot.delete_role(role.server, role)
-        await self.bot.say('Successfully deleted role "{0}".'.format(role.name))
+        await self.bot.say('Successfully deleted role "{}".'.format(role.name))

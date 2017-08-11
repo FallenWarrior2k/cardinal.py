@@ -25,15 +25,10 @@ def channel_whitelisted(exception_predicate=None):
     """
 
     def predicate(ctx):
-        channel_obj = ctx.message.channel
+        channel = ctx.message.channel
 
         with session_scope() as session:
-            channel_db = session.query(WhitelistedChannel).get(channel_obj.id)
-
-        if channel_db or (callable(exception_predicate) and exception_predicate(ctx)):
-            return True
-        else:
-            return False
+            return True if session.query(WhitelistedChannel).get(channel.id) or (callable(exception_predicate) and exception_predicate(ctx)) else False
 
     return check(predicate)
 
