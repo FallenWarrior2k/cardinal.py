@@ -59,13 +59,13 @@ class Roles(Cog):
         """Lists the roles that can be joined through the bot."""
 
         with session_scope() as session:
-            role_iter = (role.name for role in ctx.message.server.roles if session.query(Role).get(role.id))
+            role_iter = (role for role in ctx.message.server.roles if session.query(Role).get(role.id))
             role_list = sorted(role_iter, key=lambda r: r.position)
 
         answer = 'Roles that can be joined through this bot:```\n'
 
         for role in role_list:
-            answer += role
+            answer += role.name
             answer += '\n'
 
         answer += '```'

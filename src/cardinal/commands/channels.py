@@ -71,7 +71,7 @@ class Channels(Cog):
         """Lists all channels that can be joined through the self.bot."""
 
         with session_scope() as session:
-            channel_iter = (channel.name for channel in ctx.message.server.channels if
+            channel_iter = (channel for channel in ctx.message.server.channels if
                             session.query(Channel).get(channel.id))
             channel_list = sorted(channel_iter, key=lambda r: r.position)
 
@@ -79,7 +79,7 @@ class Channels(Cog):
 
         for channel in channel_list:
             answer += '#'
-            answer += channel
+            answer += channel.name
             answer += '\n'
 
         answer += '```'
