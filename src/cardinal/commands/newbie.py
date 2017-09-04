@@ -146,7 +146,18 @@ class Newbies(Cog):
     @commands.has_permissions(manage_server=True)
     @commands.bot_has_permissions(manage_roles=True, manage_channels=True)
     async def newbie(self, ctx: commands.Context):
-        """Provides functionality for managing automatic newbie roling."""
+        """
+        Provides functionality for managing automatic newbie roling.
+
+        Required context: Server
+
+        Required permissions:
+            - Manage Server
+
+        Required bot permissions:
+            - Manage Roles
+            - Manage Channels
+        """
 
         if ctx.invoked_subcommand is None:
             await self.bot.say('Invalid subcommand passed, please refer to `{}help {}` for further information.'
@@ -154,8 +165,10 @@ class Newbies(Cog):
 
     @newbie.command(pass_context=True)
     async def enable(self, ctx: commands.Context):
-        """Enables automatic newbie roling for the current server.
-        This adds a role to new members which restricts their write-privileges, and allows them to only access certain channels."""
+        """
+        Enable automatic newbie roling for the current server.
+        This will add a role to new members, restricting their permissions to send messages, and additionally restricts their read access to certain channels.
+        """
         with session_scope() as session:
             if session.query(Guild).get(ctx.message.server.id):
                 await self.bot.say('Automated newbie roling is already enabled for this server.')
@@ -232,7 +245,9 @@ class Newbies(Cog):
 
     @newbie.command(pass_context=True)
     async def disable(self, ctx: commands.Context):
-        """Disables automatic newbie roling for this server."""
+        """
+        Disable automatic newbie roling for this server. New members will instantly have write access, unless verification prevents that.
+        """
 
         with session_scope() as session:
             db_guild = session.query(Guild).get(ctx.message.server.id)
@@ -244,10 +259,6 @@ class Newbies(Cog):
                 await self.bot.say('Role has already been deleted.')
 
             everyone_role = ctx.message.server.default_role
-            # everyone_permissions = everyone_role.permissions
-            # everyone_permissions.read_messages = True
-            # everyone_permissions.send_messages = True
-            # everyone_permissions.read_message_history = True
             everyone_permissions = role.permissions
 
             await self.bot.edit_role(ctx.message.server, everyone_role, permissions=everyone_permissions)
@@ -261,8 +272,11 @@ class Newbies(Cog):
     @newbie_enabled
     async def timeout(self, ctx: commands.Context, delay: float = 0.0):
         """
-        Sets the timeout in hours before new users get kicked.
+        Set the timeout in hours before new users get kicked.
         Put a non-positive value (zero or less) or nothing to remove it.
+
+        Parameters:
+            - [optional] delay: A decimal number describing the delay before a kick in hours. Defaults to zero, which means no timeout at all.
         """
 
         with session_scope() as session:
@@ -275,10 +289,12 @@ class Newbies(Cog):
 
         await self.bot.say('Successfully set timeout to {} hours.'.format(delay))
 
-    @newbie.command(pass_context=True, name='welcome-message')
+    @newbie.command('welcome-message', pass_context=True)
     @newbie_enabled
     async def _welcome_message(self, ctx: commands.Context):
-        """Sets the welcome message for the server."""
+        """
+        Set the welcome message for the server.
+        """
 
         await self.bot.say('Please enter the message you would like to display to new users.')
         welcome_message = await self.bot.wait_for_message(timeout=60.0, author=ctx.message.author, channel=ctx.message.channel)
@@ -292,10 +308,15 @@ class Newbies(Cog):
 
         await self.bot.say('Successfully set welcome message.')
 
-    @newbie.command(pass_context=True, name='response-message')
+    @newbie.command('response-message', pass_context=True)
     @newbie_enabled
     async def _response_message(self, ctx: commands.Context, *, msg: str = None):
-        """Sets the response message for the server."""
+        """
+        Set the response message for the server, i.e. the message users have to enter to be granted access to the server.
+
+        Parameters:
+            - [optional] msg: The response message users will have to enter. Defaults to empty, in which case this command will explicitly prompt the caller to enter a message.
+        """
 
         if not msg:
             await self.bot.say('Please enter the response message users have to enter upon joining the server.')
@@ -310,11 +331,15 @@ class Newbies(Cog):
             db_guild = session.query(Guild).get(ctx.message.server.id)
             db_guild.response_message = msg
 
+            # TODO: Edit already sent messages
+
         await self.bot.say('Successfully set response message.')
 
     @newbie.group(pass_context=True)
     async def channels(self, ctx: commands.Context):
-        """Modifies the channels unconfirmed users can access."""
+        """
+        Modify the channels unconfirmed users can access.
+        """
 
         if ctx.invoked_subcommand is None:
             await self.bot.say('Invalid subcommand passed, please refer to `{}help {}` for further information.\nValid options include `add`, `remove` and `list`.'
@@ -324,7 +349,12 @@ class Newbies(Cog):
     @channels.command(pass_context=True)
     @newbie_enabled
     async def add(self, ctx: commands.Context, *, channel: discord.Channel):
-        """Adds a channel to the list of channels unconfirmed users can access."""
+        """
+        Add a channel to the list of channels unconfirmed users can access.
+
+        Parameters:
+            - channel: The channel to add to the list, identified by mention, ID, or name.
+        """
 
         if not channel.server.id == ctx.message.server.id:
             await self.bot.say('The provided channel is not on this server.')
@@ -346,7 +376,12 @@ class Newbies(Cog):
     @channels.command(pass_context=True)
     @newbie_enabled
     async def remove(self, ctx: commands.Context, *, channel: discord.Channel):
-        """Removes a channel from the list of channels unconfirmed users can access."""
+        """
+        Remove a channel from the list of channels unconfirmed users can access.
+
+        Parameters:
+            - channel: The channel to remove from the list, identified by mention, ID, or name.
+        """
 
         if not channel.server.id == ctx.message.server.id:
             await self.bot.say('The provided channel is not on this server.')
@@ -368,7 +403,9 @@ class Newbies(Cog):
     @channels.command(pass_context=True)
     @newbie_enabled
     async def list(self, ctx: commands.Context):
-        """Lists the channels visible to unconfirmed users of this server."""
+        """
+        Lists the channels visible to unconfirmed users of this server.
+        """
 
         with session_scope() as session:
             answer = 'The following channels are visible to unconfirmed users of this server.```'

@@ -6,7 +6,7 @@ import discord.ext.commands as commands
 from cardinal.commands import Cog
 from cardinal.db import session_scope
 from cardinal.db.roles import Role
-from cardinal.utils import clean_prefix, channel_whitelisted
+from cardinal.utils import clean_prefix, channel_whitelisted, store_data, get_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -16,11 +16,21 @@ class Roles(Cog):
     def __init__(self, bot):
         super().__init__(bot)
 
-    @commands.group(name='role', pass_context=True, no_pm=True)
+    @commands.group('role', pass_context=True, no_pm=True)
     @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
     async def roles(self, ctx: commands.Context):
-        """Provides functionality for managing roles."""
+        """
+        Provides functionality for managing roles.
+
+        Required context: Server, whitelisted channel
+
+        Required permissions: None
+
+        Required bot permissions:
+            - Manage Roles
+        """
+
         if ctx.invoked_subcommand is None:
             await self.bot.say(
                 'Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{}help {}` for further information.'
@@ -29,7 +39,12 @@ class Roles(Cog):
 
     @roles.command(pass_context=True)
     async def join(self, ctx: commands.Context, *, role: discord.Role):
-        """Adds the user to the specified role."""
+        """
+        Add the user to the specified role.
+
+        Parameters:
+            - role: The role to join, identified by mention, ID, or name. Must be marked as joinable.
+        """
 
         with session_scope() as session:
             if not session.query(Role).get(role.id):
@@ -42,7 +57,12 @@ class Roles(Cog):
 
     @roles.command(pass_context=True)
     async def leave(self, ctx: commands.Context, *, role: discord.Role):
-        """Removes the user from the specified role."""
+        """
+        Remove the user from the specified role.
+
+        Parameters:
+            - role: The role to leave, identified by mention, ID, or name. Must be marked as joinable.
+        """
 
         with session_scope() as session:
             if not session.query(Role).get(role.id):
@@ -54,9 +74,11 @@ class Roles(Cog):
 
         await self.bot.say('User {user} left role "{role}"'.format(user=ctx.message.author.mention, role=role.name))
 
-    @roles.command(pass_context=True)
-    async def list(self, ctx: commands.Context):
-        """Lists the roles that can be joined through the bot."""
+    @roles.command('list', pass_context=True)
+    async def _list(self, ctx: commands.Context):
+        """
+        List the roles that can be joined through the bot, i.e. that have been marked as joinable for the current server.
+        """
 
         with session_scope() as session:
             role_iter = (role for role in ctx.message.server.roles if session.query(Role).get(role.id))
@@ -74,7 +96,9 @@ class Roles(Cog):
 
     @roles.command(pass_context=True)
     async def stats(self, ctx: commands.Context):
-        """Shows the member count for each role."""
+        """
+        Display the member count for each role marked as joinable on the current server.
+        """
 
         with session_scope() as session:
             role_dict = dict((role, sum(1 for member in ctx.message.server.members if role in member.roles))
@@ -89,7 +113,15 @@ class Roles(Cog):
     @roles.command()
     @commands.has_permissions(manage_roles=True)
     async def add(self, *, role: discord.Role):
-        """Marks a role as joinable."""
+        """
+        Mark a role as joinable through this bot.
+
+        Parameters:
+            - role: The role to mark as joinable, identified by mention, ID, or name.
+
+        Required permissions:
+            - Manage Roles
+        """
 
         with session_scope() as session:
             if session.query(Role).get(role.id):
@@ -103,7 +135,15 @@ class Roles(Cog):
     @roles.command()
     @commands.has_permissions(manage_roles=True)
     async def remove(self, *, role: discord.Role):
-        """Removes a role from the list of joinable roles."""
+        """
+        Remove a role from the list of roles joinable through this bot.
+
+        Parameters:
+            - role: The role to remove from the list, identified by mention, ID, or name.
+
+        Required permissions:
+            - Manage Roles
+        """
 
         with session_scope() as session:
             role_db = session.query(Role).get(role.id)
@@ -116,10 +156,18 @@ class Roles(Cog):
 
         await self.bot.say('Removed role "{}" from list of joinable roles.'.format(role.name))
 
-    @roles.command(pass_context=True)
+    @roles.group(pass_context=True)
     @commands.has_permissions(manage_roles=True)
     async def create(self, ctx: commands.Context, *, rolename: str):
-        """Creates a new role and makes it joinable through the bot."""
+        """
+        Create a new role on the current server and mark it as joinable through this bot.
+
+        Parameters:
+            - rolename: The name of the role to create.
+
+        Required permissions:
+            - Manage Roles
+        """
 
         role = await self.bot.create_role(ctx.message.server, name=rolename)
 
@@ -127,11 +175,24 @@ class Roles(Cog):
             session.add(Role(role_id=role.id))
 
         await self.bot.say('Created role "{}" and marked it as joinable.'.format(rolename))
+        store_data(ctx, role.id)
+
+    @create.command(pass_context=True)
+    async def tagrole(self, ctx: commands.Context):
+        pass
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
     async def delete(self, *, role: discord.Role):
-        """Deletes a role."""
+        """
+        Delete a role from the current server.
+
+        Parameters:
+            - role: The role to delete.
+
+        Required permissions:
+            - Manage Roles
+        """
 
         with session_scope() as session:
             role_db = session.query(Role).get(role.id)

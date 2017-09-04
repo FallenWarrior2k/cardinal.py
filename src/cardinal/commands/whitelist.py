@@ -14,7 +14,14 @@ class Whitelisting(Cog):
     @commands.group(pass_context=True, no_pm=True)
     @commands.has_permissions(manage_channels=True)
     async def whitelist(self, ctx: commands.Context):
-        """Provides functionality for whitelisting channels to allow usage of channel-restricted commands."""
+        """
+        Provides functionality for whitelisting channels to allow usage of channel-restricted commands.
+
+        Required context: Server
+
+        Required permissions:
+            - Manage Channels
+        """
 
         if ctx.invoked_subcommand is None:
             await self.bot.say(
@@ -24,7 +31,12 @@ class Whitelisting(Cog):
 
     @whitelist.command(pass_context=True)
     async def add(self, ctx: commands.Context, *, channel: discord.Channel = None):
-        """Adds a channel to the whitelist."""
+        """
+        Whitelist a channel.
+
+        Parameters:
+            - [optional] channel: The channel to whitelist, identified by mention, ID, or name. Defaults to the current channel.
+        """
 
         if channel is None:
             channel = ctx.message.channel
@@ -41,7 +53,12 @@ class Whitelisting(Cog):
 
     @whitelist.command(pass_context=True)
     async def remove(self, ctx: commands.Context, *, channel: discord.Channel = None):
-        """Removes a channel from the whitelist."""
+        """
+        Remove a channel from the whitelist.
+
+        Parameters:
+            - [optional] channel: The channel to remove from the whitelist, identified by mention, ID, or name. Defaults to the current channel.
+        """
 
         if channel is None:
             channel = ctx.message.channel
