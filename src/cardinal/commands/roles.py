@@ -6,7 +6,7 @@ import discord.ext.commands as commands
 from cardinal.commands import Cog
 from cardinal.db import session_scope
 from cardinal.db.roles import Role
-from cardinal.utils import clean_prefix, channel_whitelisted, store_data, get_data
+from cardinal.utils import clean_prefix, channel_whitelisted
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -175,7 +175,6 @@ class Roles(Cog):
             session.add(Role(role_id=role.id))
 
         await self.bot.say('Created role "{}" and marked it as joinable.'.format(rolename))
-        store_data(ctx, role.id)
 
     @create.command(pass_context=True)
     async def tagrole(self, ctx: commands.Context):
