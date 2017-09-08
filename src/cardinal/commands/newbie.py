@@ -30,7 +30,7 @@ def newbie_enabled(func):
         ctx = args[1]
         if ctx:
             with session_scope() as session:
-                if not (ctx.message.server and session.query(Guild).get(ctx.message.server.id)):
+                if not (ctx.message.guild and session.query(Guild).get(ctx.message.guild.id)):
                     await _self.bot.say('Newbie roling is not enabled on this server. Please enable it before using these commands.')
                     return
 
@@ -55,7 +55,7 @@ class Newbies(Cog):
 
     async def on_member_join(self, member: discord.Member):
         with session_scope() as session:
-            guild = session.query(Guild).get(member.server.id)
+            guild = session.query(Guild).get(member.guild.id)
 
             if guild is None:
                 return
@@ -63,20 +63,20 @@ class Newbies(Cog):
             message_content = guild.welcome_message
 
             message_content += '\n'
-            message_content += 'Please reply with the following message to be granted access to "{}".\n'.format(member.server.name)
+            message_content += 'Please reply with the following message to be granted access to "{}".\n'.format(member.guild.name)
             message_content += '```{}```'.format(guild.response_message)
 
             message = await self.bot.send_message(member, message_content)
 
-            user = User(guild_id=member.server.id, userid=member.id, message_id=message.id, joined_at=member.joined_at)
+            user = User(guild_id=member.guild.id, userid=member.id, message_id=message.id, joined_at=member.joined_at)
             session.add(user)
 
-            await self.bot.send_message(member, 'Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.server.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            await self.bot.send_message(member, 'Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_member_remove(self, member: discord.Member):
         with session_scope() as session:
             # Using query instead of object deletion to prevent redundant SELECT query
-            session.query(User).filter(User.user_id == member.id, User.guild_id == member.server.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            session.query(User).filter(User.user_id == member.id, User.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_message(self, msg: discord.Message):
         if msg.author.id == self.bot.user.id:
@@ -92,7 +92,7 @@ class Newbies(Cog):
                     session.delete(db_user)
                     continue
 
-                guild = self.bot.get_server(db_user.guild_id)
+                guild = self.bot.get_guild(db_user.guild_id)
                 if not guild:
                     # session.delete(db_user)  # Unnecessary because ON DELETE CASCADE / 'delete-orphan' should clean it up automatically
                     session.delete(db_guild)  # Delete guild if bot no longer has access to it
@@ -143,7 +143,7 @@ class Newbies(Cog):
                 session.delete(db_user)
 
     @commands.group(pass_context=True, no_pm=True)
-    @commands.has_permissions(manage_server=True)
+    @commands.has_permissions(manage_guild=True)
     @commands.bot_has_permissions(manage_roles=True, manage_channels=True)
     async def newbie(self, ctx: commands.Context):
         """
@@ -170,11 +170,11 @@ class Newbies(Cog):
         This will add a role to new members, restricting their permissions to send messages, and additionally restricts their read access to certain channels.
         """
         with session_scope() as session:
-            if session.query(Guild).get(ctx.message.server.id):
+            if session.query(Guild).get(ctx.message.guild.id):
                 await self.bot.say('Automated newbie roling is already enabled for this server.')
                 return
 
-            everyone_role = ctx.message.server.default_role
+            everyone_role = ctx.message.guild.default_role
             everyone_permissions = everyone_role.permissions
             everyone_permissions.read_messages = False
             everyone_permissions.send_messages = False
@@ -211,13 +211,13 @@ class Newbies(Cog):
                 timeout_int = 0
                 await self.bot.say('The entered value is invalid')
 
-            member_role = await self.bot.create_role(ctx.message.server, name='Member', permissions=member_permissions)
-            for member in ctx.message.server.members:
+            member_role = await self.bot.create_role(ctx.message.guild, name='Member', permissions=member_permissions)
+            for member in ctx.message.guild.members:
                 await self.bot.add_roles(member, member_role)
 
-            await self.bot.edit_role(ctx.message.server, everyone_role, permissions=everyone_permissions)
+            await self.bot.edit_role(ctx.message.guild, everyone_role, permissions=everyone_permissions)
 
-            db_guild = Guild(guild_id=ctx.message.server.id, role_id=member_role.id,
+            db_guild = Guild(guild_id=ctx.message.guild.id, role_id=member_role.id,
                              welcome_message=welcome_message.content.strip(),
                              response_message=response_message.content.strip())
 
@@ -230,14 +230,14 @@ class Newbies(Cog):
                 match = self.channel_re.match(channel)
                 if match:
                     channel_id = match.group('id')
-                    channel_obj = discord.utils.get(ctx.message.server.channels, id=channel_id)
-                    if channel_obj and channel_obj.server.id == ctx.message.server.id:
+                    channel_obj = discord.utils.get(ctx.message.guild.channels, id=channel_id)
+                    if channel_obj and channel_obj.guild.id == ctx.message.guild.id:
                         await self.bot.edit_channel_permissions(channel_obj, everyone_role, self.everyone_overwrite)
-                        db_channel = Channel(channel_id=channel_obj.id, guild_id=ctx.message.server.id)
+                        db_channel = Channel(channel_id=channel_obj.id, guild_id=ctx.message.guild.id)
                         session.add(db_channel)
 
                 else:
-                    channel_obj = discord.utils.get(ctx.message.server.channels, name=channel.lower())
+                    channel_obj = discord.utils.get(ctx.message.guild.channels, name=channel.lower())
                     if channel_obj:
                         await self.bot.edit_channel_permissions(channel_obj, member_role, self.everyone_overwrite)
 
@@ -250,20 +250,20 @@ class Newbies(Cog):
         """
 
         with session_scope() as session:
-            db_guild = session.query(Guild).get(ctx.message.server.id)
+            db_guild = session.query(Guild).get(ctx.message.guild.id)
             if not db_guild:
                 await self.bot.say('Automatic newbie roling is not enabled for this server.')
 
-            role = discord.utils.get(ctx.message.server.roles, id=db_guild.role_id)
+            role = discord.utils.get(ctx.message.guild.roles, id=db_guild.role_id)
             if not role:
                 await self.bot.say('Role has already been deleted.')
 
-            everyone_role = ctx.message.server.default_role
+            everyone_role = ctx.message.guild.default_role
             everyone_permissions = role.permissions
 
-            await self.bot.edit_role(ctx.message.server, everyone_role, permissions=everyone_permissions)
+            await self.bot.edit_role(ctx.message.guild, everyone_role, permissions=everyone_permissions)
 
-            await self.bot.delete_role(ctx.message.server, role)
+            await self.bot.delete_role(ctx.message.guild, role)
             session.delete(db_guild)
 
         await self.bot.say('Disabled newbie roling for this server.')
@@ -280,7 +280,7 @@ class Newbies(Cog):
         """
 
         with session_scope() as session:
-            db_guild = session.query(Guild).get(ctx.message.server.id)
+            db_guild = session.query(Guild).get(ctx.message.guild.id)
 
             if delay > 0:
                 db_guild.timeout = datetime.timedelta(hours=delay)
@@ -303,7 +303,7 @@ class Newbies(Cog):
             return
 
         with session_scope() as session:
-            db_guild = session.query(Guild).get(ctx.message.server.id)
+            db_guild = session.query(Guild).get(ctx.message.guild.id)
             db_guild.welcome_message = welcome_message.content
 
         await self.bot.say('Successfully set welcome message.')
@@ -328,7 +328,7 @@ class Newbies(Cog):
             msg = response_message.content
 
         with session_scope() as session:
-            db_guild = session.query(Guild).get(ctx.message.server.id)
+            db_guild = session.query(Guild).get(ctx.message.guild.id)
             db_guild.response_message = msg
 
             # TODO: Edit already sent messages
@@ -356,7 +356,7 @@ class Newbies(Cog):
             - channel: The channel to add to the list, identified by mention, ID, or name.
         """
 
-        if not channel.server.id == ctx.message.server.id:
+        if not channel.guild.id == ctx.message.guild.id:
             await self.bot.say('The provided channel is not on this server.')
             return
 
@@ -365,10 +365,10 @@ class Newbies(Cog):
                 await self.bot.say('This channel is already visible to unconfirmed users.')
                 return
 
-            everyone_role = ctx.message.server.default_role
+            everyone_role = ctx.message.guild.default_role
             await self.bot.edit_channel_permissions(channel, everyone_role, self.everyone_overwrite)
 
-            db_channel = Channel(channel_id=channel.id, guild_id=ctx.message.server.id)
+            db_channel = Channel(channel_id=channel.id, guild_id=ctx.message.guild.id)
             session.add(db_channel)
 
         await self.bot.say('{} is now visible to unconfirmed users.'.format(channel.mention))
@@ -383,7 +383,7 @@ class Newbies(Cog):
             - channel: The channel to remove from the list, identified by mention, ID, or name.
         """
 
-        if not channel.server.id == ctx.message.server.id:
+        if not channel.guild.id == ctx.message.guild.id:
             await self.bot.say('The provided channel is not on this server.')
             return
 
@@ -393,7 +393,7 @@ class Newbies(Cog):
                 await self.bot.say('The provided channel is not visible to unconfirmed members.')
                 return
 
-            everyone_role = ctx.message.server.default_role
+            everyone_role = ctx.message.guild.default_role
             await self.bot.edit_channel_permissions(channel, everyone_role)
 
             session.delete(db_channel)
@@ -409,8 +409,8 @@ class Newbies(Cog):
 
         with session_scope() as session:
             answer = 'The following channels are visible to unconfirmed users of this server.```'
-            for db_channel in session.query(Channel).filter(Channel.guild_id == ctx.message.server.id):
-                channel = discord.utils.get(ctx.message.server.channels, id=db_channel.channel_id)
+            for db_channel in session.query(Channel).filter(Channel.guild_id == ctx.message.guild.id):
+                channel = discord.utils.get(ctx.message.guild.channels, id=db_channel.channel_id)
                 if channel:
                     answer += '#'
                     answer += channel.name

@@ -50,7 +50,7 @@ class Channels(Cog):
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
-                role = discord.utils.get(ctx.message.server.roles, id=channel_db.role_id)
+                role = discord.utils.get(ctx.message.guild.roles, id=channel_db.role_id)
 
                 await self.bot.add_roles(ctx.message.author, role)
 
@@ -75,7 +75,7 @@ class Channels(Cog):
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
-                role = discord.utils.get(ctx.message.server.roles, id=channel_db.role_id)
+                role = discord.utils.get(ctx.message.guild.roles, id=channel_db.role_id)
 
                 await self.bot.remove_roles(ctx.message.author, role)
 
@@ -91,7 +91,7 @@ class Channels(Cog):
         """
 
         with session_scope() as session:
-            channel_iter = (channel for channel in ctx.message.server.channels if
+            channel_iter = (channel for channel in ctx.message.guild.channels if
                             session.query(Channel).get(channel.id))
             channel_list = sorted(channel_iter, key=lambda r: r.position)
 
@@ -113,11 +113,11 @@ class Channels(Cog):
         """
 
         with session_scope() as session:
-            role_dict = dict((role, sum(1 for member in ctx.message.server.members if role in member.roles))
-                             for role in ctx.message.server.roles
+            role_dict = dict((role, sum(1 for member in ctx.message.guild.members if role in member.roles))
+                             for role in ctx.message.guild.roles
                              if session.query(Channel).filter_by(role_id=role.id).first())
 
-        em = discord.Embed(title='Channel stats for ' + ctx.message.server.name, color=0x38CBF0)
+        em = discord.Embed(title='Channel stats for ' + ctx.message.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position):
             em.add_field(name='#' + role.name, value=role_dict[role])
 
@@ -157,9 +157,9 @@ class Channels(Cog):
                 await self.bot.say('Channel {} is already opt-in.'.format(channel.mention))
                 return
 
-            role = await self.bot.create_role(ctx.message.server, name=channel.name)
+            role = await self.bot.create_role(ctx.message.guild, name=channel.name)
 
-            everyone_role = ctx.message.server.default_role
+            everyone_role = ctx.message.guild.default_role
             overwrite = discord.PermissionOverwrite()
             overwrite.read_messages = False
 
@@ -188,14 +188,14 @@ class Channels(Cog):
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
-                role = discord.utils.get(ctx.message.server.roles, id=channel_db.role_id)
+                role = discord.utils.get(ctx.message.guild.roles, id=channel_db.role_id)
 
                 if role is None:
                     await self.bot.say('Could not find role. Was it already deleted?')
                 else:
-                    await self.bot.delete_role(ctx.message.server, role)
+                    await self.bot.delete_role(ctx.message.guild, role)
 
-                everyone_role = ctx.message.server.default_role
+                everyone_role = ctx.message.guild.default_role
                 overwrite = discord.PermissionOverwrite()
                 overwrite.read_messages = True
 

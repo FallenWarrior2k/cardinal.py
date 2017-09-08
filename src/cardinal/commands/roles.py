@@ -81,7 +81,7 @@ class Roles(Cog):
         """
 
         with session_scope() as session:
-            role_iter = (role for role in ctx.message.server.roles if session.query(Role).get(role.id))
+            role_iter = (role for role in ctx.message.guild.roles if session.query(Role).get(role.id))
             role_list = sorted(role_iter, key=lambda r: r.position)
 
         answer = 'Roles that can be joined through this bot:```\n'
@@ -101,10 +101,10 @@ class Roles(Cog):
         """
 
         with session_scope() as session:
-            role_dict = dict((role, sum(1 for member in ctx.message.server.members if role in member.roles))
-                             for role in ctx.message.server.roles if session.query(Role).get(role.id))
+            role_dict = dict((role, sum(1 for member in ctx.message.guild.members if role in member.roles))
+                             for role in ctx.message.guild.roles if session.query(Role).get(role.id))
 
-        em = discord.Embed(title='Role stats for ' + ctx.message.server.name, color=0x38CBF0)
+        em = discord.Embed(title='Role stats for ' + ctx.message.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position):
             em.add_field(name=role.name, value=role_dict[role])
 
@@ -169,7 +169,7 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        role = await self.bot.create_role(ctx.message.server, name=rolename)
+        role = await self.bot.create_role(ctx.message.guild, name=rolename)
 
         with session_scope() as session:
             session.add(Role(role_id=role.id))
@@ -194,5 +194,5 @@ class Roles(Cog):
             if role_db:
                 session.delete(role_db)
 
-        await self.bot.delete_role(role.server, role)
+        await self.bot.delete_role(role.guild, role)
         await self.bot.say('Successfully deleted role "{}".'.format(role.name))
