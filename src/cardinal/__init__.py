@@ -4,7 +4,7 @@ import traceback
 import discord
 import discord.ext.commands as _commands
 
-from cardinal.utils import format_message
+import cardinal.utils as utils
 from __main__ import config
 
 logger = logging.getLogger(__name__)
@@ -53,4 +53,4 @@ async def on_command_error(ex, ctx):
 
 @bot.event
 async def on_command(cmd, ctx):
-    logger.log(logging.INFO, format_message(ctx.message))
+    logger.log(logging.INFO, utils.format_message(ctx.message))
