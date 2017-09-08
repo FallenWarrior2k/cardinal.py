@@ -156,7 +156,7 @@ class Roles(Cog):
 
         await self.bot.say('Removed role "{}" from list of joinable roles.'.format(role.name))
 
-    @roles.group(pass_context=True)
+    @roles.command(pass_context=True)
     @commands.has_permissions(manage_roles=True)
     async def create(self, ctx: commands.Context, *, rolename: str):
         """
@@ -175,10 +175,6 @@ class Roles(Cog):
             session.add(Role(role_id=role.id))
 
         await self.bot.say('Created role "{}" and marked it as joinable.'.format(rolename))
-
-    @create.command(pass_context=True)
-    async def tagrole(self, ctx: commands.Context):
-        pass
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
