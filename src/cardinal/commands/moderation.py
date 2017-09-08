@@ -13,7 +13,8 @@ class Moderation(Cog):
     def __init__(self, bot):
         super().__init__(bot)
 
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
     async def kick(self, ctx: commands.Context, user: discord.Member, *, reason: str = None):
@@ -34,10 +35,11 @@ class Moderation(Cog):
         """
 
         # TODO: Switch to rewrite for API changes
-        await self.bot.kick(user)
-        await self.bot.say('User **{}** was kicked by {}.'.format(user.name, ctx.message.author.mention))
+        await user.kick(reason)
+        await ctx.send('User **{}** was kicked by {}.'.format(user.name, ctx.author.mention))
 
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
     async def ban(self, ctx: commands.Context, user: discord.Member, prune_days: int = 1, *, reason: str = None):
@@ -63,5 +65,5 @@ class Moderation(Cog):
         elif prune_days > 7:
             prune_days = 7
 
-        await self.bot.ban(user, prune_days)
-        await self.bot.say('User **{}** was banned by {}.'.format(user.name, ctx.message.author.mention))
+        await ctx.guild.ban(user, reason, prune_days)
+        await ctx.send('User **{}** was banned by {}.'.format(user.name, ctx.author.mention))

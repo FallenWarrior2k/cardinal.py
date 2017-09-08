@@ -24,7 +24,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_command_error(ex, ctx):
+async def on_command_error(ex, ctx: _commands.Context):
     error_msg = ''
 
     if isinstance(ex, _commands.CheckFailure):
@@ -45,12 +45,12 @@ async def on_command_error(ex, ctx):
             .format(utils.clean_prefix(ctx), ctx.command.qualified_name)
 
     if error_msg != '':
-        await bot.send_message(ctx.message.channel, error_msg)
+        await ctx.send(error_msg)
 
     if isinstance(ex, _commands.CommandInvokeError):
         logger.log(logging.ERROR, ''.join(traceback.format_exception(None, ex, ex.__traceback__)))  # Join with empty string as output lines already end in \n
 
 
 @bot.event
-async def on_command(cmd, ctx):
+async def on_command(cmd, ctx: _commands.Context):
     logger.log(logging.INFO, utils.format_message(ctx.message))

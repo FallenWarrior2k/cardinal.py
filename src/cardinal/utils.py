@@ -25,7 +25,7 @@ def channel_whitelisted(exception_predicate=None):
     """
 
     def predicate(ctx):
-        channel = ctx.message.channel
+        channel = ctx.channel
 
         with session_scope() as session:
             return True if session.query(WhitelistedChannel).get(channel.id) or (callable(exception_predicate) and exception_predicate(ctx)) else False
@@ -53,9 +53,9 @@ def format_discord_user(user: discord.User):
     return '"{0.name}" ({0.id})'.format(user)
 
 
-def format_discord_guild(guild: discord.Server):
+def format_discord_guild(guild: discord.Guild):
     return '"{0.name}" ({0.id})'.format(guild)
 
 
-def format_discord_channel(channel: discord.Channel):
+def format_discord_channel(channel):
     return '"{0.name}" ({0.id})'.format(channel)
