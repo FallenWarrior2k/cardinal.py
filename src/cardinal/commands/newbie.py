@@ -51,6 +51,7 @@ class Newbies(Cog):
     def __init__(self, bot):
         super().__init__(bot)
         # TODO: Scan guilds for non-members who are not in the DB i.e. who joined during a bot downtime
+        # TODO: Make background thread that checks for timeouts and kicks the respective users
 
     async def on_member_join(self, member: discord.Member):
         with session_scope() as session:
@@ -147,7 +148,7 @@ class Newbies(Cog):
     @commands.bot_has_permissions(manage_roles=True, manage_channels=True)
     async def newbie(self, ctx: commands.Context):
         """
-        Provides functionality for managing automatic newbie roling.
+        Make new members have restricted permissions until they confirm themselves.
 
         Required context: Server
 

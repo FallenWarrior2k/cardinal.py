@@ -23,7 +23,7 @@ class Channels(Cog):
     @channel_whitelisted()
     async def channels(self, ctx: commands.Context):
         """
-        Provides facilities to work with opt-in channels.
+        Access opt-in channels and/or manage them.
 
         Required context: Server, whitelisted channel
 
@@ -165,8 +165,8 @@ class Channels(Cog):
             await channel.set_permissions(everyone_role, read_messages=False)
             await channel.set_permissions(role, read_message=True)
 
-            channel_db = Channel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
-            session.add(channel_db)
+            db_channel = Channel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
+            session.add(db_channel)
 
         await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
 
@@ -182,10 +182,10 @@ class Channels(Cog):
             channel = ctx.channel
 
         with session_scope as session:
-            channel_db = session.query(Channel).get(channel.id)
+            db_channel = session.query(Channel).get(channel.id)
 
-            if channel_db:
-                role = discord.utils.get(ctx.guild.roles, id=channel_db.role_id)
+            if db_channel:
+                role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
 
                 if role is None:
                     await ctx.send('Could not find role. Was it already deleted?')
@@ -196,7 +196,7 @@ class Channels(Cog):
 
                 await channel.set_permissions(everyone_role, read_messages=True)
 
-                session.delete(channel_db)
+                session.delete(db_channel)
                 await ctx.send('Opt-in disabled for channel {}.'.format(channel.mention))
             else:
                 await ctx.send('Channel {} is not opt-in'.format(channel.mention))

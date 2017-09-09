@@ -22,7 +22,7 @@ class Roles(Cog):
     @channel_whitelisted()
     async def roles(self, ctx: commands.Context):
         """
-        Provides functionality for managing roles.
+        Join, leave and manage roles.
 
         Required context: Server, whitelisted channel
 

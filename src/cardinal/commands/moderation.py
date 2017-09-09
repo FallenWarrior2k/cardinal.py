@@ -10,6 +10,10 @@ logger.setLevel(logging.INFO)
 
 
 class Moderation(Cog):
+    """
+    A collection of general moderation commands to simplify the daily life of a mod.
+    """
+
     def __init__(self, bot):
         super().__init__(bot)
 
