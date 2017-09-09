@@ -52,5 +52,5 @@ async def on_command_error(ex, ctx: _commands.Context):
 
 
 @bot.event
-async def on_command(cmd, ctx: _commands.Context):
+async def on_command(ctx: _commands.Context):
     logger.log(logging.INFO, utils.format_message(ctx.message))
