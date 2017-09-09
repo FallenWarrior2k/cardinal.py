@@ -21,6 +21,16 @@ def all_subclasses(cls):
 
 
 def setup(bot):
+    imports = []
+    for finder, mod_name, is_pkg in pkgutil.iter_modules(__path__):
+        if is_pkg:
+            continue
+
+        try:
+            imports.append(importlib.import_module('.' + mod_name, __name__))  # Ensure one borked module does not kill the whole bot
+        except:
+            logger.exception('Error while importing "{}.{}".'.format(__name__, mod_name))
+
     for cog in all_subclasses(Cog):
         logger.log(logging.INFO, 'Initializing "{0}".'.format(cog.__name__))
         try:
@@ -31,6 +41,4 @@ def setup(bot):
         else:
             logger.log(logging.INFO, 'Successfully initialized "{0}".'.format(cog.__name__))
 
-
-imports = [importlib.import_module('.' + mod_name, __name__)
-           for finder, mod_name, is_pkg in pkgutil.iter_modules(__path__) if not is_pkg]
+    del imports[:]  # Delete all items in list
