@@ -9,7 +9,6 @@ from cardinal.db.roles import Role
 from cardinal.utils import clean_prefix, channel_whitelisted
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class Roles(Cog):

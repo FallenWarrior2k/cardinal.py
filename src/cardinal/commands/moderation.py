@@ -6,7 +6,6 @@ import discord.ext.commands as commands
 from cardinal.commands import Cog
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class Moderation(Cog):
@@ -37,8 +36,7 @@ class Moderation(Cog):
         Required bot permissions:
             - Kick Members
         """
-
-        # TODO: Switch to rewrite for API changes
+        
         await user.kick(reason)
         await ctx.send('User **{}** was kicked by {}.'.format(user.name, ctx.author.mention))
 

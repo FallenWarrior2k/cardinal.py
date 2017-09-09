@@ -13,7 +13,6 @@ from cardinal.db.newbie import User, Guild, Channel
 from cardinal.utils import clean_prefix, format_discord_user, format_discord_guild
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def newbie_enabled(func):
@@ -109,14 +108,11 @@ class Newbies(Cog):
                         try:
                             await member.kick()
                         except discord.Forbidden:
-                            logger.log(logging.ERROR,
-                                       'Lacking permissions to kick user {} from guild {}.'
+                            logger.exception('Lacking permissions to kick user {} from guild {}.'
                                        .format(format_discord_user(member), format_discord_guild(guild)))
-                        except discord.HTTPException:
-                            logger.log(logging.ERROR,
-                                       'Failed kicking user {} from guild {} due to an internal HTTP error.'
-                                       .format(format_discord_user(member), format_discord_guild(guild)))
-                            logger.log(logging.ERROR, traceback.format_exc())
+                        except discord.HTTPException as e:
+                            logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
+                                       .format(format_discord_user(member), format_discord_guild(guild), e.response.status))
                         finally:
                             session.delete(db_user)
 
@@ -133,12 +129,10 @@ class Newbies(Cog):
                     await member.add_roles(member_role)
                     await msg.author.send('Welcome to {}'.format(guild.name))
                 except discord.Forbidden:
-                    logger.log(logging.ERROR, 'Lacking permissions to manage roles for user {} on guild {}.'
-                               .format(format_discord_user(member), format_discord_guild(guild)))
+                    logger.exception('Lacking permissions to manage roles for user {} on guild {}.')
                 except discord.HTTPException as e:
-                    logger.log(logging.ERROR, 'Failed managing roles for user {} on guild {} due to HTTP error {}.'
+                    logger.exception('Failed managing roles for user {} on guild {} due to HTTP error {}.'
                                .format(format_discord_user(member), format_discord_guild(guild), e.response.status))
-                    logger.log(logging.ERROR, traceback.format_exc())
 
                 session.delete(db_user)
 

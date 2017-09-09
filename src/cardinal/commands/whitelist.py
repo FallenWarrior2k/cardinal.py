@@ -1,3 +1,5 @@
+import logging
+
 import discord
 import discord.ext.commands as commands
 
@@ -5,6 +7,8 @@ from cardinal.commands import Cog
 from cardinal.db import session_scope
 from cardinal.db.whitelist import WhitelistedChannel
 from cardinal.utils import clean_prefix
+
+logger = logging.getLogger(__name__)
 
 
 class Whitelisting(Cog):
@@ -18,9 +22,6 @@ class Whitelisting(Cog):
         Whitelist channels to allow for command usage.
 
         Required context: Server
-
-        Required permissions:
-            - Manage Channels
         """
 
         if ctx.invoked_subcommand is None:
@@ -34,6 +35,9 @@ class Whitelisting(Cog):
     async def add(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
         """
         Add a channel to the whitelist.
+
+        Required permissions:
+            - Manage Channels
 
         Parameters:
             - [optional] channel: The channel to whitelist, identified by mention, ID, or name. Defaults to the current channel.
@@ -57,6 +61,9 @@ class Whitelisting(Cog):
     async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
         """
         Remove a channel from the whitelist.
+
+        Required permissions:
+            - Manage Channels
 
         Parameters:
             - [optional] channel: The channel to remove from the whitelist, identified by mention, ID, or name. Defaults to the current channel.

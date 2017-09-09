@@ -10,7 +10,6 @@ from cardinal.db.channels import Channel
 from cardinal.utils import clean_prefix, channel_whitelisted
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class Channels(Cog):

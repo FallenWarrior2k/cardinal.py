@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 import discord
 import discord.ext.commands as _commands
@@ -8,7 +7,6 @@ import cardinal.utils as utils
 from __main__ import config
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # TODO: Implement server-specific prefixes
 bot = _commands.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py')
@@ -16,7 +14,7 @@ bot = _commands.Bot(command_prefix=config['cmd_prefix'], description='cardinal.p
 
 @bot.event
 async def on_ready():
-    logger.log(logging.INFO, 'Logged into Discord as {}'.format(bot.user))
+    logger.info('Logged into Discord as {}'.format(bot.user))
     try:
         await bot.change_presence(game=discord.Game(name=config['default_game']))
     except KeyError:
@@ -48,9 +46,9 @@ async def on_command_error(ex, ctx: _commands.Context):
         await ctx.send(error_msg)
 
     if isinstance(ex, _commands.CommandInvokeError):
-        logger.log(logging.ERROR, ''.join(traceback.format_exception(None, ex, ex.__traceback__)))  # Join with empty string as output lines already end in \n
+        logger.error('An exception was raised while executing the command for "{}".'.format(ctx.message.content), exc_info=ex)
 
 
 @bot.event
 async def on_command(ctx: _commands.Context):
-    logger.log(logging.INFO, utils.format_message(ctx.message))
+    logger.info(utils.format_message(ctx.message))
