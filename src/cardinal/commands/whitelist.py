@@ -101,4 +101,4 @@ class Whitelisting(Cog):
             answer += '\n'
 
         answer += '```'
-        ctx.send(answer)
+        await ctx.send(answer)
