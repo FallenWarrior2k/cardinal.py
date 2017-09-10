@@ -80,7 +80,8 @@ class Roles(Cog):
         """
 
         with session_scope() as session:
-            role_iter = (role for role in ctx.guild.roles if session.query(Role).get(role.id))
+            role_iter = (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in session.query(Role).filter_by(guild_id=ctx.guild.id))
+            role_iter = (role for role in role_iter if role)
             role_list = sorted(role_iter, key=lambda r: r.position)
 
         answer = 'Roles that can be joined through this bot:```\n'
@@ -100,8 +101,9 @@ class Roles(Cog):
         """
 
         with session_scope() as session:
+            role_iter = (discord.utils.get(ctx.guild.roles, id=db_role.id) for db_role in session.query(Role).filter_by(guild_id=ctx.guild.id))
             role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
-                             for role in ctx.guild.roles if session.query(Role).get(role.id))
+                             for role in role_iter if role)
 
         em = discord.Embed(title='Role stats for ' + ctx.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position):
