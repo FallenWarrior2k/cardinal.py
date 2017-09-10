@@ -4,8 +4,6 @@ import importlib
 import logging
 import pkgutil
 
-import traceback
-
 logger = logging.getLogger(__name__)
 
 
@@ -31,13 +29,12 @@ def setup(bot):
             logger.exception('Error while importing "{}.{}".'.format(__name__, mod_name))
 
     for cog in all_subclasses(Cog):
-        logger.log(logging.INFO, 'Initializing "{0}".'.format(cog.__name__))
+        logger.info('Initializing "{0}".'.format(cog.__name__))
         try:
             bot.add_cog(cog(bot))
         except:
-            logger.log(logging.ERROR, 'Error during initialization.')
-            logger.log(logging.ERROR, traceback.format_exc())
+            logger.exception('Error during initialization.')
         else:
-            logger.log(logging.INFO, 'Successfully initialized "{0}".'.format(cog.__name__))
+            logger.info('Successfully initialized "{0}".'.format(cog.__name__))
 
     del imports[:]  # Delete all items in list
