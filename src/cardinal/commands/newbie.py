@@ -198,7 +198,7 @@ class Newbies(Cog):
                 return
 
             await ctx.send('Enter a timeout for new users in hours. Enter 0 to disable timeouts.')
-            timeout_message = await self.bot.wait_for('message', check=pred, timeout=60.0, author=ctx.author, channel=ctx.channel)
+            timeout_message = await self.bot.wait_for('message', check=pred, timeout=60.0)
             if not timeout_message:
                 await ctx.send('Terminating process due to timeout.')
                 return
