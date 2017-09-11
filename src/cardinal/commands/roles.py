@@ -53,7 +53,7 @@ class Roles(Cog):
 
         await ctx.author.add_roles(role, reason='User joined role.')
 
-        await ctx.send('User {user} joined role "{role}"'.format(user=ctx.author.mention, role=role.name))
+        await ctx.send('User {} joined role "{}"'.format(ctx.author.mention, role.name))
 
     @roles.command()
     async def leave(self, ctx: commands.Context, *, role: discord.Role):
@@ -69,9 +69,9 @@ class Roles(Cog):
                 await ctx.send('Role "{}" cannot be left through this bot.'.format(role.name))
                 return
 
-        await ctx.author.remove_roles(ctx.author, reason='User left role.')
+        await ctx.author.remove_roles(role, reason='User left role.')
 
-        await ctx.send('User {user} left role "{role}"'.format(user=ctx.author.mention, role=role.name))
+        await ctx.send('User {} left role "{}"'.format(ctx.author.mention, role.name))
 
     @roles.command('list')
     async def _list(self, ctx: commands.Context):
@@ -147,13 +147,13 @@ class Roles(Cog):
         """
 
         with session_scope() as session:
-            role_db = session.query(Role).get(role.id)
+            db_role = session.query(Role).get(role.id)
 
-            if not role_db:
+            if not db_role:
                 await ctx.send('Role "{}" is not marked as a joinable role'.format(role.name))
                 return
 
-            session.delete(role_db)
+            session.delete(db_role)
 
         await ctx.send('Removed role "{}" from list of joinable roles.'.format(role.name))
 
