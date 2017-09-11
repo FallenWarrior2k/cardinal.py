@@ -29,12 +29,12 @@ def setup(bot):
             logger.exception('Error while importing "{}.{}".'.format(__name__, mod_name))
 
     for cog in all_subclasses(Cog):
-        logger.info('Initializing "{0}".'.format(cog.__name__))
+        logger.info('Initializing "{}".'.format(cog.__name__))
         try:
             bot.add_cog(cog(bot))
         except:
             logger.exception('Error during initialization.')
         else:
-            logger.info('Successfully initialized "{0}".'.format(cog.__name__))
+            logger.info('Successfully initialized "{}".'.format(cog.__name__))
 
     del imports[:]  # Delete all items in list

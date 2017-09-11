@@ -60,7 +60,7 @@ class Channels(Cog):
                 await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
 
     @channels.command(aliases=['hide'])
-    async def leave(self, ctx, *, channel: discord.TextChannel = None):
+    async def leave(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
         """
         Revoke a user's access to an opt-in enabled channel.
 
@@ -72,10 +72,15 @@ class Channels(Cog):
             channel = ctx.channel
 
         with session_scope() as session:
-            channel_db = session.query(Channel).get(channel.id)
+            db_channel = session.query(Channel).get(channel.id)
 
-            if channel_db:
-                role = discord.utils.get(ctx.guild.roles, id=channel_db.role_id)
+            if db_channel:
+                role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+
+                if not role:
+                    session.delete(db_channel)
+                    await ctx.send('The role for this channel no longer exists. Removing from database.')
+                    return
 
                 await ctx.author.remove_roles(role, reason='User left opt-in channel.')
 
