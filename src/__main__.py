@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 logger.info('Loaded config file. Logging level set to "{}".'.format(logging.getLevelName(root_logger.getEffectiveLevel())))
 
 cardinal = importlib.import_module('cardinal')
-bot = cardinal.bot
+bot = cardinal.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py')
 
 try:
     logger.info('Loading commands.')

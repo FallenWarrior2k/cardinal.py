@@ -6,7 +6,8 @@ import discord.ext.commands as commands
 from cardinal.commands import Cog
 from cardinal.db import session_scope
 from cardinal.db.roles import Role
-from cardinal.utils import clean_prefix, channel_whitelisted
+from cardinal.utils import clean_prefix
+from cardinal.checks import channel_whitelisted
 
 logger = logging.getLogger(__name__)
 
