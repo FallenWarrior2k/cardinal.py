@@ -55,7 +55,7 @@ class Bot(_commands.Bot):
                 .format(utils.clean_prefix(ctx), ctx.command.qualified_name)
 
         if isinstance(ex, _commands.CommandInvokeError):
-            logger.error('An exception was raised while executing the command for "{}".'.format(ctx.message.content), exc_info=ex)
+            logger.error('An exception was raised while executing the command for "{}".'.format(ctx.message.content), exc_info=ex.original)
             error_msg += 'An error occurred while executing the command.'
 
         if error_msg != '':
