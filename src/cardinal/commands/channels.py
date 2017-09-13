@@ -97,7 +97,7 @@ class Channels(Cog):
         """
 
         with session_scope() as session:
-            channel_iter = (discord.utils.get(ctx.guild.text_channels, id=db_channel.id) for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id))
+            channel_iter = (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id) for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id))
             channel_iter = (channel for channel in channel_iter if channel)
             channel_list = sorted(channel_iter, key=lambda r: r.position)
 
