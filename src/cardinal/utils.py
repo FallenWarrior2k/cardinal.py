@@ -7,7 +7,8 @@ logger = logging.getLogger(__name__)
 
 def clean_prefix(ctx):
     user = ctx.me
-    return ctx.prefix.replace(user.mention, '@' + user.name)
+    replacement = user.nick if ctx.guild and ctx.me.nick else user.name
+    return ctx.prefix.replace(user.mention, '@' + replacement)
 
 
 def format_message(msg):
@@ -21,7 +22,7 @@ def format_message(msg):
     """
 
     if msg.guild is None:
-        return '[PM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
     else:
         return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
 
