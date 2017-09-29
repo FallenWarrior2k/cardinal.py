@@ -3,8 +3,7 @@ import logging
 import discord
 import discord.ext.commands as _commands
 
-import cardinal.utils as utils
-import cardinal.errors as errors
+from . import utils, errors
 
 logger = logging.getLogger(__name__)
 

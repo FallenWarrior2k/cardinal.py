@@ -1,8 +1,8 @@
 from discord.ext.commands import check
 
-from cardinal.db import session_scope
-from cardinal.db.whitelist import WhitelistedChannel
-from cardinal.errors import ChannelNotWhitelisted
+from .db import session_scope
+from .db.whitelist import WhitelistedChannel
+from .errors import ChannelNotWhitelisted
 
 
 def channel_whitelisted(exception_predicate=None):

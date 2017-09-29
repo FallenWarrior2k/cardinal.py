@@ -6,10 +6,10 @@ import re
 import discord
 import discord.ext.commands as commands
 
-from cardinal.commands import Cog
-from cardinal.db import session_scope
-from cardinal.db.newbie import User, Guild, Channel
-from cardinal.utils import clean_prefix, format_discord_user, format_discord_guild
+from ..commands import Cog
+from ..db import session_scope
+from ..db.newbie import User, Guild, Channel
+from ..utils import clean_prefix, format_named_entity
 
 logger = logging.getLogger(__name__)
 

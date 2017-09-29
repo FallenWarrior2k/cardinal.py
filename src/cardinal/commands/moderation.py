@@ -3,7 +3,7 @@ import logging
 import discord
 import discord.ext.commands as commands
 
-from cardinal.commands import Cog
+from ..commands import Cog
 
 logger = logging.getLogger(__name__)
 

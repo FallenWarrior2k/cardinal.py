@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, BigInteger, UnicodeText, DateTime, Interval
 from sqlalchemy.orm import relationship
 
-import cardinal.db as db
+from .. import db
 
 
 class Guild(db.Base):

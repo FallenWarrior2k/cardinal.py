@@ -1,6 +1,6 @@
 from sqlalchemy import Column, BigInteger
 
-import cardinal.db as db
+from .. import db
 
 
 class Role(db.Base):

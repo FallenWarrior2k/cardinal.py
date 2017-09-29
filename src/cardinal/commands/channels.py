@@ -4,11 +4,11 @@ import discord
 import discord.ext.commands as commands
 import discord.utils
 
-from cardinal.commands import Cog
-from cardinal.db import session_scope
-from cardinal.db.channels import Channel
-from cardinal.utils import clean_prefix
-from cardinal.checks import channel_whitelisted
+from ..commands import Cog
+from ..db import session_scope
+from ..db.channels import Channel
+from ..utils import clean_prefix
+from ..checks import channel_whitelisted
 
 logger = logging.getLogger(__name__)
 
