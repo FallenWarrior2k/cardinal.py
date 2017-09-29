@@ -2,7 +2,6 @@ import datetime
 import functools
 import logging
 import re
-import traceback
 
 import discord
 import discord.ext.commands as commands
@@ -109,10 +108,10 @@ class Newbies(Cog):
                             await member.kick()
                         except discord.Forbidden:
                             logger.exception('Lacking permissions to kick user {} from guild {}.'
-                                       .format(format_discord_user(member), format_discord_guild(guild)))
+                                       .format(format_named_entity(member), format_named_entity(guild)))
                         except discord.HTTPException as e:
                             logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
-                                       .format(format_discord_user(member), format_discord_guild(guild), e.response.status))
+                                       .format(format_named_entity(member), format_named_entity(guild), e.response.status))
                         finally:
                             session.delete(db_user)
 
@@ -132,7 +131,7 @@ class Newbies(Cog):
                     logger.exception('Lacking permissions to manage roles for user {} on guild {}.')
                 except discord.HTTPException as e:
                     logger.exception('Failed managing roles for user {} on guild {} due to HTTP error {}.'
-                               .format(format_discord_user(member), format_discord_guild(guild), e.response.status))
+                               .format(format_named_entity(member), format_named_entity(guild), e.response.status))
 
                 session.delete(db_user)
 

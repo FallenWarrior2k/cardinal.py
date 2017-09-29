@@ -7,7 +7,9 @@ A growing Discord bot for managing a server.
 - a selfroling system
 - opt-in channels, i.e. hidden channels that only appear to users after issuing a command
 - restricting bot commands to certain channels
-- much more coming soon, mainly moderation features
+- moderation features like kicking and banning
+- restricting new members' privileges until they confirm themselves
+- much more to come
 
 ## Setup
 

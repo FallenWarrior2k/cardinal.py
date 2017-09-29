@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def clean_prefix(ctx):
-    user = ctx.bot.user
+    user = ctx.me
     return ctx.prefix.replace(user.mention, '@' + user.name)
 
 
@@ -26,13 +26,5 @@ def format_message(msg):
         return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
 
 
-def format_discord_user(user: discord.User):
-    return '"{0.name}" ({0.id})'.format(user)
-
-
-def format_discord_guild(guild: discord.Guild):
-    return '"{0.name}" ({0.id})'.format(guild)
-
-
-def format_discord_channel(channel):
-    return '"{0.name}" ({0.id})'.format(channel)
+def format_named_entity(obj):
+    return '"{0.name}" ({0.id})'.format(obj)

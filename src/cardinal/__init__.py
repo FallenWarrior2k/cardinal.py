@@ -5,20 +5,20 @@ import discord.ext.commands as _commands
 
 import cardinal.utils as utils
 import cardinal.errors as errors
-from __main__ import config
 
 logger = logging.getLogger(__name__)
 
 
 # TODO: Implement server-specific prefixes
 class Bot(_commands.Bot):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, default_game, **kwargs):
+        self.default_game = default_game
         super().__init__(*args, **kwargs)
 
     async def on_ready(self):
         logger.info('Logged into Discord as {}'.format(self.user))
         try:
-            await self.change_presence(game=discord.Game(name=config['default_game']))
+            await self.change_presence(game=discord.Game(name=self.default_game))
         except KeyError:
             pass
 
