@@ -46,13 +46,13 @@ class Bot(_commands.Bot):
             error_msg = 'This command cannot be used in this context.\n'
             error_msg += str(ex)
         elif isinstance(ex, _commands.MissingRequiredArgument):
-            error_msg = 'Too few arguments.'
+            error_msg = 'Too few arguments. Did you forget anything?'
         elif isinstance(ex, _commands.TooManyArguments):
-            error_msg = 'Too many arguments.'
+            error_msg = 'Too many arguments. Did you miss any quotes?'
         elif isinstance(ex, _commands.BadArgument):
-            error_msg = 'Arguments parsing failed.'
+            error_msg = 'Arguments parsing failed. Did you mistype anything?'
         elif isinstance(ex, _commands.NoPrivateMessage):
-            error_msg = 'Command must not be used in private message channels.'
+            error_msg = 'Command cannot be used in private message channels.'
         elif isinstance(ex, _commands.CommandOnCooldown):
             error_msg = str(ex)
 
