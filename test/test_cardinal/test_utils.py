@@ -27,12 +27,12 @@ class MessageFormattingTestCase(ut.TestCase):
         msg.guild = None
         self.msg = msg
 
-    def test_format_message_dm(self):
+    def test_dm(self):
         expected = '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(self.msg)
         got = utils.format_message(self.msg)
         self.assertMultiLineEqual(expected, got)
 
-    def test_format_message_guild(self):
+    def test_guild(self):
         self.msg.guild = Empty()
         self.msg.guild.name = 'Test guild'
         self.msg.guild.id = 987654321
@@ -55,19 +55,19 @@ class CleanPrefixTestCase(ut.TestCase):
         ctx.prefix = str()
         self.ctx = ctx
 
-    def test_clean_prefix_regular_dm(self):
+    def test_regular_dm(self):
         self.ctx.prefix = '?'
         expected = '?'
         got = utils.clean_prefix(self.ctx)
         self.assertMultiLineEqual(expected, got)
 
-    def test_clean_prefix_mention_dm(self):
+    def test_mention_dm(self):
         self.ctx.prefix = self.ctx.me.mention
         expected = '@{}'.format(self.ctx.me.name)
         got = utils.clean_prefix(self.ctx)
         self.assertMultiLineEqual(expected, got)
 
-    def test_clean_prefix_regular_guild_no_nick(self):
+    def test_regular_guild_no_nick(self):
         self.ctx.guild = True
         self.ctx.me.nick = None
         self.ctx.prefix = '?'
@@ -75,7 +75,7 @@ class CleanPrefixTestCase(ut.TestCase):
         got = utils.clean_prefix(self.ctx)
         self.assertMultiLineEqual(expected, got)
 
-    def test_clean_prefix_mention_guild_no_nick(self):
+    def test_mention_guild_no_nick(self):
         self.ctx.guild = True
         self.ctx.me.nick = None
         self.ctx.prefix = self.ctx.me.mention
@@ -83,7 +83,15 @@ class CleanPrefixTestCase(ut.TestCase):
         got = utils.clean_prefix(self.ctx)
         self.assertMultiLineEqual(expected, got)
 
-    def test_clean_prefix_mention_guild_nick(self):
+    def test_regular_guild_nick(self):
+        self.ctx.guild = True
+        self.ctx.me.nick = 'Test nick'
+        self.ctx.prefix = '?'
+        expected = '?'
+        got = utils.clean_prefix(self.ctx)
+        self.assertMultiLineEqual(expected, got)
+
+    def test_mention_guild_nick(self):
         self.ctx.guild = True
         self.ctx.me.nick = 'Test nick'
         self.ctx.prefix = self.ctx.me.mention

@@ -11,7 +11,7 @@ class ChannelNotWhitelistedTestCase(ut.TestCase):
         ctx.channel.mention = '<#123456789>'
         self.ctx = ctx
 
-    def test_ChannelNotWhitelisted_ctor(self):
+    def test_ctor(self):
         ex = errors.ChannelNotWhitelisted(self.ctx)
         expected = 'Channel {} is not whitelisted.'.format(self.ctx.channel.mention)
         got = str(ex)
@@ -25,6 +25,6 @@ class UserBlacklistedTestCase(ut.TestCase):
         ctx.author = Empty()
         self.ctx = ctx
 
-    def test_UserBlacklisted_ctor(self):
+    def test_ctor(self):
         ex = errors.UserBlacklisted(self.ctx)
         self.assertIs(self.ctx.author, ex.user)
