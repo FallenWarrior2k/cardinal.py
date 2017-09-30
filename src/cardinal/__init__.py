@@ -2,19 +2,26 @@ import logging
 
 import discord
 import discord.ext.commands as _commands
+from sqlalchemy.orm import sessionmaker
 
-from . import utils, errors
+from . import context, errors, utils
+from .db import create_all
 
 logger = logging.getLogger(__name__)
 
 
 # TODO: Implement server-specific prefixes
 class Bot(_commands.Bot):
-    def __init__(self, *args, default_game, **kwargs):
+    def __init__(self, *args, default_game, engine, **kwargs):
         self.default_game = default_game
+        self.engine = engine
+        _Session = sessionmaker()
+        _Session.configure(bind=engine)
+        self.sessionmaker = _Session
         super().__init__(*args, **kwargs)
 
     async def on_ready(self):
+        create_all(self.engine)
         logger.info('Logged into Discord as {}'.format(self.user))
         try:
             await self.change_presence(game=discord.Game(name=self.default_game))
@@ -22,7 +29,7 @@ class Bot(_commands.Bot):
             pass
 
     async def on_message(self, msg: discord.Message):
-        ctx = await self.get_context(msg, cls=_commands.Context)  # TODO: Make own context with dict to store data between commands
+        ctx = await self.get_context(msg, cls=context.Context)
         if ctx.valid:
             await self.invoke(ctx)
 

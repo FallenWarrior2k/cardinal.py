@@ -31,4 +31,3 @@ class Channel(db.Base):
 
 Guild.users = relationship(User, backref='guild', innerjoin=True, cascade='all, delete-orphan', lazy=True)  # TODO: Decide on lazy (True) or eager (False) loading
 Guild.channels = relationship(Channel, backref='guild', cascade='all, delete-orphan', lazy=True)
-db.Base.metadata.create_all(db.engine)

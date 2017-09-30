@@ -5,7 +5,7 @@ import discord.ext.commands as commands
 import discord.utils
 
 from ..commands import Cog
-from ..db import session_scope
+from ..context import Context
 from ..db.channels import Channel
 from ..utils import clean_prefix
 from ..checks import channel_whitelisted
@@ -21,7 +21,7 @@ class Channels(Cog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
-    async def channels(self, ctx: commands.Context):
+    async def channels(self, ctx: Context):
         """
         Access opt-in channels and/or manage them.
 
@@ -39,7 +39,7 @@ class Channels(Cog):
             return
 
     @channels.command(aliases=['show'])
-    async def join(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def join(self, ctx: Context, *, channel: discord.TextChannel):
         """
         Grant a user access to an opt-in enabled channel.
 
@@ -47,7 +47,7 @@ class Channels(Cog):
             - channel: The channel to join, identified by mention, ID, or name. Please note that due to Discord's client limitations, the first way does not work on mobile.
         """
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             channel_db = session.query(Channel).get(channel.id)
 
             if channel_db:
@@ -61,7 +61,7 @@ class Channels(Cog):
                 await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
 
     @channels.command(aliases=['hide'])
-    async def leave(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def leave(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Revoke a user's access to an opt-in enabled channel.
 
@@ -72,7 +72,7 @@ class Channels(Cog):
         if channel is None:
             channel = ctx.channel
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_channel = session.query(Channel).get(channel.id)
 
             if db_channel:
@@ -91,12 +91,12 @@ class Channels(Cog):
                 await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
 
     @channels.command('list')
-    async def _list(self, ctx: commands.Context):
+    async def _list(self, ctx: Context):
         """
         List all channels that can be joined through the bot.
         """
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             channel_iter = filter(discord.utils.get(ctx.guild.text_channels, id=db_channel.id) for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id))
             channel_list = sorted(channel_iter, key=lambda r: r.position)
 
@@ -112,12 +112,12 @@ class Channels(Cog):
         await ctx.send(answer)
 
     @channels.command()
-    async def stats(self, ctx: commands.Context):
+    async def stats(self, ctx: Context):
         """
         Display the member count for each opt-in channel on the current server.
         """
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             role_iter = filter(discord.utils.get(ctx.guild.roles, id=db_role.id) for db_role in session.query(Channel).filter_by(guild_id=ctx.guild.id))
             role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
                              for role in role_iter)
@@ -131,7 +131,7 @@ class Channels(Cog):
     @channels.group('opt-in', )
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
-    async def _opt_in(self, ctx: commands.Context):
+    async def _opt_in(self, ctx: Context):
         """
         Allows moderators to toggle a channel's opt-in status.
 
@@ -146,7 +146,7 @@ class Channels(Cog):
             await ctx.send('Invalid command passed: possible options are "enable" and "disable".')
 
     @_opt_in.command()
-    async def enable(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def enable(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Make a channel opt-in, revoking access for @\u200beveryone and granting it only to a specifically created role.
 
@@ -157,7 +157,7 @@ class Channels(Cog):
         if channel is None:
             channel = ctx.channel
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             if session.query(Channel).get(channel.id):
                 await ctx.send('Channel {} is already opt-in.'.format(channel.mention))
                 return
@@ -175,7 +175,7 @@ class Channels(Cog):
         await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
 
     @_opt_in.command()
-    async def disable(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def disable(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Remove the opt-in status from a channel, making it accessible for @\u200beveryone again.
 
@@ -185,7 +185,7 @@ class Channels(Cog):
         if channel is None:
             channel = ctx.channel
 
-        with session_scope as session:
+        with ctx.session_scope() as session:
             db_channel = session.query(Channel).get(channel.id)
 
             if db_channel:

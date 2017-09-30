@@ -4,6 +4,7 @@ import discord
 import discord.ext.commands as commands
 
 from ..commands import Cog
+from ..context import Context
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class Moderation(Cog):
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
-    async def kick(self, ctx: commands.Context, user: discord.Member, *, reason: str = None):
+    async def kick(self, ctx: Context, user: discord.Member, *, reason: str = None):
         """
         Kick a member from the current server.
 
@@ -44,7 +45,7 @@ class Moderation(Cog):
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def ban(self, ctx: commands.Context, user: discord.Member, prune_days: int = 1, *, reason: str = None):
+    async def ban(self, ctx: Context, user: discord.Member, prune_days: int = 1, *, reason: str = None):
         """
         Ban a user from the current server
 

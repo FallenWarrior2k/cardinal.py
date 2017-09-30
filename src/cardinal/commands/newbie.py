@@ -7,7 +7,7 @@ import discord
 import discord.ext.commands as commands
 
 from ..commands import Cog
-from ..db import session_scope
+from ..context import Context
 from ..db.newbie import User, Guild, Channel
 from ..utils import clean_prefix, format_named_entity
 
@@ -24,9 +24,9 @@ def newbie_enabled(func):
 
     @functools.wraps(cmd)
     async def wrapper(*args, **kwargs):
-        ctx = next(i for i in args if isinstance(i, commands.Context))  # No try-catch necessary, context is always passed since rewrite
+        ctx = next(i for i in args if isinstance(i, Context))  # No try-catch necessary, context is always passed since rewrite
         if ctx:
-            with session_scope() as session:
+            with ctx.session_scope() as session:
                 if not (ctx.guild and session.query(Guild).get(ctx.guild.id)):
                     await ctx.send('Newbie roling is not enabled on this server. Please enable it before using these commands.')
                     return
@@ -52,7 +52,7 @@ class Newbies(Cog):
         # TODO: Make background thread that checks for timeouts and kicks the respective users
 
     async def on_member_join(self, member: discord.Member):
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             guild = session.query(Guild).get(member.guild.id)
 
             if guild is None:
@@ -72,7 +72,7 @@ class Newbies(Cog):
             await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_member_remove(self, member: discord.Member):
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             # Using query instead of object deletion to prevent redundant SELECT query
             session.query(User).filter(User.user_id == member.id, User.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
@@ -83,7 +83,7 @@ class Newbies(Cog):
         if not isinstance(msg.channel, discord.abc.PrivateChannel):
             return
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             for db_user in session.query(User).filter(User.user_id == msg.author.id):
                 db_guild = db_user.guild  # Get guild
                 if not db_guild:  # If guild not set, delete row
@@ -139,7 +139,7 @@ class Newbies(Cog):
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
     @commands.bot_has_permissions(manage_roles=True, manage_channels=True)
-    async def newbie(self, ctx: commands.Context):
+    async def newbie(self, ctx: Context):
         """
         Make new members have restricted permissions until they confirm themselves.
 
@@ -158,12 +158,12 @@ class Newbies(Cog):
                                .format(clean_prefix(ctx), ctx.command.qualified_name))
 
     @newbie.command()
-    async def enable(self, ctx: commands.Context):
+    async def enable(self, ctx: Context):
         """
         Enable automatic newbie roling for the current server.
         This will add a role to new members, restricting their permissions to send messages, and additionally restricts their read access to certain channels.
         """
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             if session.query(Guild).get(ctx.guild.id):
                 await ctx.send('Automated newbie roling is already enabled for this server.')
                 return
@@ -241,12 +241,12 @@ class Newbies(Cog):
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
     @newbie.command()
-    async def disable(self, ctx: commands.Context):
+    async def disable(self, ctx: Context):
         """
         Disable automatic newbie roling for this server. New members will instantly have write access, unless verification prevents that.
         """
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_guild = session.query(Guild).get(ctx.guild.id)
             if not db_guild:
                 await ctx.send('Automatic newbie roling is not enabled for this server.')
@@ -267,7 +267,7 @@ class Newbies(Cog):
 
     @newbie.command()
     @newbie_enabled
-    async def timeout(self, ctx: commands.Context, delay: float = 0.0):
+    async def timeout(self, ctx: Context, delay: float = 0.0):
         """
         Set the timeout in hours before new users get kicked.
         Put a non-positive value (zero or less) or nothing to remove it.
@@ -276,7 +276,7 @@ class Newbies(Cog):
             - [optional] delay: A decimal number describing the delay before a kick in hours. Defaults to zero, which means no timeout at all.
         """
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_guild = session.query(Guild).get(ctx.guild.id)
 
             if delay > 0:
@@ -288,7 +288,7 @@ class Newbies(Cog):
 
     @newbie.command('welcome-message')
     @newbie_enabled
-    async def _welcome_message(self, ctx: commands.Context):
+    async def _welcome_message(self, ctx: Context):
         """
         Set the welcome message for the server.
         """
@@ -299,7 +299,7 @@ class Newbies(Cog):
             await ctx.send('Terminating process due to timeout.')
             return
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_guild = session.query(Guild).get(ctx.guild.id)
             db_guild.welcome_message = welcome_message.content
 
@@ -307,7 +307,7 @@ class Newbies(Cog):
 
     @newbie.command('response-message')
     @newbie_enabled
-    async def _response_message(self, ctx: commands.Context, *, msg: str = None):
+    async def _response_message(self, ctx: Context, *, msg: str = None):
         """
         Set the response message for the server, i.e. the message users have to enter to be granted access to the server.
 
@@ -324,7 +324,7 @@ class Newbies(Cog):
 
             msg = response_message.content
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_guild = session.query(Guild).get(ctx.guild.id)
             db_guild.response_message = msg
 
@@ -333,7 +333,7 @@ class Newbies(Cog):
         await ctx.send('Successfully set response message.')
 
     @newbie.group()
-    async def channels(self, ctx: commands.Context):
+    async def channels(self, ctx: Context):
         """
         Modify the channels unconfirmed users can access.
         """
@@ -345,7 +345,7 @@ class Newbies(Cog):
 
     @channels.command()
     @newbie_enabled
-    async def add(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def add(self, ctx: Context, *, channel: discord.TextChannel):
         """
         Add a channel to the list of channels unconfirmed users can access.
 
@@ -357,7 +357,7 @@ class Newbies(Cog):
             await ctx.send('The provided channel is not on this server.')
             return
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             if session.query(Channel).get(channel.id):
                 await ctx.send('This channel is already visible to unconfirmed users.')
                 return
@@ -372,7 +372,7 @@ class Newbies(Cog):
 
     @channels.command()
     @newbie_enabled
-    async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def remove(self, ctx: Context, *, channel: discord.TextChannel):
         """
         Remove a channel from the list of channels unconfirmed users can access.
 
@@ -384,7 +384,7 @@ class Newbies(Cog):
             await ctx.send('The provided channel is not on this server.')
             return
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_channel = session.query(Channel).get(channel.id)
             if not db_channel:
                 await ctx.send('The provided channel is not visible to unconfirmed members.')
@@ -399,12 +399,12 @@ class Newbies(Cog):
 
     @channels.command(pass_context=True)
     @newbie_enabled
-    async def list(self, ctx: commands.Context):
+    async def list(self, ctx: Context):
         """
         Lists the channels visible to unconfirmed users of this server.
         """
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             answer = 'The following channels are visible to unconfirmed users of this server.```'
             for db_channel in session.query(Channel).filter(Channel.guild_id == ctx.guild.id):
                 channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)

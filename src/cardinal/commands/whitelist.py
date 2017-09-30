@@ -4,7 +4,7 @@ import discord
 import discord.ext.commands as commands
 
 from ..commands import Cog
-from ..db import session_scope
+from ..context import Context
 from ..db.whitelist import WhitelistedChannel
 from ..utils import clean_prefix
 
@@ -17,7 +17,7 @@ class Whitelisting(Cog):
 
     @commands.group()
     @commands.guild_only()
-    async def whitelist(self, ctx: commands.Context):
+    async def whitelist(self, ctx: Context):
         """
         Whitelist channels to allow for command usage.
 
@@ -32,7 +32,7 @@ class Whitelisting(Cog):
 
     @whitelist.command()
     @commands.has_permissions(manage_channels=True)
-    async def add(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def add(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Add a channel to the whitelist.
 
@@ -46,7 +46,7 @@ class Whitelisting(Cog):
         if channel is None:
             channel = ctx.channel
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             if session.query(WhitelistedChannel).get(channel.id):
                 await ctx.send('Channel {} is already whitelisted.'.format(channel.mention))
                 return
@@ -58,7 +58,7 @@ class Whitelisting(Cog):
 
     @whitelist.command()
     @commands.has_permissions(manage_channels=True)
-    async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def remove(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Remove a channel from the whitelist.
 
@@ -72,7 +72,7 @@ class Whitelisting(Cog):
         if channel is None:
             channel = ctx.channel
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             db_channel = session.query(WhitelistedChannel).get(channel.id)
             if not db_channel:
                 await ctx.send('Channel {} is not whitelisted.'.format(channel.mention))
@@ -82,7 +82,7 @@ class Whitelisting(Cog):
         await ctx.send('Removed channel {} from whitelist.'.format(channel.mention))
 
     @whitelist.command('list')
-    async def _list(self, ctx: commands.Context):
+    async def _list(self, ctx: Context):
         """
         Enumerate whitelisted channels on the current server.
         """
@@ -91,7 +91,7 @@ class Whitelisting(Cog):
 
         channel_list = []
 
-        with session_scope() as session:
+        with ctx.session_scope() as session:
             for db_channel in session.query(WhitelistedChannel).filter_by(guild_id=ctx.guild.id):
                 channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
                 if not channel:

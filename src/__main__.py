@@ -2,8 +2,9 @@ import importlib
 import json
 import logging
 import sys
-
 from os import path
+
+from sqlalchemy import create_engine
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -30,7 +31,8 @@ logger = logging.getLogger(__name__)
 logger.info('Loaded config file. Logging level set to "{}".'.format(logging.getLevelName(root_logger.getEffectiveLevel())))
 
 cardinal = importlib.import_module('cardinal')
-bot = cardinal.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py', default_game=config['default_game'])
+engine = create_engine(config['db']['connect_string'], **config['db']['options'])
+bot = cardinal.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py', default_game=config['default_game'], engine=engine)
 
 try:
     logger.info('Loading commands.')
