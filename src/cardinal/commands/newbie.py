@@ -44,7 +44,7 @@ class Newbies(Cog):
     channel_re = re.compile(
         r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')  # Matches either a channel mention of the form "<#id>" or a raw ID. The actual ID can be extracted from the 'id' group of the match object
 
-    everyone_overwrite = discord.PermissionOverwrite(read_messages=True)
+    everyone_overwrite = discord.PermissionOverwrite(read_messages=True, read_message_history=True)
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -66,7 +66,7 @@ class Newbies(Cog):
 
             message = await member.send(message_content)
 
-            user = User(guild_id=member.guild.id, userid=member.id, message_id=message.id, joined_at=member.joined_at)
+            user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=member.joined_at)
             session.add(user)
 
             await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
@@ -229,14 +229,14 @@ class Newbies(Cog):
                     channel_id = match.group('id')
                     channel = discord.utils.get(ctx.guild.text_channels, id=channel_id)
                     if channel and channel.guild.id == ctx.guild.id:
-                        await channel.set_permissions(everyone_role, self.everyone_overwrite)
+                        await channel.set_permissions(everyone_role, overwrite=self.everyone_overwrite)
                         db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
                         session.add(db_channel)
 
                 else:
                     channel = discord.utils.get(ctx.guild.text_channels, name=channel_string.lower())
                     if channel:
-                        await channel.set_permissions(channel, member_role, self.everyone_overwrite)
+                        await channel.set_permissions(member_role, overwrite=self.everyone_overwrite)
 
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
@@ -363,7 +363,7 @@ class Newbies(Cog):
                 return
 
             everyone_role = ctx.guild.default_role
-            await channel.set_permissions(everyone_role, self.everyone_overwrite)
+            await channel.set_permissions(everyone_role, overwrite=self.everyone_overwrite)
 
             db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
             session.add(db_channel)
