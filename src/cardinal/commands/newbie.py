@@ -72,7 +72,7 @@ class Newbies(Cog):
             await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_member_remove(self, member: discord.Member):
-        with ctx.session_scope() as session:
+        with self.bot.session_scope() as session:
             # Using query instead of object deletion to prevent redundant SELECT query
             session.query(User).filter(User.user_id == member.id, User.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
@@ -83,7 +83,7 @@ class Newbies(Cog):
         if not isinstance(msg.channel, discord.abc.PrivateChannel):
             return
 
-        with ctx.session_scope() as session:
+        with self.bot.session_scope() as session:
             for db_user in session.query(User).filter(User.user_id == msg.author.id):
                 db_guild = db_user.guild  # Get guild
                 if not db_guild:  # If guild not set, delete row

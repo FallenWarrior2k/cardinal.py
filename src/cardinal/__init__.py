@@ -1,3 +1,4 @@
+import contextlib
 import logging
 
 import discord
@@ -19,6 +20,19 @@ class Bot(_commands.Bot):
         _Session.configure(bind=engine)
         self.sessionmaker = _Session
         super().__init__(*args, **kwargs)
+
+    @contextlib.contextmanager
+    def session_scope(self):
+        session = self.sessionmaker()
+
+        try:
+            yield session
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     async def on_ready(self):
         create_all(self.engine)
