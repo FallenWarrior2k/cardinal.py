@@ -1,10 +1,3 @@
-import logging
-
-import discord
-
-logger = logging.getLogger(__name__)
-
-
 def clean_prefix(ctx):
     user = ctx.me
     replacement = user.nick if ctx.guild and ctx.me.nick else user.name
