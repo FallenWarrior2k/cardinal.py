@@ -2,7 +2,6 @@ import datetime
 import functools
 import logging
 import re
-import traceback
 
 import discord
 import discord.ext.commands as commands
@@ -45,7 +44,7 @@ class Newbies(Cog):
     channel_re = re.compile(
         r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')  # Matches either a channel mention of the form "<#id>" or a raw ID. The actual ID can be extracted from the 'id' group of the match object
 
-    everyone_overwrite = discord.PermissionOverwrite(read_messages=True)
+    everyone_overwrite = discord.PermissionOverwrite(read_messages=True, read_message_history=True)
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -67,7 +66,7 @@ class Newbies(Cog):
 
             message = await member.send(message_content)
 
-            user = User(guild_id=member.guild.id, userid=member.id, message_id=message.id, joined_at=member.joined_at)
+            user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=member.joined_at)
             session.add(user)
 
             await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
