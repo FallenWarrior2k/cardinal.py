@@ -4,8 +4,8 @@ from . import Empty
 import cardinal.errors as errors
 
 
-class ChannelNotWhitelistedTestCase(ut.TestCase):
-    def test_ctor(self):
+class ChannelNotWhitelistedCtorTestCase(ut.TestCase):
+    def test(self):
         ctx = Empty()
         ctx.channel = Empty()
         ctx.channel.mention = '<#123456789>'
@@ -16,8 +16,8 @@ class ChannelNotWhitelistedTestCase(ut.TestCase):
         self.assertIs(ctx.channel, ex.channel)
 
 
-class UserBlacklistedTestCase(ut.TestCase):
-    def test_ctor(self):
+class UserBlacklistedCtorTestCase(ut.TestCase):
+    def test(self):
         ctx = Empty()
         ctx.author = Empty()
         ex = errors.UserBlacklisted(ctx)

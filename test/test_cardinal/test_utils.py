@@ -5,15 +5,12 @@ import cardinal.utils as utils
 
 
 class EntityFormattingTestCase(ut.TestCase):
-    def setUp(self):
+    def test_format_named_entity(self):
         obj = Empty()
         obj.name = 'Test obj'
         obj.id = 123456789
-        self.obj = obj
-
-    def test_format_named_entity(self):
-        expected = '"{0.name}" ({0.id})'.format(self.obj)
-        got = utils.format_named_entity(self.obj)
+        expected = '"{0.name}" ({0.id})'.format(obj)
+        got = utils.format_named_entity(obj)
         self.assertMultiLineEqual(expected, got)
 
 
