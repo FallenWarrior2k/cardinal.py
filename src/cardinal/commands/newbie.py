@@ -230,14 +230,14 @@ class Newbies(Cog):
                     channel_id = match.group('id')
                     channel = discord.utils.get(ctx.guild.text_channels, id=channel_id)
                     if channel and channel.guild.id == ctx.guild.id:
-                        await channel.set_permissions(everyone_role, self.everyone_overwrite)
+                        await channel.set_permissions(everyone_role, overwrite=self.everyone_overwrite)
                         db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
                         session.add(db_channel)
 
                 else:
                     channel = discord.utils.get(ctx.guild.text_channels, name=channel_string.lower())
                     if channel:
-                        await channel.set_permissions(channel, member_role, self.everyone_overwrite)
+                        await channel.set_permissions(member_role, overwrite=self.everyone_overwrite)
 
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
@@ -364,7 +364,7 @@ class Newbies(Cog):
                 return
 
             everyone_role = ctx.guild.default_role
-            await channel.set_permissions(everyone_role, self.everyone_overwrite)
+            await channel.set_permissions(everyone_role, overwrite=self.everyone_overwrite)
 
             db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
             session.add(db_channel)
