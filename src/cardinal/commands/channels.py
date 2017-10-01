@@ -97,7 +97,7 @@ class Channels(Cog):
         """
 
         with ctx.session_scope() as session:
-            channel_iter = filter(discord.utils.get(ctx.guild.text_channels, id=db_channel.id) for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id))
+            channel_iter = filter(None, (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id) for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id)))
             channel_list = sorted(channel_iter, key=lambda r: r.position)
 
         answer = 'Channels that can be joined through this bot:```\n'
@@ -118,7 +118,7 @@ class Channels(Cog):
         """
 
         with ctx.session_scope() as session:
-            role_iter = filter(discord.utils.get(ctx.guild.roles, id=db_role.id) for db_role in session.query(Channel).filter_by(guild_id=ctx.guild.id))
+            role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.id) for db_role in session.query(Channel).filter_by(guild_id=ctx.guild.id)))
             role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
                              for role in role_iter)
 
