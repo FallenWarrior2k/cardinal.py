@@ -1,13 +1,12 @@
 import unittest as ut
+import unittest.mock as mock
 
-from . import Empty
 import cardinal.errors as errors
 
 
 class ChannelNotWhitelistedCtorTestCase(ut.TestCase):
     def test(self):
-        ctx = Empty()
-        ctx.channel = Empty()
+        ctx = mock.NonCallableMock()
         ctx.channel.mention = '<#123456789>'
         ex = errors.ChannelNotWhitelisted(ctx)
         expected = 'Channel {} is not whitelisted.'.format(ctx.channel.mention)
@@ -18,7 +17,6 @@ class ChannelNotWhitelistedCtorTestCase(ut.TestCase):
 
 class UserBlacklistedCtorTestCase(ut.TestCase):
     def test(self):
-        ctx = Empty()
-        ctx.author = Empty()
+        ctx = mock.NonCallableMock()
         ex = errors.UserBlacklisted(ctx)
         self.assertIs(ctx.author, ex.user)

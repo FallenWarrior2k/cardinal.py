@@ -1,12 +1,12 @@
 import unittest as ut
+import unittest.mock as mock
 
-from . import Empty
 import cardinal.utils as utils
 
 
 class EntityFormattingTestCase(ut.TestCase):
     def test_format_named_entity(self):
-        obj = Empty()
+        obj = mock.NonCallableMock()
         obj.name = 'Test obj'
         obj.id = 123456789
         expected = '"{0.name}" ({0.id})'.format(obj)
@@ -16,9 +16,8 @@ class EntityFormattingTestCase(ut.TestCase):
 
 class MessageFormattingTestCase(ut.TestCase):
     def setUp(self):
-        msg = Empty()
+        msg = mock.NonCallableMock()
         msg.content = 'Test message'
-        msg.author = Empty()
         msg.author.name = 'Test author name'
         msg.author.id = 123456789
         msg.guild = None
@@ -30,10 +29,9 @@ class MessageFormattingTestCase(ut.TestCase):
         self.assertMultiLineEqual(expected, got)
 
     def test_guild(self):
-        self.msg.guild = Empty()
+        self.msg.guild = mock.NonCallableMock()
         self.msg.guild.name = 'Test guild'
         self.msg.guild.id = 987654321
-        self.msg.channel = Empty()
         self.msg.channel.name = 'Test channel'
         self.msg.channel.id = 123459876
 
@@ -44,12 +42,10 @@ class MessageFormattingTestCase(ut.TestCase):
 
 class CleanPrefixTestCase(ut.TestCase):
     def setUp(self):
-        ctx = Empty()
-        ctx.me = Empty()
+        ctx = mock.NonCallableMock()
         ctx.me.mention = '<@123456789>'
         ctx.me.name = 'Test bot'
         ctx.guild = None
-        ctx.prefix = str()
         self.ctx = ctx
 
     def test_regular_dm(self):

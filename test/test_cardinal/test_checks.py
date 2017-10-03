@@ -1,10 +1,10 @@
 import contextlib
 import unittest as ut
+import unittest.mock as mock
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from test_cardinal import Empty
 from cardinal.checks import channel_whitelisted
 from cardinal.db import Base
 from cardinal.db.whitelist import WhitelistedChannel
@@ -33,24 +33,24 @@ class ChannelWhitelistedTestCase(ut.TestCase):
             finally:
                 session.close()
 
-        ctx = Empty()
+        ctx = mock.Mock()
         ctx.session_scope = session_scope
-        ctx.channel = Empty()
         ctx.channel.id = 123456789
         ctx.channel.mention = '<#123456789>'
         self.ctx = ctx
+        self.command = mock.Mock()
 
     # Helpers
-    def expect_fail(self, obj):
-        pred = obj.__commands_checks__[0]
+    def expect_fail(self, command):
+        pred = command.__commands_checks__[0]
         with self.assertRaises(ChannelNotWhitelisted) as cm:
             pred(self.ctx)
 
         exc = cm.exception
         self.assertIs(self.ctx.channel, exc.channel)
 
-    def expect_success(self, obj):
-        pred = obj.__commands_checks__[0]
+    def expect_success(self, command):
+        pred = command.__commands_checks__[0]
         self.assertTrue(pred(self.ctx))
 
     def whitelist_channel(self):
@@ -59,37 +59,47 @@ class ChannelWhitelistedTestCase(ut.TestCase):
 
     # Tests
     def test_not_whitelisted_no_predicate(self):
-        obj = (channel_whitelisted())(Empty())
-        self.expect_fail(obj)
+        wrapped_command = (channel_whitelisted())(self.command)
+        self.expect_fail(wrapped_command)
 
     def test_not_whitelisted_uncallable_predicate(self):
-        obj = (channel_whitelisted(Empty()))(Empty())
-        self.expect_fail(obj)
+        exc_pred = mock.NonCallableMock()
+        wrapped_command = (channel_whitelisted(exc_pred))(self.command)
+        self.expect_fail(wrapped_command)
 
     def test_not_whitelisted_predicate_no_exception(self):
-        obj = (channel_whitelisted(lambda ctx: False))(Empty())
-        self.expect_fail(obj)
+        exc_pred = mock.Mock(return_value=False)
+        wrapped_command = (channel_whitelisted(exc_pred))(self.command)
+        self.expect_fail(wrapped_command)
+        exc_pred.assert_called_once_with(self.ctx)
 
     def test_not_whitelisted_predicate_exception(self):
-        obj = (channel_whitelisted(lambda ctx: True))(Empty())
-        self.expect_success(obj)
+        exc_pred = mock.Mock(return_value=True)
+        wrapped_command = (channel_whitelisted(exc_pred))(self.command)
+        self.expect_success(wrapped_command)
+        exc_pred.assert_called_once_with(self.ctx)
 
     def test_whitelisted_no_predicate(self):
         self.whitelist_channel()
-        obj = (channel_whitelisted())(Empty())
-        self.expect_success(obj)
+        wrapped_command = (channel_whitelisted())(self.command)
+        self.expect_success(wrapped_command)
 
     def test_whitelisted_uncallable_predicate(self):
         self.whitelist_channel()
-        obj = (channel_whitelisted(Empty()))(Empty())
-        self.expect_success(obj)
+        exc_pred = mock.NonCallableMock()
+        wrapped_command = (channel_whitelisted(exc_pred))(self.command)
+        self.expect_success(wrapped_command)
 
     def test_whitelisted_predicate_no_exception(self):
         self.whitelist_channel()
-        obj = (channel_whitelisted(lambda ctx: False))(Empty())
+        exc_pred = mock.Mock(return_value=False)
+        obj = (channel_whitelisted(exc_pred))(self.command)
         self.expect_success(obj)
+        exc_pred.assert_not_called()
 
     def test_whitelisted_predicate_exception(self):
         self.whitelist_channel()
-        obj = (channel_whitelisted(lambda ctx: True))(Empty())
+        exc_pred = mock.Mock(return_value=True)
+        obj = (channel_whitelisted(exc_pred))(self.command)
         self.expect_success(obj)
+        exc_pred.assert_not_called()

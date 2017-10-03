@@ -6,7 +6,7 @@ import discord
 import discord.ext.commands as commands
 from sqlalchemy import create_engine
 
-from . import Empty, CoroMock
+from . import CoroMock
 from cardinal import Bot
 
 default_game = 'Test game'
@@ -48,8 +48,7 @@ class BotOnMessageTestCase(ut.TestCase):
 @mock.patch('cardinal.utils.format_message', return_value='Test message')
 class BotOnCommandTestCase(ut.TestCase):
     def test(self, format_message):
-        ctx = Empty()
-        ctx.message = Empty()
+        ctx = mock.NonCallableMock()
         with self.assertLogs('cardinal') as log:
             loop.run_until_complete(bot.on_command(ctx))
 
@@ -57,5 +56,6 @@ class BotOnCommandTestCase(ut.TestCase):
         format_message.assert_called_once_with(ctx.message)
 
 
+@mock.patch('cardinal.utils.clean_prefix')
 class BotOnCommandErrorTestCase(ut.TestCase):
     pass
