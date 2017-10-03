@@ -37,10 +37,7 @@ class Bot(_commands.Bot):
     async def on_ready(self):
         create_all(self.engine)
         logger.info('Logged into Discord as {}'.format(self.user))
-        try:
-            await self.change_presence(game=discord.Game(name=self.default_game))
-        except KeyError:
-            pass
+        await self.change_presence(game=discord.Game(name=self.default_game))
 
     async def on_message(self, msg: discord.Message):
         ctx = await self.get_context(msg, cls=context.Context)
