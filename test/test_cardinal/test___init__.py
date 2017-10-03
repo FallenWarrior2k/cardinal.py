@@ -39,9 +39,22 @@ class BotOnReadyTestCase(ut.TestCase):
 
 
 @mock.patch.object(commands.Bot, 'invoke', new_callable=CoroMock)
+@mock.patch('cardinal.context.Context')
 @mock.patch.object(commands.Bot, 'get_context', new_callable=CoroMock)
 class BotOnMessageTestCase(ut.TestCase):
-    pass
+    def test_invalid(self, get_context, context, invoke):
+        get_context.coro.return_value = mock.NonCallableMock(valid=False)
+        msg = mock.NonCallableMock()
+        loop.run_until_complete(bot.on_message(msg))
+        get_context.assert_called_once_with(msg, cls=context)
+        invoke.assert_not_called()
+
+    def test_valid(self, get_context, context, invoke):
+        get_context.coro.return_value = mock.NonCallableMock(valid=True)
+        msg = mock.NonCallableMock()
+        loop.run_until_complete(bot.on_message(msg))
+        get_context.assert_called_once_with(msg, cls=context)
+        invoke.assert_called_once_with(get_context.coro.return_value)
 
 
 @mock.patch('cardinal.utils.format_message', return_value='Test message')
