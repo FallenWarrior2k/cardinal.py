@@ -4,13 +4,12 @@ from asyncio import get_event_loop
 
 import discord
 import discord.ext.commands as commands
-from sqlalchemy import create_engine
 
 from . import CoroMock
 from cardinal import Bot
 
 default_game = 'Test game'
-engine = create_engine('sqlite:///')
+engine = mock.NonCallableMock()
 bot = Bot(default_game=default_game, engine=engine, command_prefix='Test prefix')
 loop = get_event_loop()
 
@@ -26,15 +25,15 @@ class BotCtorTestCase(ut.TestCase):
         self.assertIs(bot.engine, engine)
 
 
-@mock.patch.object(commands.Bot, 'user', 'Test user#1234')
+@mock.patch.object(commands.Bot, 'user', new_callable=mock.PropertyMock, return_value='Test user#1234')
 @mock.patch.object(commands.Bot, 'change_presence', new_callable=CoroMock)
 @mock.patch('cardinal.create_all')
 class BotOnReadyTestCase(ut.TestCase):
-    def test(self, create_all, change_presence):
+    def test(self, create_all, change_presence, user):
         with self.assertLogs('cardinal') as log:
             loop.run_until_complete(bot.on_ready())
 
-        self.assertMultiLineEqual(log.output[0], 'INFO:cardinal:Logged into Discord as {}'.format(bot.user))
+        self.assertMultiLineEqual(log.output[0], 'INFO:cardinal:Logged into Discord as {}'.format(user.return_value))
         create_all.assert_called_once_with(bot.engine)
         change_presence.assert_called_once_with(game=discord.Game(name=bot.default_game))
 
