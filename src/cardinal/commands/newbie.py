@@ -398,9 +398,9 @@ class Newbies(Cog):
                 return
 
             everyone_role = ctx.guild.default_role
-            everyone_overwrite = channel.permissions_for(everyone_role)
+            everyone_overwrite = channel.overwrites_for(everyone_role)
             everyone_overwrite.update(read_messages=None, read_message_history=None)
-            await channel.set_permissions(everyone_role)
+            await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
 
             session.delete(db_channel)
 
