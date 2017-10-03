@@ -254,11 +254,18 @@ class Newbies(Cog):
                 await ctx.send('Role has already been deleted.')
 
             everyone_role = ctx.guild.default_role
-            everyone_permissions = role.permissions
+            member_permissions = role.permissions
 
-            await everyone_role.edit(permissions=everyone_permissions)
-
+            await everyone_role.edit(permissions=member_permissions)
             await role.delete()
+
+            for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id):
+                channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+                if channel:
+                    everyone_overwrite = channel.overwrites_for(everyone_role)
+                    everyone_overwrite.update(read_messages=None, read_message_history=None)
+                    await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
+
             session.delete(db_guild)
 
         await ctx.send('Disabled newbie roling for this server.')
@@ -391,6 +398,8 @@ class Newbies(Cog):
                 return
 
             everyone_role = ctx.guild.default_role
+            everyone_overwrite = channel.permissions_for(everyone_role)
+            everyone_overwrite.update(read_messages=None, read_message_history=None)
             await channel.set_permissions(everyone_role)
 
             session.delete(db_channel)
