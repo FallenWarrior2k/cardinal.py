@@ -44,8 +44,6 @@ class Newbies(Cog):
     channel_re = re.compile(
         r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')  # Matches either a channel mention of the form "<#id>" or a raw ID. The actual ID can be extracted from the 'id' group of the match object
 
-    everyone_overwrite = discord.PermissionOverwrite(read_messages=True, read_message_history=True)
-
     def __init__(self, bot):
         super().__init__(bot)
         # TODO: Scan guilds for non-members who are not in the DB i.e. who joined during a bot downtime
@@ -226,17 +224,17 @@ class Newbies(Cog):
             for channel_string in channels_message.content.split():
                 match = self.channel_re.match(channel_string)
                 if match:
-                    channel_id = match.group('id')
+                    channel_id = int(match.group('id'))
                     channel = discord.utils.get(ctx.guild.text_channels, id=channel_id)
-                    if channel and channel.guild.id == ctx.guild.id:
-                        await channel.set_permissions(everyone_role, overwrite=self.everyone_overwrite)
-                        db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
-                        session.add(db_channel)
-
                 else:
                     channel = discord.utils.get(ctx.guild.text_channels, name=channel_string.lower())
-                    if channel:
-                        await channel.set_permissions(member_role, overwrite=self.everyone_overwrite)
+
+                if channel and channel.guild.id == ctx.guild.id:
+                    everyone_overwrite = channel.overwrites_for(everyone_role)
+                    everyone_overwrite.update(read_messages=True, read_message_history=True)
+                    await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
+                    db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
+                    session.add(db_channel)
 
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
@@ -256,11 +254,18 @@ class Newbies(Cog):
                 await ctx.send('Role has already been deleted.')
 
             everyone_role = ctx.guild.default_role
-            everyone_permissions = role.permissions
+            member_permissions = role.permissions
 
-            await everyone_role.edit(permissions=everyone_permissions)
-
+            await everyone_role.edit(permissions=member_permissions)
             await role.delete()
+
+            for db_channel in session.query(Channel).filter_by(guild_id=ctx.guild.id):
+                channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+                if channel:
+                    everyone_overwrite = channel.overwrites_for(everyone_role)
+                    everyone_overwrite.update(read_messages=None, read_message_history=None)
+                    await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
+
             session.delete(db_guild)
 
         await ctx.send('Disabled newbie roling for this server.')
@@ -363,7 +368,9 @@ class Newbies(Cog):
                 return
 
             everyone_role = ctx.guild.default_role
-            await channel.set_permissions(everyone_role, overwrite=self.everyone_overwrite)
+            everyone_overwrite = channel.overwrites_for(everyone_role)
+            everyone_overwrite.update(read_messages=True, read_message_history=True)
+            await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
 
             db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
             session.add(db_channel)
@@ -391,7 +398,9 @@ class Newbies(Cog):
                 return
 
             everyone_role = ctx.guild.default_role
-            await channel.set_permissions(everyone_role)
+            everyone_overwrite = channel.overwrites_for(everyone_role)
+            everyone_overwrite.update(read_messages=None, read_message_history=None)
+            await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
 
             session.delete(db_channel)
 
