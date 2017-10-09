@@ -44,16 +44,18 @@ class Bot(_commands.Bot):
         if ctx.valid:
             await self.invoke(ctx)
 
-    async def on_command(self, ctx: _commands.Context):
+    async def on_command(self, ctx: context.Context):
         logger.info(utils.format_message(ctx.message))
 
-    async def on_command_completion(self, ctx: _commands.Context):
+    async def on_command_completion(self, ctx: context.Context):
         pass  # Placeholder for future usage
 
-    async def on_command_error(self, ctx: _commands.Context, ex: _commands.CommandError):
+    async def on_command_error(self, ctx: context.Context, ex: _commands.CommandError):
         error_msg = ''
 
-        if isinstance(ex, _commands.CheckFailure) and not isinstance(ex, errors.UserBlacklisted):
+        if isinstance(ex, _commands.NoPrivateMessage):
+            error_msg = 'Command cannot be used in private message channels.'
+        elif isinstance(ex, _commands.CheckFailure) and not isinstance(ex, errors.UserBlacklisted):
             error_msg = 'This command cannot be used in this context.\n'
             error_msg += str(ex)
         elif isinstance(ex, _commands.MissingRequiredArgument):
@@ -61,9 +63,7 @@ class Bot(_commands.Bot):
         elif isinstance(ex, _commands.TooManyArguments):
             error_msg = 'Too many arguments. Did you miss any quotes?'
         elif isinstance(ex, _commands.BadArgument):
-            error_msg = 'Arguments parsing failed. Did you mistype anything?'
-        elif isinstance(ex, _commands.NoPrivateMessage):
-            error_msg = 'Command cannot be used in private message channels.'
+            error_msg = 'Argument parsing failed. Did you mistype anything?'
         elif isinstance(ex, _commands.CommandOnCooldown):
             error_msg = str(ex)
 
