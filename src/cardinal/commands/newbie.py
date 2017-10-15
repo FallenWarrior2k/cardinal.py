@@ -46,28 +46,51 @@ class Newbies(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        # TODO: Scan guilds for non-members who are not in the DB i.e. who joined during a bot downtime
         # TODO: Make background thread that checks for timeouts and kicks the respective users
 
-    async def on_member_join(self, member: discord.Member):
-        with ctx.session_scope() as session:
-            guild = session.query(Guild).get(member.guild.id)
+    @staticmethod
+    async def add_member(session, db_guild: Guild, member: discord.Member):
+        if session.query(User).get((member.id, db_guild.guild_id)):
+            return  # Exit if user already in DB
 
-            if guild is None:
+        message_content = db_guild.welcome_message
+
+        message_content += '\n'
+        message_content += 'Please reply with the following message to be granted access to "{}".\n'.format(member.guild.name)
+        message_content += '```{}```'.format(db_guild.response_message)
+
+        message = await member.send(message_content)
+
+        db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=member.joined_at)
+        session.add(db_user)
+
+        await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+
+    async def on_ready(self):
+        with self.bot.session_scope() as session:
+            for db_guild in session.query(Guild):
+                guild = self.bot.get_guild(db_guild.guild_id)
+                if not guild:
+                    session.delete(db_guild)
+                    continue
+
+                member_role = discord.utils.get(guild.roles, id=db_guild.role_id)
+                if not member_role:
+                    session.delete(db_guild)
+                    continue
+
+                to_add = (member for member in guild.members if member_role not in member.roles)
+                for member in to_add:
+                    await self.add_member(session, db_guild, member)
+
+    async def on_member_join(self, member: discord.Member):
+        with self.bot.session_scope() as session:
+            db_guild = session.query(Guild).get(member.guild.id)
+
+            if db_guild is None:
                 return
 
-            message_content = guild.welcome_message
-
-            message_content += '\n'
-            message_content += 'Please reply with the following message to be granted access to "{}".\n'.format(member.guild.name)
-            message_content += '```{}```'.format(guild.response_message)
-
-            message = await member.send(message_content)
-
-            user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=member.joined_at)
-            session.add(user)
-
-            await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            await self.add_member(session, db_guild, member)
 
     async def on_member_remove(self, member: discord.Member):
         with self.bot.session_scope() as session:
