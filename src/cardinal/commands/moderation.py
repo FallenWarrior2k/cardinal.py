@@ -38,7 +38,7 @@ class Moderation(Cog):
             - Kick Members
         """
         
-        await user.kick(reason)
+        await user.kick(reason=reason)
         await ctx.send('User **{}** was kicked by {}.'.format(user.name, ctx.author.mention))
 
     @commands.command()
@@ -68,5 +68,5 @@ class Moderation(Cog):
         elif prune_days > 7:
             prune_days = 7
 
-        await ctx.guild.ban(user, reason, prune_days)
+        await user.ban(reason=reason, delete_message_days=prune_days)
         await ctx.send('User **{}** was banned by {}.'.format(user.name, ctx.author.mention))
