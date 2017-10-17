@@ -1,6 +1,5 @@
-from discord.ext.commands import check
+import discord.ext.commands as commands
 
-from .context import Context
 from .db.whitelist import WhitelistedChannel
 from .errors import ChannelNotWhitelisted
 
@@ -14,13 +13,12 @@ def channel_whitelisted(exception_predicate=None):
     :type exception_predicate: callable
     """
 
-    def predicate(ctx: Context):
+    def predicate(ctx: commands.Context):
         channel = ctx.channel
 
-        with ctx.session_scope() as session:
-            if not (session.query(WhitelistedChannel).get(channel.id) or (callable(exception_predicate) and exception_predicate(ctx))):
-                raise ChannelNotWhitelisted(ctx)
+        if not (ctx.session.query(WhitelistedChannel).get(channel.id) or (callable(exception_predicate) and exception_predicate(ctx))):
+            raise ChannelNotWhitelisted(ctx)
 
-            return True
+        return True
 
-    return check(predicate)
+    return commands.check(predicate)

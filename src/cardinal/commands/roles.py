@@ -4,7 +4,6 @@ import discord
 import discord.ext.commands as commands
 
 from ..commands import Cog
-from ..context import Context
 from ..db.roles import Role
 from ..utils import clean_prefix
 from ..checks import channel_whitelisted
@@ -20,7 +19,7 @@ class Roles(Cog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
-    async def roles(self, ctx: Context):
+    async def roles(self, ctx: commands.Context):
         """
         Join, leave and manage roles.
 
@@ -39,7 +38,7 @@ class Roles(Cog):
             return
 
     @roles.command()
-    async def join(self, ctx: Context, *, role: discord.Role):
+    async def join(self, ctx: commands.Context, *, role: discord.Role):
         """
         Add the user to the specified role.
 
@@ -47,17 +46,16 @@ class Roles(Cog):
             - role: The role to join, identified by mention, ID, or name. Must be marked as joinable.
         """
 
-        with ctx.session_scope() as session:
-            if not session.query(Role).get(role.id):
-                await ctx.send('Role "{}" is not marked as a joinable role.'.format(role.name))
-                return
+        if not ctx.session.query(Role).get(role.id):
+            await ctx.send('Role "{}" is not marked as a joinable role.'.format(role.name))
+            return
 
         await ctx.author.add_roles(role, reason='User joined role.')
 
         await ctx.send('User {} joined role "{}"'.format(ctx.author.mention, role.name))
 
     @roles.command()
-    async def leave(self, ctx: Context, *, role: discord.Role):
+    async def leave(self, ctx: commands.Context, *, role: discord.Role):
         """
         Remove the user from the specified role.
 
@@ -65,24 +63,22 @@ class Roles(Cog):
             - role: The role to leave, identified by mention, ID, or name. Must be marked as joinable.
         """
 
-        with ctx.session_scope() as session:
-            if not session.query(Role).get(role.id):
-                await ctx.send('Role "{}" cannot be left through this bot.'.format(role.name))
-                return
+        if not ctx.session.query(Role).get(role.id):
+            await ctx.send('Role "{}" cannot be left through this bot.'.format(role.name))
+            return
 
         await ctx.author.remove_roles(role, reason='User left role.')
 
         await ctx.send('User {} left role "{}"'.format(ctx.author.mention, role.name))
 
     @roles.command('list')
-    async def _list(self, ctx: Context):
+    async def _list(self, ctx: commands.Context):
         """
         List the roles that can be joined through the bot, i.e. that have been marked as joinable for the current server.
         """
 
-        with ctx.session_scope() as session:
-            role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in session.query(Role).filter_by(guild_id=ctx.guild.id)))
-            role_list = sorted(role_iter, key=lambda r: r.position)
+        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in ctx.session.query(Role).filter_by(guild_id=ctx.guild.id)))
+        role_list = sorted(role_iter, key=lambda r: r.position)
 
         answer = 'Roles that can be joined through this bot:```\n'
 
@@ -95,15 +91,14 @@ class Roles(Cog):
         await ctx.send(answer)
 
     @roles.command()
-    async def stats(self, ctx: Context):
+    async def stats(self, ctx: commands.Context):
         """
         Display the member count for each role marked as joinable on the current server.
         """
 
-        with ctx.session_scope() as session:
-            role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in session.query(Role).filter_by(guild_id=ctx.guild.id)))
-            role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
-                             for role in role_iter)
+        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in ctx.session.query(Role).filter_by(guild_id=ctx.guild.id)))
+        role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
+                         for role in role_iter)
 
         em = discord.Embed(title='Role stats for ' + ctx.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position):
@@ -113,7 +108,7 @@ class Roles(Cog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def add(self, ctx: Context, *, role: discord.Role):
+    async def add(self, ctx: commands.Context, *, role: discord.Role):
         """
         Mark a role as joinable through this bot.
 
@@ -124,18 +119,17 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        with ctx.session_scope() as session:
-            if session.query(Role).get(role.id):
-                await ctx.send('Role "{}" is already marked as a joinable role.'.format(role.name))
-                return
+        if ctx.session.query(Role).get(role.id):
+            await ctx.send('Role "{}" is already marked as a joinable role.'.format(role.name))
+            return
 
-            session.add(Role(role_id=role.id, guild_id=role.guild.id))
+        ctx.session.add(Role(role_id=role.id, guild_id=role.guild.id))
 
         await ctx.send('Marked role "{}" as joinable.'.format(role.name))
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def remove(self, ctx: Context, *, role: discord.Role):
+    async def remove(self, ctx: commands.Context, *, role: discord.Role):
         """
         Remove a role from the list of roles joinable through this bot.
 
@@ -146,20 +140,19 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        with ctx.session_scope() as session:
-            db_role = session.query(Role).get(role.id)
+        db_role = ctx.session.query(Role).get(role.id)
 
-            if not db_role:
-                await ctx.send('Role "{}" is not marked as a joinable role'.format(role.name))
-                return
+        if not db_role:
+            await ctx.send('Role "{}" is not marked as a joinable role'.format(role.name))
+            return
 
-            session.delete(db_role)
+        ctx.session.delete(db_role)
 
         await ctx.send('Removed role "{}" from list of joinable roles.'.format(role.name))
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def create(self, ctx: Context, *, rolename: str):
+    async def create(self, ctx: commands.Context, *, rolename: str):
         """
         Create a new role on the current server and mark it as joinable through this bot.
 
@@ -172,14 +165,13 @@ class Roles(Cog):
 
         role = await ctx.guild.create_role(name=rolename)
 
-        with ctx.session_scope() as session:
-            session.add(Role(role_id=role.id, guild_id=role.guild.id))
+        ctx.session.add(Role(role_id=role.id, guild_id=role.guild.id))
 
         await ctx.send('Created role "{}" and marked it as joinable.'.format(rolename))
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def delete(self, ctx: Context, *, role: discord.Role):
+    async def delete(self, ctx: commands.Context, *, role: discord.Role):
         """
         Delete a role from the current server.
 
@@ -190,10 +182,9 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        with ctx.session_scope() as session:
-            role_db = session.query(Role).get(role.id)
-            if role_db:
-                session.delete(role_db)
+        role_db = ctx.session.query(Role).get(role.id)
+        if role_db:
+            ctx.session.delete(role_db)
 
         await role.delete()
         await ctx.send('Successfully deleted role "{}".'.format(role.name))

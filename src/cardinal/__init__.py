@@ -5,7 +5,7 @@ import discord
 import discord.ext.commands as _commands
 from sqlalchemy.orm import sessionmaker
 
-from . import context, errors, utils
+from . import errors, utils
 from .db import create_all
 
 logger = logging.getLogger(__name__)
@@ -13,13 +13,26 @@ logger = logging.getLogger(__name__)
 
 # TODO: Implement server-specific prefixes
 class Bot(_commands.Bot):
+    async def before_invoke_hook(self, ctx: _commands.Context):
+        ctx.session = self.sessionmaker()
+
+    async def after_invoke_hook(self, ctx: _commands.Context):
+        if ctx.command_failed:
+            ctx.session.rollback()
+        else:
+            ctx.session.commit()
+
+        ctx.session.close()
+
     def __init__(self, *args, default_game, engine, **kwargs):
+        super().__init__(*args, **kwargs)
         self.default_game = default_game
         self.engine = engine
         _Session = sessionmaker()
         _Session.configure(bind=engine)
         self.sessionmaker = _Session
-        super().__init__(*args, **kwargs)
+        self.before_invoke(self.before_invoke_hook)
+        self.after_invoke(self.after_invoke_hook)
 
     @contextlib.contextmanager
     def session_scope(self):
@@ -40,17 +53,17 @@ class Bot(_commands.Bot):
         await self.change_presence(game=discord.Game(name=self.default_game))
 
     async def on_message(self, msg: discord.Message):
-        ctx = await self.get_context(msg, cls=context.Context)
+        ctx = await self.get_context(msg, cls=_commands.Context)
         if ctx.valid:
             await self.invoke(ctx)
 
-    async def on_command(self, ctx: context.Context):
+    async def on_command(self, ctx: _commands.Context):
         logger.info(utils.format_message(ctx.message))
 
-    async def on_command_completion(self, ctx: context.Context):
+    async def on_command_completion(self, ctx: _commands.Context):
         pass  # Placeholder for future usage
 
-    async def on_command_error(self, ctx: context.Context, ex: _commands.CommandError):
+    async def on_command_error(self, ctx: _commands.Context, ex: _commands.CommandError):
         error_msg = ''
 
         if isinstance(ex, _commands.NoPrivateMessage):

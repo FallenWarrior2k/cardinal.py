@@ -65,7 +65,7 @@ class BotOnReadyTestCase(ut.TestCase):
 
 
 @mock.patch.object(commands.Bot, 'invoke', new_callable=CoroMock)
-@mock.patch('cardinal.context.Context')
+@mock.patch('discord.ext.commands.Context')
 @mock.patch.object(commands.Bot, 'get_context', new_callable=CoroMock)
 class BotOnMessageTestCase(ut.TestCase):
     def test_invalid(self, get_context, context, invoke):

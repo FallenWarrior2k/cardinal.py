@@ -1,9 +1,8 @@
-import contextlib
 import unittest as ut
 import unittest.mock as mock
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
 
 from cardinal.checks import channel_whitelisted
 from cardinal.db import Base
@@ -16,25 +15,11 @@ class ChannelWhitelistedTestCase(ut.TestCase):
     # Hooks
     def setUp(self):
         engine = create_engine('sqlite:///')
-        _Session = sessionmaker()
-        _Session.configure(bind=engine)
+        session = Session(bind=engine)
         Base.metadata.create_all(engine)
 
-        @contextlib.contextmanager
-        def session_scope():
-            session = _Session()
-
-            try:
-                yield session
-                session.commit()
-            except:
-                session.rollback()
-                raise
-            finally:
-                session.close()
-
         ctx = mock.Mock()
-        ctx.session_scope = session_scope
+        ctx.session = session
         ctx.channel.id = 123456789
         ctx.channel.mention = '<#123456789>'
         self.ctx = ctx
@@ -54,8 +39,7 @@ class ChannelWhitelistedTestCase(ut.TestCase):
         self.assertTrue(pred(self.ctx))
 
     def whitelist_channel(self):
-        with self.ctx.session_scope() as session:
-            session.add(WhitelistedChannel(channel_id=self.ctx.channel.id))
+        self.ctx.session.add(WhitelistedChannel(channel_id=self.ctx.channel.id))
 
     # Tests
     def test_not_whitelisted_no_predicate(self):
