@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import functools
 import logging
@@ -24,10 +25,10 @@ def newbie_enabled(func):
     @functools.wraps(cmd)
     async def wrapper(*args, **kwargs):
         ctx = next(i for i in args if isinstance(i, commands.Context))  # No try-catch necessary, context is always passed since rewrite
-        if ctx:
-            if not (ctx.guild and ctx.session.query(Guild).get(ctx.guild.id)):
-                await ctx.send('Newbie roling is not enabled on this server. Please enable it before using these commands.')
-                return
+
+        if not (ctx.guild and ctx.session.query(Guild).get(ctx.guild.id)):
+            await ctx.send('Newbie roling is not enabled on this server. Please enable it before using these commands.')
+            return
 
         await cmd(*args, **kwargs)
 
@@ -59,7 +60,8 @@ class Newbies(Cog):
 
         message = await member.send(message_content)
 
-        db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=member.joined_at)
+        # Use utcnow() instead of member.joined_at to treat members who got the message too late fairly
+        db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
         session.add(db_user)
         session.commit()
         logger.info('Added new user {} to database for guild {}.'.format(format_named_entity(member), format_named_entity(member.guild)))
