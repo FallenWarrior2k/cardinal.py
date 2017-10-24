@@ -60,3 +60,6 @@ class Bot(_commands.Bot):
 
         if error_msg != '':
             await ctx.send(error_msg)
+
+    async def on_error(self, event, *args, **kwargs):
+        logger.exception('An exception occured while handling event "{}".'.format(event))
