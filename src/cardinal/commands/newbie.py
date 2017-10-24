@@ -61,6 +61,8 @@ class Newbies(Cog):
 
         db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=member.joined_at)
         session.add(db_user)
+        session.commit()
+        logger.info('Added new user {} to database for guild {}.'.format(format_named_entity(member), format_named_entity(member.guild)))
 
         await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
@@ -79,7 +81,12 @@ class Newbies(Cog):
 
                 to_add = (member for member in guild.members if member_role not in member.roles)
                 for member in to_add:
-                    await self.add_member(session, db_guild, member)
+                    try:
+                        await self.add_member(session, db_guild, member)
+                    except discord.Forbidden:
+                        logger.exception('Cannot message user {} and thus cannot prompt for verification.'.format(format_named_entity(member)))
+                    except discord.HTTPException as e:
+                        logger.exception('Failed sending message to user {} due to HTTP error {}.'.format(format_named_entity(member), e.response.status))
 
     async def on_member_join(self, member: discord.Member):
         with self.bot.session_scope() as session:
