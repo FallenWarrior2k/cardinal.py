@@ -24,10 +24,15 @@ class Bot(_commands.Bot):
 
         ctx.session.close()
 
-    def __init__(self, *args, default_game, engine, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_game = default_game
+    def __init__(self, *args, engine, default_game=None, **kwargs):
+        game = None
+        if default_game:
+            game = discord.Game(name=default_game)
+
+        super().__init__(*args, **kwargs, game=game)
+
         self.engine = engine
+        create_all(self.engine)
         _Session = sessionmaker()
         _Session.configure(bind=engine)
         self.sessionmaker = _Session
@@ -48,9 +53,7 @@ class Bot(_commands.Bot):
             session.close()
 
     async def on_ready(self):
-        create_all(self.engine)
         logger.info('Logged into Discord as {}'.format(self.user))
-        await self.change_presence(game=discord.Game(name=self.default_game))
 
     async def on_message(self, msg: discord.Message):
         ctx = await self.get_context(msg, cls=_commands.Context)
