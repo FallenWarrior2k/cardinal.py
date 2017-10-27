@@ -45,7 +45,44 @@ class Newbies(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        # TODO: Make background thread that checks for timeouts and kicks the respective users
+        self.bot.loop.create_task(self.check_timeouts())
+
+    async def check_timeouts(self):
+        await self.bot.wait_until_ready()
+        while True:
+            with self.bot.session_scope() as session:
+                # Get users who have passed the timeout
+                # !IMPORTANT! Filter inequation must not be changed or it will break SQLite support (and possibly other DBMSs as well)
+                for db_user in session.query(User).join(User.guild).filter(datetime.datetime.utcnow() > Guild.timeout + User.joined_at):
+
+                    guild = self.bot.get_guild(db_user.guild_id)
+                    if not guild:
+                        session.delete(db_user.guild)
+                        continue
+
+                    logger.info('Found guild to be {}.'.format(*format_named_entities(guild)))
+
+                    member = guild.get_member(db_user.user_id)
+                    if not member:
+                        session.delete(db_user)
+                        continue
+
+                    logger.info('Found user to be {}.'.format(*format_named_entities(member)))
+
+                    try:
+                        await member.kick(reason='Verification timed out.')
+                        logger.info('Kicked overdue user {} from guild {}.'
+                                    .format(*format_named_entities(member, guild)))
+                    except discord.Forbidden:
+                        logger.exception('Lacking permissions to kick user {} from guild {}.'
+                                         .format(*format_named_entities(member, guild)))
+                    except discord.HTTPException as e:
+                        logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
+                                         .format(*format_named_entities(member, guild), e.response.status))
+                    finally:
+                        session.delete(db_user)
+
+            await asyncio.sleep(60)
 
     @staticmethod
     async def add_member(session, db_guild: Guild, member: discord.Member):
