@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import functools
 import logging
@@ -46,7 +47,38 @@ class Newbies(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        # TODO: Make background thread that checks for timeouts and kicks the respective users
+        self.bot.loop.create_task(self.check_timeouts())
+
+    async def check_timeouts(self):
+        await self.bot.wait_until_ready()
+        while True:
+            with session_scope() as session:
+                # Get users who have passed the timeout
+                # !IMPORTANT! Filter inequation must not be changed or it will break SQLite support (and possibly other DBMSs as well)
+                for db_user in session.query(User).join(User.guild).filter(datetime.datetime.utcnow() > Guild.timeout + User.joined_at):
+
+                    guild = self.bot.get_guild(db_user.guild_id)
+                    if not guild:
+                        continue
+
+                    member = guild.get_member(db_user.user_id)
+                    if not member:
+                        session.delete(db_user)
+                        continue
+
+                    try:
+                        await member.kick(reason='Verification timed out.')
+                        session.delete(db_user)
+                        logger.info('Kicked overdue user {} from guild {}.'
+                                    .format(format_discord_user(member), format_discord_guild(guild)))
+                    except discord.Forbidden:
+                        logger.exception('Lacking permissions to kick user {} from guild {}.'
+                                         .format(format_discord_user(member), format_discord_guild(guild)))
+                    except discord.HTTPException as e:
+                        logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
+                                         .format(format_discord_user(member), format_discord_guild(guild), e.response.status))
+
+            await asyncio.sleep(60)
 
     @staticmethod
     async def add_member(session, db_guild: Guild, member: discord.Member):
