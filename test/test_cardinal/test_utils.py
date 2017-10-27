@@ -9,18 +9,87 @@ class FormatNamedEntityTestCase(ut.TestCase):
         obj = mock.NonCallableMock()
         obj.name = 'Test obj'
         obj.id = 123456789
+
         expected = '"{0.name}" ({0.id})'.format(obj)
         got = utils._format_named_entity(obj)
+
         self.assertMultiLineEqual(expected, got)
 
 
 @mock.patch('cardinal.utils._format_named_entity')
 class FormatNamedEntitiesTestCase(ut.TestCase):
+    def setUp(self):
+        good_arg = mock.NonCallableMock()
+        good_arg.name = 'Test object'
+        good_arg.id = 123456789
+        self.good_arg = good_arg
+
+        bad_arg = mock.NonCallableMock(spec=object)
+        self.bad_arg = bad_arg
+
+        good_args = (good_arg, good_arg)
+        self.good_args = good_args
+
+        bad_args = (bad_arg, bad_arg)
+        self.bad_args = bad_args
+
+        mixed_args = (good_arg, bad_arg)
+        self.mixed_args = mixed_args
+
     def test_empty_args(self, _format_named_entity):
         _iter = utils.format_named_entities()
-        _format_named_entity.assert_not_called()
+
         with self.assertRaises(StopIteration):
             next(_iter)
+
+        _format_named_entity.assert_not_called()
+
+    def test_one_correct_arg(self, _format_named_entity):
+        _iter = utils.format_named_entities(self.good_arg)
+        self.assertIs(next(_iter), _format_named_entity.return_value)
+        _format_named_entity.assert_called_once_with(self.good_arg)
+
+        with self.assertRaises(StopIteration):
+            next(_iter)
+
+    def test_one_bad_arg(self, _format_named_entity):
+        _iter = utils.format_named_entities(self.bad_arg)
+
+        with self.assertRaises(StopIteration):
+            next(_iter)
+
+        _format_named_entity.assert_not_called()
+
+    def test_two_good_args(self, _format_named_entity):
+        _iter = utils.format_named_entities(*self.good_args)
+
+        self.assertIs(next(_iter), _format_named_entity.return_value)
+        self.assertIs(next(_iter), _format_named_entity.return_value)
+
+        call = mock.call(self.good_arg)
+        _format_named_entity.assert_has_calls([call, call])
+
+        with self.assertRaises(StopIteration):
+            next(_iter)
+
+    def test_two_bad_args(self, _format_named_entity):
+        _iter = utils.format_named_entities(*self.bad_args)
+
+        with self.assertRaises(StopIteration):
+            next(_iter)
+
+        _format_named_entity.assert_not_called()
+
+    def test_one_good_arg_one_bad_arg(self, _format_named_entity):
+        _iter = utils.format_named_entities(*self.mixed_args)
+
+        self.assertIs(next(_iter), _format_named_entity.return_value)
+        _format_named_entity.assert_called_once_with(self.good_arg)
+
+        with self.assertRaises(StopIteration):
+            next(_iter)
+
+        _format_named_entity.assert_called_once_with(self.good_arg)
 
 
 class FormatMessageTestCase(ut.TestCase):

@@ -30,10 +30,12 @@ class BotCtorTestCase(ut.TestCase):
         create_all.assert_called_once_with(bot.engine)
 
 
-# Need to patch both tests separately because of internal counters
+# Need to set return values separately for tests so counters do not carry over in between tests
+@mock.patch.object(bot, 'sessionmaker')
 class BotSessionScopeTestCase(ut.TestCase):
-    @mock.patch.object(bot, 'sessionmaker', return_value=mock.NonCallableMock(spec=Session))
     def test_no_exception(self, sessionmaker):
+        sessionmaker.return_value = mock.NonCallableMock(spec=Session)
+
         with bot.session_scope() as session:
             self.assertIsInstance(session, Session)
 
@@ -41,8 +43,9 @@ class BotSessionScopeTestCase(ut.TestCase):
         sessionmaker.return_value.commit.assert_called_once_with()
         sessionmaker.return_value.close.assert_called_once_with()
 
-    @mock.patch.object(bot, 'sessionmaker', return_value=mock.NonCallableMock(spec=Session))
     def test_exception(self, sessionmaker):
+        sessionmaker.return_value = mock.NonCallableMock(spec=Session)
+
         exc_message = 'Test exception message'
         exc = Exception(exc_message)
         with self.assertRaises(Exception, msg=exc_message):
