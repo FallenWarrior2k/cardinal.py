@@ -6,7 +6,7 @@ import discord.utils
 
 from ..commands import Cog
 from ..db.channels import Channel
-from ..utils import clean_prefix
+from ..utils import clean_prefix, format_named_entities
 from ..checks import channel_whitelisted
 
 logger = logging.getLogger(__name__)
@@ -46,17 +46,18 @@ class Channels(Cog):
             - channel: The channel to join, identified by mention, ID, or name. Please note that due to Discord's client limitations, the first way does not work on mobile.
         """
 
-        channel_db = ctx.session.query(Channel).get(channel.id)
+        db_channel = ctx.session.query(Channel).get(channel.id)
 
-        if channel_db:
-            role = discord.utils.get(ctx.guild.roles, id=channel_db.role_id)
-
-            await ctx.author.add_roles(role, reason='User joined opt-in channel.')
-
-            await ctx.send('User {user} joined channel {channel}.'
-                               .format(user=ctx.author.mention, channel=channel.mention))
-        else:
+        if not db_channel:
             await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
+            return
+
+        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+
+        await ctx.author.add_roles(role, reason='User joined opt-in channel.')
+
+        await ctx.send('User {user} joined channel {channel}.'
+                           .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command(aliases=['hide'])
     async def leave(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
@@ -67,25 +68,26 @@ class Channels(Cog):
             - [optional] channel: The channel to leave, identified by mention, ID or name. Defaults to the current channel.
         """
 
-        if channel is None:
+        if not channel:
             channel = ctx.channel
 
         db_channel = ctx.session.query(Channel).get(channel.id)
 
-        if db_channel:
-            role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
-
-            if not role:
-                ctx.session.delete(db_channel)
-                await ctx.send('The role for this channel no longer exists. Removing from database.')
-                return
-
-            await ctx.author.remove_roles(role, reason='User left opt-in channel.')
-
-            await ctx.send('User {user} left channel {channel}.'
-                               .format(user=ctx.author.mention, channel=channel.mention))
-        else:
+        if not db_channel:
             await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
+            return
+
+        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+
+        if not role:
+            ctx.session.delete(db_channel)
+            await ctx.send('The role for this channel no longer exists. Removing from database.')
+            return
+
+        await ctx.author.remove_roles(role, reason='User left opt-in channel.')
+
+        await ctx.send('User {user} left channel {channel}.'
+                           .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command('list')
     async def _list(self, ctx: commands.Context):
@@ -149,7 +151,7 @@ class Channels(Cog):
             - [optional] channel: The channel to mark as opt-in, identified by mention, ID, or name. Defaults to the current channel.
         """
 
-        if channel is None:
+        if not channel:
             channel = ctx.channel
 
         if ctx.session.query(Channel).get(channel.id):
@@ -166,6 +168,7 @@ class Channels(Cog):
         db_channel = Channel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
 
+        logger.info('Opt-in enabled for channel {} on guild {}.'.format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
 
     @_opt_in.command()
@@ -176,24 +179,27 @@ class Channels(Cog):
         Parameters:
             - [optional] channel: The channe to mark as public, identified by mention, ID, or name. Defaults to the current channel.
         """
-        if channel is None:
+        if not channel:
             channel = ctx.channel
 
         db_channel = ctx.session.query(Channel).get(channel.id)
 
-        if db_channel:
-            role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
-
-            if role is None:
-                await ctx.send('Could not find role. Was it already deleted?')
-            else:
-                await role.delete()
-
-            everyone_role = ctx.guild.default_role
-
-            await channel.set_permissions(everyone_role, read_messages=True)
-
-            ctx.session.delete(db_channel)
-            await ctx.send('Opt-in disabled for channel {}.'.format(channel.mention))
-        else:
+        if not db_channel:
             await ctx.send('Channel {} is not opt-in'.format(channel.mention))
+            return
+
+        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+
+        if not role:
+            await ctx.send('Could not find role. Was it already deleted?')
+        else:
+            await role.delete()
+
+        everyone_role = ctx.guild.default_role
+
+        await channel.set_permissions(everyone_role, read_messages=True)
+
+        ctx.session.delete(db_channel)
+
+        logger.info('Opt-in disabled for channel {} on guild {}.'.format(*format_named_entities(channel, ctx.guild)))
+        await ctx.send('Opt-in disabled for channel {}.'.format(channel.mention))

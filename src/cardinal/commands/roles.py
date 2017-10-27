@@ -5,7 +5,7 @@ import discord.ext.commands as commands
 
 from ..commands import Cog
 from ..db.roles import Role
-from ..utils import clean_prefix
+from ..utils import clean_prefix, format_named_entities
 from ..checks import channel_whitelisted
 
 logger = logging.getLogger(__name__)
@@ -148,6 +148,7 @@ class Roles(Cog):
 
         ctx.session.delete(db_role)
 
+        logger.info('Marked role {} on guild {} as non-joinable.'.format(*format_named_entities(role, ctx.guild)))
         await ctx.send('Removed role "{}" from list of joinable roles.'.format(role.name))
 
     @roles.command()
@@ -167,6 +168,7 @@ class Roles(Cog):
 
         ctx.session.add(Role(role_id=role.id, guild_id=role.guild.id))
 
+        logger.info('Created role "{}" ({}) on guild {} and marked it as joinable.'.format(rolename, role.id, *format_named_entities(ctx.guild)))
         await ctx.send('Created role "{}" and marked it as joinable.'.format(rolename))
 
     @roles.command()
@@ -187,4 +189,5 @@ class Roles(Cog):
             ctx.session.delete(role_db)
 
         await role.delete()
+        logger.info('Deleted role {} on guild {}.'.format(*format_named_entities(role, ctx.guild)))
         await ctx.send('Successfully deleted role "{}".'.format(role.name))

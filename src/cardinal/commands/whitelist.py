@@ -5,7 +5,7 @@ import discord.ext.commands as commands
 
 from ..commands import Cog
 from ..db.whitelist import WhitelistedChannel
-from ..utils import clean_prefix
+from ..utils import clean_prefix, format_named_entities
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ class Whitelisting(Cog):
         db_channel = WhitelistedChannel(channel_id=channel.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
 
+        logger.info('Added channel {} on guild {} to whitelist.'.format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('Whitelisted channel {}.'.format(channel.mention))
 
     @whitelist.command()
@@ -67,7 +68,7 @@ class Whitelisting(Cog):
             - [optional] channel: The channel to remove from the whitelist, identified by mention, ID, or name. Defaults to the current channel.
         """
 
-        if channel is None:
+        if not channel:
             channel = ctx.channel
 
         db_channel = ctx.session.query(WhitelistedChannel).get(channel.id)
@@ -76,6 +77,8 @@ class Whitelisting(Cog):
             return
 
         ctx.session.delete(db_channel)
+
+        logger.info('Removed channel {} on guild {} from whitelist.'.format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('Removed channel {} from whitelist.'.format(channel.mention))
 
     @whitelist.command('list')

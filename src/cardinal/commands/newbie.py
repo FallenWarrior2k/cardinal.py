@@ -9,7 +9,7 @@ import discord.ext.commands as commands
 
 from ..commands import Cog
 from ..db.newbie import User, Guild, Channel
-from ..utils import clean_prefix, format_named_entity
+from ..utils import clean_prefix, format_named_entities
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class Newbies(Cog):
         db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
         session.add(db_user)
         session.commit()
-        logger.info('Added new user {} to database for guild {}.'.format(format_named_entity(member), format_named_entity(member.guild)))
+        logger.info('Added new user {} to database for guild {}.'.format(*format_named_entities(member, member.guild)))
 
         await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
@@ -86,9 +86,9 @@ class Newbies(Cog):
                     try:
                         await self.add_member(session, db_guild, member)
                     except discord.Forbidden:
-                        logger.exception('Cannot message user {} and thus cannot prompt for verification.'.format(format_named_entity(member)))
+                        logger.exception('Cannot message user {} and thus cannot prompt for verification.'.format(*format_named_entities(member)))
                     except discord.HTTPException as e:
-                        logger.exception('Failed sending message to user {} due to HTTP error {}.'.format(format_named_entity(member), e.response.status))
+                        logger.exception('Failed sending message to user {} due to HTTP error {}.'.format(*format_named_entities(member), e.response.status))
 
     async def on_member_join(self, member: discord.Member):
         with self.bot.session_scope() as session:
@@ -136,10 +136,10 @@ class Newbies(Cog):
                             await member.kick()
                         except discord.Forbidden:
                             logger.exception('Lacking permissions to kick user {} from guild {}.'
-                                       .format(format_named_entity(member), format_named_entity(guild)))
+                                             .format(*format_named_entities(member, guild)))
                         except discord.HTTPException as e:
                             logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
-                                       .format(format_named_entity(member), format_named_entity(guild), e.response.status))
+                                             .format(*format_named_entities(member, guild), e.response.status))
                         finally:
                             session.delete(db_user)
 
@@ -154,14 +154,16 @@ class Newbies(Cog):
 
                 try:
                     await member.add_roles(member_role)
-                    await msg.author.send('Welcome to {}'.format(guild.name))
+                    logger.info('Verified user {} on guild {}.'.format(*format_named_entities(member, guild)))
                 except discord.Forbidden:
                     logger.exception('Lacking permissions to manage roles for user {} on guild {}.')
                 except discord.HTTPException as e:
                     logger.exception('Failed managing roles for user {} on guild {} due to HTTP error {}.'
-                               .format(format_named_entity(member), format_named_entity(guild), e.response.status))
+                                     .format(*format_named_entities(member, guild), e.response.status))
+                finally:
+                    session.delete(db_user)
 
-                session.delete(db_user)
+                await msg.author.send('Welcome to {}'.format(guild.name))
 
     @commands.group()
     @commands.guild_only()
@@ -183,7 +185,7 @@ class Newbies(Cog):
 
         if ctx.invoked_subcommand is None:
             await ctx.send('Invalid subcommand passed, please refer to `{}help {}` for further information.'
-                               .format(clean_prefix(ctx), ctx.command.qualified_name))
+                           .format(clean_prefix(ctx), ctx.command.qualified_name))
 
     @newbie.command()
     async def enable(self, ctx: commands.Context):
@@ -266,6 +268,7 @@ class Newbies(Cog):
                 db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
                 ctx.session.add(db_channel)
 
+        logger.info('Enabled newbie roling on guild {}.'.format(*format_named_entities(ctx.guild)))
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
     @newbie.command()
@@ -297,11 +300,12 @@ class Newbies(Cog):
 
         ctx.session.delete(db_guild)
 
+        logger.info('Disabled newbie roling on guild {}.'.format(*format_named_entities(ctx.guild)))
         await ctx.send('Disabled newbie roling for this server.')
 
     @newbie.command()
     @newbie_enabled
-    async def timeout(self, ctx: commands.Context, delay: float = 0.0):
+    async def timeout(self, ctx: commands.Context, delay: int = 0):
         """
         Set the timeout in hours before new users get kicked.
         Put a non-positive value (zero or less) or nothing to remove it.
@@ -317,6 +321,7 @@ class Newbies(Cog):
         else:
             db_guild.timeout = None
 
+        logger.info('Changed timeout for {} to {} hours.'.format(*format_named_entities(ctx.guild), delay))
         await ctx.send('Successfully set timeout to {} hours.'.format(delay))
 
     @newbie.command('welcome-message')
@@ -335,6 +340,7 @@ class Newbies(Cog):
         db_guild = ctx.session.query(Guild).get(ctx.guild.id)
         db_guild.welcome_message = welcome_message.content
 
+        logger.info('Changed welcome message for guild {}.'.format(*format_named_entities(ctx.guild)))
         await ctx.send('Successfully set welcome message.')
 
     @newbie.command('response-message')
@@ -361,6 +367,7 @@ class Newbies(Cog):
 
         # TODO: Edit already sent messages
 
+        logger.info('Changed response message for guild {}.'.format(*format_named_entities(ctx.guild)))
         await ctx.send('Successfully set response message.')
 
     @newbie.group()
@@ -376,13 +383,16 @@ class Newbies(Cog):
 
     @channels.command()
     @newbie_enabled
-    async def add(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def add(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
         """
         Add a channel to the list of channels unconfirmed users can access.
 
         Parameters:
-            - channel: The channel to add to the list, identified by mention, ID, or name.
+            - [optional] channel: The channel to add to the list, identified by mention, ID, or name. Defaults to current channel.
         """
+
+        if not channel:
+            channel = ctx.channel
 
         if not channel.guild.id == ctx.guild.id:
             await ctx.send('The provided channel is not on this server.')
@@ -400,17 +410,21 @@ class Newbies(Cog):
         db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
         ctx.session.add(db_channel)
 
+        logger.info('Added channel {} to visble channels for {}.'.format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('{} is now visible to unconfirmed users.'.format(channel.mention))
 
     @channels.command()
     @newbie_enabled
-    async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
         """
         Remove a channel from the list of channels unconfirmed users can access.
 
         Parameters:
-            - channel: The channel to remove from the list, identified by mention, ID, or name.
+            - [optional] channel: The channel to remove from the list, identified by mention, ID, or name. Defaults to current channel.
         """
+
+        if not channel:
+            channel = ctx.channel
 
         if not channel.guild.id == ctx.guild.id:
             await ctx.send('The provided channel is not on this server.')
@@ -428,6 +442,7 @@ class Newbies(Cog):
 
         ctx.session.delete(db_channel)
 
+        logger.info('Removed channel {} from visble channels for {}.'.format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('{} is now invisible to unconfirmed users.'.format(channel.mention))
 
     @channels.command(pass_context=True)
