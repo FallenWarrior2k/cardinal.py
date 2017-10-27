@@ -4,17 +4,26 @@ import unittest.mock as mock
 import cardinal.utils as utils
 
 
-class EntityFormattingTestCase(ut.TestCase):
-    def test_format_named_entity(self):
+class FormatNamedEntityTestCase(ut.TestCase):
+    def test__format_named_entity(self):
         obj = mock.NonCallableMock()
         obj.name = 'Test obj'
         obj.id = 123456789
         expected = '"{0.name}" ({0.id})'.format(obj)
-        got = utils.format_named_entity(obj)
+        got = utils._format_named_entity(obj)
         self.assertMultiLineEqual(expected, got)
 
 
-class MessageFormattingTestCase(ut.TestCase):
+@mock.patch('cardinal.utils._format_named_entity')
+class FormatNamedEntitiesTestCase(ut.TestCase):
+    def test_empty_args(self, _format_named_entity):
+        _iter = utils.format_named_entities()
+        _format_named_entity.assert_not_called()
+        with self.assertRaises(StopIteration):
+            next(_iter)
+
+
+class FormatMessageTestCase(ut.TestCase):
     def setUp(self):
         msg = mock.NonCallableMock()
         msg.content = 'Test message'
