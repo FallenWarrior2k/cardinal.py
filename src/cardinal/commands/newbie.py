@@ -482,7 +482,7 @@ class Newbies(Cog):
         logger.info('Removed channel {} from visble channels for {}.'.format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('{} is now invisible to unconfirmed users.'.format(channel.mention))
 
-    @channels.command(pass_context=True)
+    @channels.command()
     @newbie_enabled
     async def list(self, ctx: commands.Context):
         """

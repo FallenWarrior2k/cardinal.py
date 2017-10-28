@@ -125,7 +125,7 @@ class Channels(Cog):
 
         await ctx.send(embed=em)
 
-    @channels.group('opt-in', )
+    @channels.group('opt-in')
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
     async def _opt_in(self, ctx: commands.Context):
