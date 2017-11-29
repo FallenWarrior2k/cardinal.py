@@ -57,20 +57,16 @@ class Newbies(Cog):
 
                     guild = self.bot.get_guild(db_user.guild_id)
                     if not guild:
-                        session.delete(db_user.guild)
                         continue
-
-                    logger.info('Found guild to be {}.'.format(*format_named_entities(guild)))
 
                     member = guild.get_member(db_user.user_id)
                     if not member:
                         session.delete(db_user)
                         continue
 
-                    logger.info('Found user to be {}.'.format(*format_named_entities(member)))
-
                     try:
                         await member.kick(reason='Verification timed out.')
+                        session.delete(db_user)
                         logger.info('Kicked overdue user {} from guild {}.'
                                     .format(*format_named_entities(member, guild)))
                     except discord.Forbidden:
@@ -79,8 +75,6 @@ class Newbies(Cog):
                     except discord.HTTPException as e:
                         logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
                                          .format(*format_named_entities(member, guild), e.response.status))
-                    finally:
-                        session.delete(db_user)
 
             await asyncio.sleep(60)
 
@@ -110,12 +104,10 @@ class Newbies(Cog):
             for db_guild in session.query(Guild):
                 guild = self.bot.get_guild(db_guild.guild_id)
                 if not guild:
-                    session.delete(db_guild)
                     continue
 
                 member_role = discord.utils.get(guild.roles, id=db_guild.role_id)
                 if not member_role:
-                    session.delete(db_guild)
                     continue
 
                 to_add = (member for member in guild.members if member_role not in member.roles)
@@ -150,15 +142,10 @@ class Newbies(Cog):
 
         with self.bot.session_scope() as session:
             for db_user in session.query(User).filter(User.user_id == msg.author.id):
-                db_guild = db_user.guild  # Get guild
-                if not db_guild:  # If guild not set, delete row
-                    session.delete(db_user)
-                    continue
+                db_guild = db_user.guild
 
                 guild = self.bot.get_guild(db_user.guild_id)
                 if not guild:
-                    # session.delete(db_user)  # Unnecessary because ON DELETE CASCADE / 'delete-orphan' should clean it up automatically
-                    session.delete(db_guild)  # Delete guild if bot no longer has access to it
                     continue
 
                 member = guild.get_member(msg.author.id)
@@ -191,16 +178,14 @@ class Newbies(Cog):
 
                 try:
                     await member.add_roles(member_role)
+                    session.delete(db_user)
                     logger.info('Verified user {} on guild {}.'.format(*format_named_entities(member, guild)))
+                    await msg.author.send('Welcome to {}'.format(guild.name))
                 except discord.Forbidden:
                     logger.exception('Lacking permissions to manage roles for user {} on guild {}.')
                 except discord.HTTPException as e:
                     logger.exception('Failed managing roles for user {} on guild {} due to HTTP error {}.'
                                      .format(*format_named_entities(member, guild), e.response.status))
-                finally:
-                    session.delete(db_user)
-
-                await msg.author.send('Welcome to {}'.format(guild.name))
 
     @commands.group()
     @commands.guild_only()
