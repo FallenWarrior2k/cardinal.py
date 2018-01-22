@@ -89,15 +89,25 @@ class Newbies(Cog):
         message_content += 'Please reply with the following message to be granted access to "{}".\n'.format(member.guild.name)
         message_content += '```{}```'.format(db_guild.response_message)
 
-        message = await member.send(message_content)
+        try:
+            message = await member.send(message_content)
+        except discord.Forbidden:
+            logger.exception('Cannot message user {} and thus cannot prompt for verification.'.format(*format_named_entities(member)))
+            return
+        except discord.HTTPException as e:
+            logger.exception('Failed sending message to user {} due to HTTP error {}.'.format(*format_named_entities(member), e.response.status))
+            return
+        else:
+            # Use utcnow() instead of member.joined_at to treat members who got the message too late fairly
+            db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
+            session.add(db_user)
+            session.commit()
+            logger.info('Added new user {} to database for guild {}.'.format(*format_named_entities(member, member.guild)))
 
-        # Use utcnow() instead of member.joined_at to treat members who got the message too late fairly
-        db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
-        session.add(db_user)
-        session.commit()
-        logger.info('Added new user {} to database for guild {}.'.format(*format_named_entities(member, member.guild)))
-
-        await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            try:
+                await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            except:
+                pass  # First message went through, no need to further handle this, should it ever occur
 
     async def on_ready(self):
         with self.bot.session_scope() as session:
@@ -112,12 +122,7 @@ class Newbies(Cog):
 
                 to_add = (member for member in guild.members if member_role not in member.roles)
                 for member in to_add:
-                    try:
-                        await self.add_member(session, db_guild, member)
-                    except discord.Forbidden:
-                        logger.exception('Cannot message user {} and thus cannot prompt for verification.'.format(*format_named_entities(member)))
-                    except discord.HTTPException as e:
-                        logger.exception('Failed sending message to user {} due to HTTP error {}.'.format(*format_named_entities(member), e.response.status))
+                    await self.add_member(session, db_guild, member)
 
     async def on_member_join(self, member: discord.Member):
         with self.bot.session_scope() as session:
