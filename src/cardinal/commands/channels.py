@@ -185,7 +185,7 @@ class Channels(Cog):
         if channel is None:
             channel = ctx.channel
 
-        with session_scope as session:
+        with session_scope() as session:
             db_channel = session.query(Channel).get(channel.id)
 
             if db_channel:
