@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 
 logging.basicConfig(level=logging.WARNING)
 
-if len(sys.argv) <= 2 and not path.isfile('config.json'):
+if len(sys.argv) < 2 and not path.isfile('config.json'):
     logging.fatal('Please pass the path of the config file as the first command-line argument or provide a "config.json" in the PWD.')
     sys.exit(1)
 
