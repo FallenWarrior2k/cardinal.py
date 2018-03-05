@@ -1,6 +1,7 @@
 # cardinal.py
 
 [![Build Status](https://travis-ci.org/FallenWarrior2k/cardinal.py.svg?branch=test)](https://travis-ci.org/FallenWarrior2k/cardinal.py)
+[![Coverage Status](https://coveralls.io/repos/github/FallenWarrior2k/cardinal.py/badge.svg?branch=test)](https://coveralls.io/github/FallenWarrior2k/cardinal.py?branch=test)
 
 A growing Discord bot for managing a server.
 
