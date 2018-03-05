@@ -1,5 +1,7 @@
 # cardinal.py
 
+[![Build Status](https://travis-ci.org/FallenWarrior2k/cardinal.py.svg?branch=test)](https://travis-ci.org/FallenWarrior2k/cardinal.py)
+
 A growing Discord bot for managing a server.
 
 ## Features
