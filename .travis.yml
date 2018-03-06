@@ -1,3 +1,4 @@
+sudo: false
 language: python
 python:
   - "3.5"
@@ -8,5 +9,5 @@ install:
 env:
   - PYTHONPATH=src
 script:
-  - pytest --cov=src test
+  - pytest --cov=src/cardinal test
 after_success: coveralls
