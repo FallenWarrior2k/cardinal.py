@@ -4,8 +4,9 @@ python:
   - "3.6"
 install:
   - pip install -r requirements.txt
-  - pip install coverage
   - pip install coveralls
 env:
   - PYTHONPATH=src
-script: coverage run -m unittest discover -s test && coveralls
+script:
+  - python -m unittest discover -s test
+  - coverage run --source=src -m unittest discover -s test
