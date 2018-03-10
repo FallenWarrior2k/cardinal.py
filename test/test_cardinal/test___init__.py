@@ -29,22 +29,49 @@ class BotCtorTestCase(ut.TestCase):
         create_all.assert_called_once_with(bot.engine)
 
 
-# Need to set return values separately for tests so counters do not carry over in between tests
-@mock.patch.object(bot, 'sessionmaker')
+@mock.patch.object(bot, 'sessionmaker', side_effect=lambda: mock.NonCallableMock(spec=Session))
+class BotBeforeInvokeHookTestCase(ut.TestCase):
+    def test(self, sessionmaker):
+        ctx = mock.NonCallableMock()
+
+        loop.run_until_complete(bot.before_invoke_hook(ctx))
+
+        sessionmaker.assert_called_once_with()
+        self.assertIsInstance(ctx.session, Session)
+
+
+class BotAfterInvokeHookTestCase(ut.TestCase):
+    def setUp(self):
+        ctx = mock.NonCallableMock()
+        ctx.session = mock.NonCallableMock(spec=Session)
+        self.ctx = ctx
+
+    def test_failed(self):
+        self.ctx.command_failed = True
+        loop.run_until_complete(bot.after_invoke_hook(self.ctx))
+
+        self.ctx.session.rollback.assert_called_once_with()
+        self.ctx.session.close.assert_called_once_with()
+
+    def test_success(self):
+        self.ctx.command_failed = False
+        loop.run_until_complete(bot.after_invoke_hook(self.ctx))
+
+        self.ctx.session.commit.assert_called_once_with()
+        self.ctx.session.close.assert_called_once_with()
+
+
+@mock.patch.object(bot, 'sessionmaker', side_effect=lambda: mock.NonCallableMock(spec=Session))
 class BotSessionScopeTestCase(ut.TestCase):
     def test_no_exception(self, sessionmaker):
-        sessionmaker.return_value = mock.NonCallableMock(spec=Session)
-
         with bot.session_scope() as session:
             self.assertIsInstance(session, Session)
 
         sessionmaker.assert_called_once_with()
-        sessionmaker.return_value.commit.assert_called_once_with()
-        sessionmaker.return_value.close.assert_called_once_with()
+        session.commit.assert_called_once_with()
+        session.close.assert_called_once_with()
 
     def test_exception(self, sessionmaker):
-        sessionmaker.return_value = mock.NonCallableMock(spec=Session)
-
         exc_message = 'Test exception message'
         exc = Exception(exc_message)
         with self.assertRaises(Exception, msg=exc_message):
@@ -53,8 +80,8 @@ class BotSessionScopeTestCase(ut.TestCase):
                 raise exc
 
         sessionmaker.assert_called_once_with()
-        sessionmaker.return_value.rollback.assert_called_once_with()
-        sessionmaker.return_value.close.assert_called_once_with()
+        session.rollback.assert_called_once_with()
+        session.close.assert_called_once_with()
 
 
 @mock.patch.object(commands.Bot, 'user', new_callable=mock.PropertyMock, return_value='Test user#1234')
@@ -248,3 +275,11 @@ class BotOnCommandErrorTestCase(ut.TestCase):
 
         clean_prefix.assert_not_called()
         self.ctx.send.assert_not_called()
+
+
+class BotOnErrorTestCase(ut.TestCase):
+    def test(self):
+        name = 'Test name'
+
+        with self.assertLogs('cardinal', logging.ERROR):
+            loop.run_until_complete(bot.on_error(name))
