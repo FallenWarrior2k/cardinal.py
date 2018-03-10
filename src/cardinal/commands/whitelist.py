@@ -11,9 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class Whitelisting(Cog):
-    def __init__(self, bot):
-        super().__init__(bot)
-
     @commands.group()
     @commands.guild_only()
     async def whitelist(self, ctx: commands.Context):

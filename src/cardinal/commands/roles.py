@@ -12,9 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class Roles(Cog):
-    def __init__(self, bot):
-        super().__init__(bot)
-
     @commands.group('role')
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
