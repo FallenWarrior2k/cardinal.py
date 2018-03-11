@@ -33,7 +33,7 @@ def setup(bot):
         try:
             bot.add_cog(cog(bot))
         except:
-            logger.exception('Error during initialization.')
+            logger.exception('Error during initialization of "{}".'.format(cog.__name__))
         else:
             logger.info('Successfully initialized "{}".'.format(cog.__name__))
 
