@@ -75,7 +75,7 @@ class Roles(Cog):
         """
 
         role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in ctx.session.query(Role).filter_by(guild_id=ctx.guild.id)))
-        role_list = sorted(role_iter, key=lambda r: r.position)
+        role_list = sorted(role_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Roles that can be joined through this bot:```\n'
 
@@ -98,8 +98,8 @@ class Roles(Cog):
                          for role in role_iter)
 
         em = discord.Embed(title='Role stats for ' + ctx.guild.name, color=0x38CBF0)
-        for role in sorted(role_dict.keys(), key=lambda r: r.position):
-            em.add_field(name=role.name, value=role_dict[role])
+        for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
+            em.add_field(name=role.name, value=str(role_dict[role]))
 
         await ctx.send(embed=em)
 

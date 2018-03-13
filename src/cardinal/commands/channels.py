@@ -93,7 +93,7 @@ class Channels(Cog):
         """
 
         channel_iter = filter(None, (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id) for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id)))
-        channel_list = sorted(channel_iter, key=lambda r: r.position)
+        channel_list = sorted(channel_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Channels that can be joined through this bot:```\n'
 
@@ -112,13 +112,13 @@ class Channels(Cog):
         Display the member count for each opt-in channel on the current server.
         """
 
-        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.id) for db_role in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id)))
+        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_channel.role_id) for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id)))
         role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
                          for role in role_iter)
 
         em = discord.Embed(title='Channel stats for ' + ctx.guild.name, color=0x38CBF0)
-        for role in sorted(role_dict.keys(), key=lambda r: r.position):
-            em.add_field(name='#' + role.name, value=role_dict[role])
+        for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
+            em.add_field(name='#' + role.name, value=str(role_dict[role]))
 
         await ctx.send(embed=em)
 
