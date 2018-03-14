@@ -35,11 +35,11 @@ engine = create_engine(config['db']['connect_string'], **config['db']['options']
 bot = cardinal.Bot(command_prefix=config['cmd_prefix'], description='cardinal.py', default_game=config['default_game'], engine=engine)
 
 try:
-    logger.info('Loading commands.')
-    bot.load_extension('cardinal.commands')
-    logger.info('Loaded all commands.')
+    logger.info('Loading cogs.')
+    bot.load_extension('cardinal.cogs')
+    logger.info('Finished loading cogs.')
 except:
-    logger.exception('Failed to load commands.')
+    logger.exception('An error occured while loading the cogs.')
 
 bot.run(config['token'])
 del cardinal

@@ -4,12 +4,12 @@ import unittest.mock as mock
 import discord.ext.commands as _commands
 import pytest
 
-from cardinal import commands
+from cardinal import cogs
 
 
 def test_cog_ctor():
     bot = mock.Mock()
-    cog = commands.Cog(bot)
+    cog = cogs.Cog(bot)
 
     assert cog.bot is bot
 
@@ -22,7 +22,7 @@ class TestAllSubclasses:
     def test_no_subclasses(self, cls_mock):
         cls_mock.__subclasses__ = mock.Mock(return_value=[])
 
-        flatiter = commands.all_subclasses(cls_mock)
+        flatiter = cogs.all_subclasses(cls_mock)
         with pytest.raises(StopIteration):
             next(flatiter)
 
@@ -36,7 +36,7 @@ class TestAllSubclasses:
 
         cls_mock.__subclasses__ = mock.Mock(return_value=flatlist)
 
-        flatiter = commands.all_subclasses(cls_mock)
+        flatiter = cogs.all_subclasses(cls_mock)
 
         for expected, got in zip(flatlist, flatiter):
             assert expected is got
@@ -52,7 +52,7 @@ class TestAllSubclasses:
             flatlist.append(sub)
             cur, sub = sub, mock.MagicMock()
 
-        flatiter = commands.all_subclasses(cls_mock)
+        flatiter = cogs.all_subclasses(cls_mock)
 
         for expected, got in zip(flatlist, flatiter):
             assert expected is got
@@ -73,7 +73,7 @@ class TestAllSubclasses:
                 cur, sub = sub, mock.MagicMock()
 
         cls_mock.__subclasses__ = mock.Mock(return_value=cls_list)
-        flatiter = commands.all_subclasses(cls_mock)
+        flatiter = cogs.all_subclasses(cls_mock)
 
         for expected, got in zip(flatlist, flatiter):
             assert expected is got
@@ -84,7 +84,7 @@ class TestSetup:
     def patches(self, mocker):
         iter_modules = mocker.patch('pkgutil.iter_modules')
         import_module = mocker.patch('importlib.import_module')
-        all_subclasses = mocker.patch('cardinal.commands.all_subclasses')
+        all_subclasses = mocker.patch('cardinal.cogs.all_subclasses')
         return {
             'iter_modules': iter_modules,
             'import_module': import_module,
@@ -112,17 +112,17 @@ class TestSetup:
     def test_no_exception(self, patches, caplog, modules, subclasses):
         bot = mock.Mock(spec=_commands.Bot)
 
-        with caplog.at_level(logging.INFO, logger=commands.__name__):
-            commands.setup(bot)
+        with caplog.at_level(logging.INFO, logger=cogs.__name__):
+            cogs.setup(bot)
 
-        patches['iter_modules'].assert_called_once_with(commands.__path__)
-        patches['all_subclasses'].assert_called_once_with(commands.Cog)
+        patches['iter_modules'].assert_called_once_with(cogs.__path__)
+        patches['all_subclasses'].assert_called_once_with(cogs.Cog)
         for record in caplog.records:
             assert record.levelname != 'ERROR'
 
         for _, mod_name, is_pkg in modules:
             if not is_pkg:
-                patches['import_module'].assert_any_call('.' + mod_name, commands.__name__)
+                patches['import_module'].assert_any_call('.' + mod_name, cogs.__name__)
 
         if all(is_pkg for *_, is_pkg in modules):
             patches['import_module'].assert_not_called()
@@ -131,7 +131,7 @@ class TestSetup:
             bot.add_cog.assert_not_called()
 
         for cls in subclasses:
-            assert (commands.__name__, logging.INFO,
+            assert (cogs.__name__, logging.INFO,
                     'Initializing "{}".'.format(cls.__name__)) in caplog.record_tuples
 
             cls.assert_called_with(bot)
@@ -141,7 +141,7 @@ class TestSetup:
         bot = mock.Mock(spec=_commands.Bot)
         patches['import_module'].side_effect = (Exception(), None)
 
-        commands.setup(bot)
+        cogs.setup(bot)
 
         if all(is_pkg for *_, is_pkg in modules):
             patches['import_module'].assert_not_called()
@@ -151,7 +151,7 @@ class TestSetup:
 
         for _, mod_name, is_pkg in modules:
             if not is_pkg:
-                patches['import_module'].assert_any_call('.' + mod_name, commands.__name__)
+                patches['import_module'].assert_any_call('.' + mod_name, cogs.__name__)
 
     @pytest.mark.usefixtures('patches')
     def test_init_exception(self, caplog, subclasses):
@@ -160,7 +160,7 @@ class TestSetup:
         if subclasses:
             subclasses[0].side_effect = Exception()
 
-        commands.setup(bot)
+        cogs.setup(bot)
 
         if subclasses:
             assert 'ERROR' in [record.levelname for record in caplog.records]

@@ -4,7 +4,7 @@ import discord
 import discord.ext.commands as commands
 import discord.utils
 
-from ..commands import Cog
+from ..cogs import Cog
 from ..db.channels import Channel
 from ..utils import clean_prefix, format_named_entities
 from ..checks import channel_whitelisted

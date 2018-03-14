@@ -3,7 +3,7 @@ import logging
 import discord
 import discord.ext.commands as commands
 
-from ..commands import Cog
+from ..cogs import Cog
 from ..db.whitelist import WhitelistedChannel
 from ..utils import clean_prefix, format_named_entities
 
