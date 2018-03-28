@@ -32,7 +32,6 @@ class Bot(_commands.Bot):
         super().__init__(*args, **kwargs, game=game)
 
         self.engine = engine
-        create_all(self.engine)
         _Session = sessionmaker()
         _Session.configure(bind=engine)
         self.sessionmaker = _Session
@@ -53,6 +52,7 @@ class Bot(_commands.Bot):
             session.close()
 
     async def on_ready(self):
+        create_all(self.engine)
         logger.info('Logged into Discord as {}'.format(self.user))
 
     async def on_message(self, msg: discord.Message):

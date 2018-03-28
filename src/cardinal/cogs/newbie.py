@@ -138,19 +138,19 @@ class Newbies(Cog):
             # Using query instead of object deletion to prevent redundant SELECT query
             session.query(User).filter(User.user_id == member.id, User.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
-    async def on_member_update(self, old: discord.Member, new: discord.Member):
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
         with self.bot.session_scope() as session:
-            db_user = session.query(User).get((old.id, old.guild.id))
+            db_user = session.query(User).get((before.id, before.guild.id))
 
             if not db_user:
                 return
 
-            role = discord.utils.get(old.guild.roles, id=db_user.guild.role_id)
+            role = discord.utils.get(before.guild.roles, id=db_user.guild.role_id)
 
             if not role:
                 return
 
-            if role in old.roles and role not in new.roles:
+            if role in before.roles and role not in after.roles:
                 session.delete(db_user)
 
     async def on_message(self, msg: discord.Message):
