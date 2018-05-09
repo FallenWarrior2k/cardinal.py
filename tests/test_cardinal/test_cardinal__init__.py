@@ -11,8 +11,7 @@ from cardinal import Bot, errors
 
 default_game = 'Test game'
 engine = mock.NonCallableMock()
-with mock.patch('cardinal.create_all') as create_all:
-    bot = Bot(default_game=default_game, engine=engine, command_prefix='Test prefix')
+bot = Bot(default_game=default_game, engine=engine, command_prefix='Test prefix')
 loop = get_event_loop()
 
 
@@ -25,8 +24,6 @@ class BotCtorTestCase(ut.TestCase):
     def test(self):
         self.assertIs(bot.engine, engine)
         self.assertIsInstance(bot.sessionmaker, sessionmaker)
-
-        create_all.assert_called_once_with(bot.engine)
 
 
 @mock.patch.object(bot, 'sessionmaker', side_effect=lambda: mock.NonCallableMock(spec=Session))
@@ -84,13 +81,14 @@ class BotSessionScopeTestCase(ut.TestCase):
         session.close.assert_called_once_with()
 
 
-@mock.patch.object(commands.Bot, 'user', new_callable=mock.PropertyMock, return_value='Test user#1234')
+@mock.patch('cardinal.create_all')
 class BotOnReadyTestCase(ut.TestCase):
-    def test(self, user):
-        with self.assertLogs('cardinal') as log:
+    def test(self, create_all):
+
+        with self.assertLogs('cardinal'):
             loop.run_until_complete(bot.on_ready())
 
-        self.assertMultiLineEqual(log.output[0], 'INFO:cardinal:Logged into Discord as {}'.format(user.return_value))
+        create_all.assert_called_once_with(bot.engine)
 
 
 @mock.patch.object(commands.Bot, 'invoke', new_callable=CoroMock)

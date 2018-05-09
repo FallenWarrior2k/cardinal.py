@@ -9,5 +9,5 @@ install:
 env:
   - PYTHONPATH=src
 script:
-  - pytest --cov=src/cardinal test
+  - pytest -v --cov=src/cardinal tests
 after_success: coveralls
