@@ -328,9 +328,14 @@ class Newbies(Cog):
             await ctx.send('Role has already been deleted.')
 
         everyone_role = ctx.guild.default_role
-        member_permissions = role.permissions
+        everyone_perms = everyone_role.permissions
+        member_perms = role.permissions
 
-        await everyone_role.edit(permissions=member_permissions)
+        # Copy old everyone perms and additionally grant perms on member role
+        merged_perms = discord.Permissions(everyone_perms.value)
+        merged_perms.update(**{perm: val for perm, val in member_perms if val})
+
+        await everyone_role.edit(permissions=merged_perms)
         await role.delete()
 
         for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id):
