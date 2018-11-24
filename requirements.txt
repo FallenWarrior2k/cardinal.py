@@ -1,3 +1,0 @@
-git+https://github.com/Rapptz/discord.py@rewrite
-aiodns
-SQLAlchemy>=1.1
