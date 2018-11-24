@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from ..checks import channel_whitelisted
 from ..db import OptinChannel
-from ..utils import clean_prefix, format_named_entities
+from ..utils import clean_prefix
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
@@ -182,7 +182,7 @@ class Channels(BaseCog):
         ctx.session.add(db_channel)
 
         logger.info('Opt-in enabled for channel {} on guild {}.'
-                    .format(*format_named_entities(channel, ctx.guild)))
+                    .format(channel, ctx.guild))
         await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
 
     @_opt_in.command()
@@ -217,5 +217,5 @@ class Channels(BaseCog):
         ctx.session.delete(db_channel)
 
         logger.info('Opt-in disabled for channel {} on guild {}.'
-                    .format(*format_named_entities(channel, ctx.guild)))
+                    .format(channel, ctx.guild))
         await ctx.send('Opt-in disabled for channel {}.'.format(channel.mention))

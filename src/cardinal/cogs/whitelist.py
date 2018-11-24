@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from ..db import WhitelistedChannel
-from ..utils import clean_prefix, format_named_entities
+from ..utils import clean_prefix
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
@@ -51,8 +51,7 @@ class Whitelisting(BaseCog):
         db_channel = WhitelistedChannel(channel_id=channel.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
 
-        logger.info('Added channel {} on guild {} to whitelist.'
-                    .format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Added channel {} on guild {} to whitelist.'.format(channel, ctx.guild))
         await ctx.send('Whitelisted channel {}.'.format(channel.mention))
 
     @whitelist.command()
@@ -80,8 +79,7 @@ class Whitelisting(BaseCog):
 
         ctx.session.delete(db_channel)
 
-        logger.info('Removed channel {} on guild {} from whitelist.'
-                    .format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Removed channel {} on guild {} from whitelist.'.format(channel, ctx.guild))
         await ctx.send('Removed channel {} from whitelist.'.format(channel.mention))
 
     @whitelist.command('list')

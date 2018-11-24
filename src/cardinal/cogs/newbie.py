@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 
 from ..db import NewbieChannel, NewbieGuild, NewbieUser
-from ..utils import clean_prefix, format_named_entities
+from ..utils import clean_prefix
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
@@ -74,16 +74,14 @@ class Newbies(BaseCog):
                     try:
                         await member.kick(reason='Verification timed out.')
                         session.delete(db_user)
-                        logger.info('Kicked overdue user {} from guild {}.'
-                                    .format(*format_named_entities(member, guild)))
+                        logger.info('Kicked overdue user {} from guild {}.'.format(member, guild))
                     except discord.Forbidden:
                         logger.exception('Lacking permissions to kick user {} from guild {}.'
-                                         .format(*format_named_entities(member, guild)))
+                                         .format(member, guild))
                     except discord.HTTPException as e:
                         logger.exception(
                             'Failed to kick user {} from guild {} due to HTTP error {}.'
-                            .format(*format_named_entities(member, guild),
-                                    e.response.status))
+                            .format(member, guild, e.response.status))
 
             await asyncio.sleep(60)
 
@@ -103,11 +101,11 @@ class Newbies(BaseCog):
             message = await member.send(message_content)
         except discord.Forbidden:
             logger.exception('Cannot message user {} and thus cannot prompt for verification.'
-                             .format(*format_named_entities(member)))
+                             .format(member))
             return
         except discord.HTTPException as e:
             logger.exception('Failed sending message to user {} due to HTTP error {}.'
-                             .format(*format_named_entities(member), e.response.status))
+                             .format(member, e.response.status))
             return
         else:
             # Use utcnow() instead of join time to treat members who got the message too late fairly
@@ -117,8 +115,7 @@ class Newbies(BaseCog):
                                  joined_at=datetime.utcnow())
             session.add(db_user)
             session.commit()
-            logger.info('Added new user {} to database for guild {}.'
-                        .format(*format_named_entities(member, member.guild)))
+            logger.info('Added new user {} to database for guild {}.'.format(member, member.guild))
 
             try:
                 # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
@@ -206,11 +203,11 @@ class Newbies(BaseCog):
                             await member.kick()
                         except discord.Forbidden:
                             logger.exception('Lacking permissions to kick user {} from guild {}.'
-                                             .format(*format_named_entities(member, guild)))
+                                             .format(member, guild))
                         except discord.HTTPException as e:
                             logger.exception(
                                 'Failed to kick user {} from guild {} due to HTTP error {}.'
-                                .format(*format_named_entities(member, guild), e.response.status))
+                                .format(member, guild, e.response.status))
                         finally:
                             session.delete(db_user)
 
@@ -227,8 +224,7 @@ class Newbies(BaseCog):
                     await member.add_roles(member_role)
 
                     session.delete(db_user)
-                    logger.info('Verified user {} on guild {}.'
-                                .format(*format_named_entities(member, guild)))
+                    logger.info('Verified user {} on guild {}.'.format(member, guild))
 
                     await msg.author.send('Welcome to {}'.format(guild.name))
                 except discord.Forbidden:
@@ -236,7 +232,7 @@ class Newbies(BaseCog):
                 except discord.HTTPException as e:
                     logger.exception(
                         'Failed to manage roles for user {} on guild {} due to HTTP error {}.'
-                        .format(*format_named_entities(member, guild), e.response.status))
+                        .format(member, guild, e.response.status))
 
     @commands.group()
     @commands.guild_only()
@@ -344,7 +340,7 @@ class Newbies(BaseCog):
                 db_channel = NewbieChannel(channel_id=channel.id, guild_id=ctx.guild.id)
                 ctx.session.add(db_channel)
 
-        logger.info('Enabled newbie roling on guild {}.'.format(*format_named_entities(ctx.guild)))
+        logger.info('Enabled newbie roling on guild {}.'.format(ctx.guild))
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
     @newbie.command()
@@ -384,7 +380,7 @@ class Newbies(BaseCog):
 
         ctx.session.delete(db_guild)
 
-        logger.info('Disabled newbie roling on guild {}.'.format(*format_named_entities(ctx.guild)))
+        logger.info('Disabled newbie roling on guild {}.'.format(ctx.guild))
         await ctx.send('Disabled newbie roling for this server.')
 
     @newbie.command()
@@ -406,8 +402,7 @@ class Newbies(BaseCog):
         else:
             db_guild.timeout = None
 
-        logger.info('Changed timeout for {} to {} hours.'
-                    .format(*format_named_entities(ctx.guild), delay))
+        logger.info('Changed timeout for {} to {} hours.'.format(ctx.guild, delay))
         await ctx.send('Successfully set timeout to {} hours.'.format(delay))
 
     @newbie.command('welcome-message')
@@ -429,8 +424,7 @@ class Newbies(BaseCog):
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         db_guild.welcome_message = welcome_message.content
 
-        logger.info('Changed welcome message for guild {}.'
-                    .format(*format_named_entities(ctx.guild)))
+        logger.info('Changed welcome message for guild {}.'.format(ctx.guild))
         await ctx.send('Successfully set welcome message.')
 
     @newbie.command('response-message')
@@ -464,8 +458,7 @@ class Newbies(BaseCog):
 
         # TODO: Edit already sent messages
 
-        logger.info('Changed response message for guild {}.'
-                    .format(*format_named_entities(ctx.guild)))
+        logger.info('Changed response message for guild {}.'.format(ctx.guild))
         await ctx.send('Successfully set response message.')
 
     @newbie.group()
@@ -512,8 +505,7 @@ class Newbies(BaseCog):
         db_channel = NewbieChannel(channel_id=channel.id, guild_id=ctx.guild.id)
         ctx.session.add(db_channel)
 
-        logger.info('Added channel {} to visble channels for {}.'
-                    .format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Added channel {} to visble channels for {}.'.format(channel, ctx.guild))
         await ctx.send('{} is now visible to unconfirmed users.'.format(channel.mention))
 
     @channels.command()
@@ -546,8 +538,7 @@ class Newbies(BaseCog):
 
         ctx.session.delete(db_channel)
 
-        logger.info('Removed channel {} from visble channels for {}.'
-                    .format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Removed channel {} from visble channels for {}.'.format(channel, ctx.guild))
         await ctx.send('{} is now invisible to unconfirmed users.'.format(channel.mention))
 
     @channels.command()

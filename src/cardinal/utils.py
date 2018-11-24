@@ -19,13 +19,3 @@ def format_message(msg):
     else:
         return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
                '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
-
-
-def _format_named_entity(obj):
-    return '"{0.name}" ({0.id})'.format(obj)
-
-
-def format_named_entities(*args):
-    for arg in args:
-        if hasattr(arg, 'name') and hasattr(arg, 'id'):
-            yield _format_named_entity(arg)
