@@ -5,8 +5,8 @@ import discord
 from discord.ext import commands
 from sqlalchemy.orm import sessionmaker
 
-from .errors import UserBlacklisted
 from .db import create_all
+from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
 logger = logging.getLogger(__name__)

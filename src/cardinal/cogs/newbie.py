@@ -7,7 +7,7 @@ import re
 import discord
 from discord.ext import commands
 
-from ..db.newbie import NewbieUser, NewbieGuild, NewbieChannel
+from ..db import NewbieChannel, NewbieGuild, NewbieUser
 from ..utils import clean_prefix, format_named_entities
 from .basecog import BaseCog
 

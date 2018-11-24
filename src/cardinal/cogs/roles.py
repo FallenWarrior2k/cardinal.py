@@ -3,9 +3,9 @@ import logging
 import discord
 from discord.ext import commands
 
+from ..checks import channel_whitelisted
 from ..db import JoinRole
 from ..utils import clean_prefix, format_named_entities
-from ..checks import channel_whitelisted
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
