@@ -30,7 +30,8 @@ class Roles(BaseCog):
 
         if ctx.invoked_subcommand is None:
             await ctx.send(
-                'Invalid command passed. Possible choices are "join", "leave",... \nPlease refer to `{}help {}` for further information.'
+                'Invalid command passed. Possible choices are "join", "leave",... \n'
+                'Please refer to `{}help {}` for further information.'
                 .format(clean_prefix(ctx), ctx.command.qualified_name))
             return
 
@@ -40,7 +41,8 @@ class Roles(BaseCog):
         Add the user to the specified role.
 
         Parameters:
-            - role: The role to join, identified by mention, ID, or name. Must be marked as joinable.
+            - role: The role to join, identified by mention, ID, or name.
+            Must be marked as joinable.
         """
 
         if not ctx.session.query(JoinRole).get(role.id):
@@ -57,7 +59,8 @@ class Roles(BaseCog):
         Remove the user from the specified role.
 
         Parameters:
-            - role: The role to leave, identified by mention, ID, or name. Must be marked as joinable.
+            - role: The role to leave, identified by mention, ID, or name.
+            Must be marked as joinable.
         """
 
         if not ctx.session.query(JoinRole).get(role.id):
@@ -71,13 +74,14 @@ class Roles(BaseCog):
     @roles.command('list')
     async def _list(self, ctx: commands.Context):
         """
-        List the roles that can be joined through the bot, i.e. that have been marked as joinable for the current server.
+        List the roles that can be joined through the bot,
+        i.e. that have been marked as joinable for the current server.
         """
 
+        q = ctx.session.query(JoinRole).filter_by(guild_id=ctx.guild.id)
         role_iter = filter(None,
                            (discord.utils.get(ctx.guild.roles, id=db_role.role_id)
-                            for db_role in ctx.session.query(JoinRole)
-                                                      .filter_by(guild_id=ctx.guild.id)))
+                            for db_role in q))
         role_list = sorted(role_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Roles that can be joined through this bot:```\n'
@@ -96,10 +100,10 @@ class Roles(BaseCog):
         Display the member count for each role marked as joinable on the current server.
         """
 
+        q = ctx.session.query(JoinRole).filter_by(guild_id=ctx.guild.id)
         role_iter = filter(None,
                            (discord.utils.get(ctx.guild.roles, id=db_role.role_id)
-                            for db_role in ctx.session.query(JoinRole)
-                                                      .filter_by(guild_id=ctx.guild.id)))
+                            for db_role in q))
         role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
                          for role in role_iter)
 
@@ -151,7 +155,8 @@ class Roles(BaseCog):
 
         ctx.session.delete(db_role)
 
-        logger.info('Marked role {} on guild {} as non-joinable.'.format(*format_named_entities(role, ctx.guild)))
+        logger.info('Marked role {} on guild {} as non-joinable.'
+                    .format(*format_named_entities(role, ctx.guild)))
         await ctx.send('Removed role "{}" from list of joinable roles.'.format(role.name))
 
     @roles.command()
@@ -171,7 +176,8 @@ class Roles(BaseCog):
 
         ctx.session.add(JoinRole(role_id=role.id, guild_id=role.guild.id))
 
-        logger.info('Created role "{}" ({}) on guild {} and marked it as joinable.'.format(rolename, role.id, *format_named_entities(ctx.guild)))
+        logger.info('Created role "{}" ({}) on guild {} and marked it as joinable.'
+                    .format(rolename, role.id, *format_named_entities(ctx.guild)))
         await ctx.send('Created role "{}" and marked it as joinable.'.format(rolename))
 
     @roles.command()

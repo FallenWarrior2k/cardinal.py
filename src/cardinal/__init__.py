@@ -46,7 +46,7 @@ class Bot(commands.Bot):
         try:
             yield session
             session.commit()
-        except:
+        except BaseException:
             session.rollback()
             raise
         finally:
@@ -81,7 +81,9 @@ class Bot(commands.Bot):
                 .format(clean_prefix(ctx), ctx.command.qualified_name)
 
         if isinstance(ex, commands.CommandInvokeError):
-            logger.error('An exception was raised while executing the command for "{}".'.format(ctx.message.content), exc_info=ex.original)
+            logger.error(
+                'An exception was raised while executing the command for "{}".'
+                .format(ctx.message.content), exc_info=ex.original)
             error_msg += 'An error occurred while executing the command.'
 
         if error_msg != '':

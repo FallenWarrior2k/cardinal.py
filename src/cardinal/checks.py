@@ -7,16 +7,20 @@ from .errors import ChannelNotWhitelisted
 def channel_whitelisted(exception_predicate=None):
     """
     Decorator that marks a channel as required to be whitelisted by a previous command.
-    Takes an optional :param:`exception_predicate`, that checks whether or not an exception should be made for the current context.
+    Takes an optional predicate,
+    that checks whether or not an exception should be made for the current context.
+    Args:
+        exception_predicate (typing.Callable): A predicate taking a context as its only argument,
+        returning a boolean value.
 
-    :param exception_predicate: A predicate taking a context as its only argument, returning a boolean value.
-    :type exception_predicate: callable
+    Returns:
+        typing.Callable: Decorator to use on discord.py commands.
     """
 
     def predicate(ctx: commands.Context):
-        channel = ctx.channel
+        db_channel = ctx.session.query(WhitelistedChannel).get(ctx.channel.id)
 
-        if not (ctx.session.query(WhitelistedChannel).get(channel.id) or (callable(exception_predicate) and exception_predicate(ctx))):
+        if not (db_channel or (callable(exception_predicate) and exception_predicate(ctx))):
             raise ChannelNotWhitelisted(ctx)
 
         return True

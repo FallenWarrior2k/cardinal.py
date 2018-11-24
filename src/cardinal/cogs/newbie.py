@@ -1,8 +1,8 @@
 import asyncio
-import datetime
 import functools
 import logging
 import re
+from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
@@ -12,6 +12,10 @@ from ..utils import clean_prefix, format_named_entities
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
+
+# Matches either a channel mention of the form "<#id>" or a raw ID.
+# The actual ID can be extracted from the 'id' group of the match object
+channel_re = re.compile(r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')
 
 
 def newbie_enabled(func):
@@ -24,10 +28,12 @@ def newbie_enabled(func):
 
     @functools.wraps(cmd)
     async def wrapper(*args, **kwargs):
-        ctx = next(i for i in args if isinstance(i, commands.Context))  # No try-catch necessary, context is always passed since rewrite
+        # No try-catch necessary, context is always passed since rewrite
+        ctx = next(i for i in args if isinstance(i, commands.Context))
 
         if not (ctx.guild and ctx.session.query(NewbieGuild).get(ctx.guild.id)):
-            await ctx.send('Newbie roling is not enabled on this server. Please enable it before using these commands.')
+            await ctx.send('Newbie roling is not enabled on this server. '
+                           'Please enable it before using these commands.')
             return
 
         await cmd(*args, **kwargs)
@@ -40,9 +46,6 @@ def newbie_enabled(func):
 
 
 class Newbies(BaseCog):
-    channel_re = re.compile(
-        r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')  # Matches either a channel mention of the form "<#id>" or a raw ID. The actual ID can be extracted from the 'id' group of the match object
-
     def __init__(self, bot):
         super().__init__(bot)
         self.bot.loop.create_task(self.check_timeouts())
@@ -52,9 +55,13 @@ class Newbies(BaseCog):
         while True:
             with self.bot.session_scope() as session:
                 # Get users who have passed the timeout
-                # !IMPORTANT! Filter inequation must not be changed or it will break SQLite support (and possibly other DBMSs as well)
-                for db_user in session.query(NewbieUser).join(NewbieUser.guild).filter(datetime.datetime.utcnow() > NewbieGuild.timeout + NewbieUser.joined_at):
+                # !IMPORTANT! Filter inequation must not be changed
+                # Changing it will break SQLite support (and possibly other DBMSs as well)
+                q = session.query(NewbieUser)\
+                    .join(NewbieUser.guild)\
+                    .filter(datetime.utcnow() > NewbieGuild.timeout + NewbieUser.joined_at)
 
+                for db_user in q:
                     guild = self.bot.get_guild(db_user.guild_id)
                     if not guild:
                         continue
@@ -73,8 +80,10 @@ class Newbies(BaseCog):
                         logger.exception('Lacking permissions to kick user {} from guild {}.'
                                          .format(*format_named_entities(member, guild)))
                     except discord.HTTPException as e:
-                        logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
-                                         .format(*format_named_entities(member, guild), e.response.status))
+                        logger.exception(
+                            'Failed to kick user {} from guild {} due to HTTP error {}.'
+                            .format(*format_named_entities(member, guild),
+                                    e.response.status))
 
             await asyncio.sleep(60)
 
@@ -86,28 +95,41 @@ class Newbies(BaseCog):
         message_content = db_guild.welcome_message
 
         message_content += '\n'
-        message_content += 'Please reply with the following message to be granted access to "{}".\n'.format(member.guild.name)
+        message_content += 'Please reply with the following message ' \
+                           'to be granted access to "{}".\n'.format(member.guild.name)
         message_content += '```{}```'.format(db_guild.response_message)
 
         try:
             message = await member.send(message_content)
         except discord.Forbidden:
-            logger.exception('Cannot message user {} and thus cannot prompt for verification.'.format(*format_named_entities(member)))
+            logger.exception('Cannot message user {} and thus cannot prompt for verification.'
+                             .format(*format_named_entities(member)))
             return
         except discord.HTTPException as e:
-            logger.exception('Failed sending message to user {} due to HTTP error {}.'.format(*format_named_entities(member), e.response.status))
+            logger.exception('Failed sending message to user {} due to HTTP error {}.'
+                             .format(*format_named_entities(member), e.response.status))
             return
         else:
-            # Use utcnow() instead of member.joined_at to treat members who got the message too late fairly
-            db_user = NewbieUser(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
+            # Use utcnow() instead of join time to treat members who got the message too late fairly
+            db_user = NewbieUser(guild_id=member.guild.id,
+                                 user_id=member.id,
+                                 message_id=message.id,
+                                 joined_at=datetime.utcnow())
             session.add(db_user)
             session.commit()
-            logger.info('Added new user {} to database for guild {}.'.format(*format_named_entities(member, member.guild)))
+            logger.info('Added new user {} to database for guild {}.'
+                        .format(*format_named_entities(member, member.guild)))
 
             try:
-                await member.send('Please note that by staying on "{}", you agree that this bot stores your user ID for identification purposes.\nIt shall be deleted once you confirm the above message or leave the server.'.format(member.guild.name))  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
-            except:
-                pass  # First message went through, no need to further handle this, should it ever occur
+                # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+                await member.send(
+                    'Please note that by staying on "{}", '
+                    'you agree that this bot stores your user ID for identification purposes.\n'
+                    'It shall be deleted once you confirm the above message or leave the server.'
+                    .format(member.guild.name))
+            except discord.HTTPException:
+                # First message went through, no need to further handle this, should it ever occur
+                pass
 
     async def on_ready(self):
         with self.bot.session_scope() as session:
@@ -135,8 +157,11 @@ class Newbies(BaseCog):
 
     async def on_member_remove(self, member: discord.Member):
         with self.bot.session_scope() as session:
-            # Using query instead of object deletion to prevent redundant SELECT query
-            session.query(NewbieUser).filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            # Use query instead of object deletion to prevent redundant SELECT query
+            session.query(NewbieUser)\
+                .filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id)\
+                .delete(synchronize_session=False)
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         with self.bot.session_scope() as session:
@@ -174,7 +199,8 @@ class Newbies(BaseCog):
                     continue
 
                 if db_guild.timeout:
-                    joined_interval = datetime.datetime.utcnow() - db_user.joined_at  # Use utcnow because discord.py's join timestamps are in UTC
+                    # Use utcnow because discord.py's join timestamps are in UTC
+                    joined_interval = datetime.utcnow() - db_user.joined_at
                     if joined_interval >= db_guild.timeout:
                         try:
                             await member.kick()
@@ -182,8 +208,9 @@ class Newbies(BaseCog):
                             logger.exception('Lacking permissions to kick user {} from guild {}.'
                                              .format(*format_named_entities(member, guild)))
                         except discord.HTTPException as e:
-                            logger.exception('Failed kicking user {} from guild {} due to HTTP error {}.'
-                                             .format(*format_named_entities(member, guild), e.response.status))
+                            logger.exception(
+                                'Failed to kick user {} from guild {} due to HTTP error {}.'
+                                .format(*format_named_entities(member, guild), e.response.status))
                         finally:
                             session.delete(db_user)
 
@@ -198,14 +225,18 @@ class Newbies(BaseCog):
 
                 try:
                     await member.add_roles(member_role)
+
                     session.delete(db_user)
-                    logger.info('Verified user {} on guild {}.'.format(*format_named_entities(member, guild)))
+                    logger.info('Verified user {} on guild {}.'
+                                .format(*format_named_entities(member, guild)))
+
                     await msg.author.send('Welcome to {}'.format(guild.name))
                 except discord.Forbidden:
                     logger.exception('Lacking permissions to manage roles for user {} on guild {}.')
                 except discord.HTTPException as e:
-                    logger.exception('Failed managing roles for user {} on guild {} due to HTTP error {}.'
-                                     .format(*format_named_entities(member, guild), e.response.status))
+                    logger.exception(
+                        'Failed to manage roles for user {} on guild {} due to HTTP error {}.'
+                        .format(*format_named_entities(member, guild), e.response.status))
 
     @commands.group()
     @commands.guild_only()
@@ -226,14 +257,16 @@ class Newbies(BaseCog):
         """
 
         if ctx.invoked_subcommand is None:
-            await ctx.send('Invalid subcommand passed, please refer to `{}help {}` for further information.'
-                           .format(clean_prefix(ctx), ctx.command.qualified_name))
+            await ctx.send(
+                'Invalid subcommand passed, please refer to `{}help {}` for further information.'
+                .format(clean_prefix(ctx), ctx.command.qualified_name))
 
     @newbie.command()
     async def enable(self, ctx: commands.Context):
         """
         Enable automatic newbie roling for the current server.
-        This will add a role to new members, restricting their permissions to send messages, and additionally restricts their read access to certain channels.
+        This will add a role to new members, restricting their permissions to send messages,
+        and additionally restricts their read access to certain channels.
         """
 
         if ctx.session.query(NewbieGuild).get(ctx.guild.id):
@@ -250,7 +283,8 @@ class Newbies(BaseCog):
         def pred(msg):
             return msg.author.id == ctx.author.id and msg.channel.id == ctx.channel.id
 
-        await ctx.send('Please enter the channels that are to remain visible to newbies, separated by spaces.\n_Takes channel mentions, names, and IDs._')
+        await ctx.send('Please enter the channels that are to remain visible to newbies, '
+                       'separated by spaces.\n_Takes channel mentions, names, and IDs._')
         channels_message = await self.bot.wait_for('message', check=pred, timeout=60.0)
         if not channels_message:
             await ctx.send('Terminating process due to timeout.')
@@ -291,12 +325,12 @@ class Newbies(BaseCog):
                                response_message=response_message.content.strip())
 
         if timeout_int > 0:
-            db_guild.timeout = datetime.timedelta(hours=timeout_int)
+            db_guild.timeout = timedelta(hours=timeout_int)
 
         ctx.session.add(db_guild)
 
         for channel_string in channels_message.content.split():
-            match = self.channel_re.match(channel_string)
+            match = channel_re.match(channel_string)
             if match:
                 channel_id = int(match.group('id'))
                 channel = discord.utils.get(ctx.guild.text_channels, id=channel_id)
@@ -316,7 +350,8 @@ class Newbies(BaseCog):
     @newbie.command()
     async def disable(self, ctx: commands.Context):
         """
-        Disable automatic newbie roling for this server. New members will instantly have write access, unless verification prevents that.
+        Disable automatic newbie roling for this server.
+        New members will instantly have write access, unless verification prevents that.
         """
 
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
@@ -360,17 +395,19 @@ class Newbies(BaseCog):
         Put a non-positive value (zero or less) or nothing to remove it.
 
         Parameters:
-            - [optional] delay: A decimal number describing the delay before a kick in hours. Defaults to zero, which means no timeout at all.
+            - [optional] delay: A decimal number describing the delay before a kick in hours.
+            Defaults to zero, which means no timeout at all.
         """
 
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
 
         if delay > 0:
-            db_guild.timeout = datetime.timedelta(hours=delay)
+            db_guild.timeout = timedelta(hours=delay)
         else:
             db_guild.timeout = None
 
-        logger.info('Changed timeout for {} to {} hours.'.format(*format_named_entities(ctx.guild), delay))
+        logger.info('Changed timeout for {} to {} hours.'
+                    .format(*format_named_entities(ctx.guild), delay))
         await ctx.send('Successfully set timeout to {} hours.'.format(delay))
 
     @newbie.command('welcome-message')
@@ -381,7 +418,10 @@ class Newbies(BaseCog):
         """
 
         await ctx.send('Please enter the message you would like to display to new users.')
-        welcome_message = await self.bot.wait_for('message', check=lambda msg: msg.author.id == ctx.author.id and msg.channel.id == ctx.channel.id, timeout=60.0)
+        welcome_message = await self.bot.wait_for(
+            'message',
+            check=lambda msg: msg.author.id == ctx.author.id and msg.channel.id == ctx.channel.id,
+            timeout=60.0)
         if not welcome_message:
             await ctx.send('Terminating process due to timeout.')
             return
@@ -389,22 +429,30 @@ class Newbies(BaseCog):
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         db_guild.welcome_message = welcome_message.content
 
-        logger.info('Changed welcome message for guild {}.'.format(*format_named_entities(ctx.guild)))
+        logger.info('Changed welcome message for guild {}.'
+                    .format(*format_named_entities(ctx.guild)))
         await ctx.send('Successfully set welcome message.')
 
     @newbie.command('response-message')
     @newbie_enabled
     async def _response_message(self, ctx: commands.Context, *, msg: str = None):
         """
-        Set the response message for the server, i.e. the message users have to enter to be granted access to the server.
+        Set the response message for the server,
+        i.e. the message users have to enter to be granted access to the server.
 
         Parameters:
-            - [optional] msg: The response message users will have to enter. Defaults to empty, in which case this command will explicitly prompt the caller to enter a message.
+            - [optional] msg: The response message users will have to enter.
+            Defaults to empty,
+            n which case this command will explicitly prompt the caller to enter a message.
         """
 
         if not msg:
-            await ctx.send('Please enter the response message users have to enter upon joining the server.')
-            response_message = await self.bot.wait_for('message', check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id, timeout=60.0)
+            await ctx.send(
+                'Please enter the response message users have to enter upon joining the server.')
+            response_message = await self.bot.wait_for(
+                'message',
+                check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
+                timeout=60.0)
             if not response_message:
                 await ctx.send('Terminating process due to timeout.')
                 return
@@ -416,7 +464,8 @@ class Newbies(BaseCog):
 
         # TODO: Edit already sent messages
 
-        logger.info('Changed response message for guild {}.'.format(*format_named_entities(ctx.guild)))
+        logger.info('Changed response message for guild {}.'
+                    .format(*format_named_entities(ctx.guild)))
         await ctx.send('Successfully set response message.')
 
     @newbie.group()
@@ -426,8 +475,10 @@ class Newbies(BaseCog):
         """
 
         if ctx.invoked_subcommand is None:
-            await ctx.send('Invalid subcommand passed, please refer to `{}help {}` for further information.\nValid options include `add`, `remove` and `list`.'
-                               .format(clean_prefix(ctx), ctx.command.qualified_name))
+            await ctx.send(
+                'Invalid subcommand passed, please refer to `{}help {}` for further information.\n'
+                'Valid options include `add`, `remove` and `list`.'
+                .format(clean_prefix(ctx), ctx.command.qualified_name))
             return
 
     @channels.command()
@@ -437,7 +488,9 @@ class Newbies(BaseCog):
         Add a channel to the list of channels unconfirmed users can access.
 
         Parameters:
-            - [optional] channel: The channel to add to the list, identified by mention, ID, or name. Defaults to current channel.
+            - [optional] channel: The channel to add to the list,
+            identified by mention, ID, or name.
+            Defaults to the current channel.
         """
 
         if not channel:
@@ -459,7 +512,8 @@ class Newbies(BaseCog):
         db_channel = NewbieChannel(channel_id=channel.id, guild_id=ctx.guild.id)
         ctx.session.add(db_channel)
 
-        logger.info('Added channel {} to visble channels for {}.'.format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Added channel {} to visble channels for {}.'
+                    .format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('{} is now visible to unconfirmed users.'.format(channel.mention))
 
     @channels.command()
@@ -469,7 +523,8 @@ class Newbies(BaseCog):
         Remove a channel from the list of channels unconfirmed users can access.
 
         Parameters:
-            - [optional] channel: The channel to remove from the list, identified by mention, ID, or name. Defaults to current channel.
+            - [optional] channel: The channel to remove from the list,
+            identified by mention, ID, or name. Defaults to the current channel.
         """
 
         if not channel:
@@ -491,7 +546,8 @@ class Newbies(BaseCog):
 
         ctx.session.delete(db_channel)
 
-        logger.info('Removed channel {} from visble channels for {}.'.format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Removed channel {} from visble channels for {}.'
+                    .format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('{} is now invisible to unconfirmed users.'.format(channel.mention))
 
     @channels.command()
@@ -502,7 +558,9 @@ class Newbies(BaseCog):
         """
 
         answer = 'The following channels are visible to unconfirmed users of this server.```'
-        for db_channel in ctx.session.query(NewbieChannel).filter(NewbieChannel.guild_id == ctx.guild.id):
+        q = ctx.session.query(NewbieChannel)\
+            .filter(NewbieChannel.guild_id == ctx.guild.id)
+        for db_channel in q:
             channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
             if channel:
                 answer += '#'

@@ -25,7 +25,8 @@ class Moderation(BaseCog):
         Kick a member from the current server.
 
         Parameters:
-            - user: The member to kick, identified by mention, ID, or name. Must be a member of the server.
+            - user: The member to kick, identified by mention, ID, or name.
+            Must be a member of the server.
             - [optional] reason: The reason for kicking the user. Defaults to empty.
 
         Required context: Server
@@ -36,7 +37,7 @@ class Moderation(BaseCog):
         Required bot permissions:
             - Kick Members
         """
-        
+
         await user.kick(reason=reason)
         await ctx.send('User **{}** was kicked by {}.'.format(user.name, ctx.author.mention))
 
@@ -44,13 +45,19 @@ class Moderation(BaseCog):
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def ban(self, ctx: commands.Context, user: discord.Member, prune_days: int = 1, *, reason: str = None):
+    async def ban(self,
+                  ctx: commands.Context,
+                  user: discord.Member,
+                  prune_days: int = 1,
+                  *,
+                  reason: str = None):
         """
         Ban a user from the current server
 
         Parameters:
             - user: The member to ban, identified by mention, ID, or name.
-            - [optional] prune_days: The amount of days for which the user's message should be pruned. Defaults to one day.
+            - [optional] prune_days: The number of days
+            for which the user's message should be pruned. Defaults to one day.
             - [optional] reason: The reason for banning the user. Defaults to empty.
 
         Required context: Server

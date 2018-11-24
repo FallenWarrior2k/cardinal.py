@@ -17,7 +17,8 @@ def format_message(msg):
     if msg.guild is None:
         return '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
     else:
-        return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
+               '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
 
 
 def _format_named_entity(obj):
