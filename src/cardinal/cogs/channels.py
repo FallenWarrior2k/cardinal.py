@@ -3,15 +3,15 @@ import logging
 import discord
 from discord.ext import commands
 
-from ..cogs import Cog
-from ..db.channels import Channel
+from ..db import OptinChannel
 from ..utils import clean_prefix, format_named_entities
 from ..checks import channel_whitelisted
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
 
-class Channels(Cog):
+class Channels(BaseCog):
     @commands.group('channel')
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
@@ -30,7 +30,7 @@ class Channels(Cog):
 
         if ctx.invoked_subcommand is None:
             await ctx.send('Invalid command passed. Possible choices are "show", "hide", and "opt-in"(mod only).\nPlease refer to `{}help {}` for further information.'
-                               .format(clean_prefix(ctx), ctx.command.qualified_name))
+                           .format(clean_prefix(ctx), ctx.command.qualified_name))
             return
 
     @channels.command(aliases=['show'])
@@ -42,7 +42,7 @@ class Channels(Cog):
             - channel: The channel to join, identified by mention, ID, or name. Please note that due to Discord's client limitations, the first way does not work on mobile.
         """
 
-        db_channel = ctx.session.query(Channel).get(channel.id)
+        db_channel = ctx.session.query(OptinChannel).get(channel.id)
 
         if not db_channel:
             await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
@@ -53,7 +53,7 @@ class Channels(Cog):
         await ctx.author.add_roles(role, reason='User joined opt-in channel.')
 
         await ctx.send('User {user} joined channel {channel}.'
-                           .format(user=ctx.author.mention, channel=channel.mention))
+                       .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command(aliases=['hide'])
     async def leave(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
@@ -67,7 +67,7 @@ class Channels(Cog):
         if not channel:
             channel = ctx.channel
 
-        db_channel = ctx.session.query(Channel).get(channel.id)
+        db_channel = ctx.session.query(OptinChannel).get(channel.id)
 
         if not db_channel:
             await ctx.send('Channel {} is not specified as an opt-in channel.'.format(channel.mention))
@@ -83,7 +83,7 @@ class Channels(Cog):
         await ctx.author.remove_roles(role, reason='User left opt-in channel.')
 
         await ctx.send('User {user} left channel {channel}.'
-                           .format(user=ctx.author.mention, channel=channel.mention))
+                       .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command('list')
     async def _list(self, ctx: commands.Context):
@@ -91,7 +91,10 @@ class Channels(Cog):
         List all channels that can be joined through the bot.
         """
 
-        channel_iter = filter(None, (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id) for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id)))
+        channel_iter = filter(None,
+                              (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+                               for db_channel in ctx.session.query(OptinChannel)
+                                                            .filter_by(guild_id=ctx.guild.id)))
         channel_list = sorted(channel_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Channels that can be joined through this bot:```\n'
@@ -111,7 +114,10 @@ class Channels(Cog):
         Display the member count for each opt-in channel on the current server.
         """
 
-        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_channel.role_id) for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id)))
+        role_iter = filter(None,
+                           (discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+                            for db_channel in ctx.session.query(OptinChannel)
+                                                         .filter_by(guild_id=ctx.guild.id)))
         role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
                          for role in role_iter)
 
@@ -150,7 +156,7 @@ class Channels(Cog):
         if not channel:
             channel = ctx.channel
 
-        if ctx.session.query(Channel).get(channel.id):
+        if ctx.session.query(OptinChannel).get(channel.id):
             await ctx.send('Channel {} is already opt-in.'.format(channel.mention))
             return
 
@@ -161,7 +167,7 @@ class Channels(Cog):
         await channel.set_permissions(everyone_role, read_messages=False)
         await channel.set_permissions(role, read_message=True)
 
-        db_channel = Channel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
+        db_channel = OptinChannel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
 
         logger.info('Opt-in enabled for channel {} on guild {}.'.format(*format_named_entities(channel, ctx.guild)))
@@ -178,7 +184,7 @@ class Channels(Cog):
         if not channel:
             channel = ctx.channel
 
-        db_channel = ctx.session.query(Channel).get(channel.id)
+        db_channel = ctx.session.query(OptinChannel).get(channel.id)
 
         if not db_channel:
             await ctx.send('Channel {} is not opt-in'.format(channel.mention))

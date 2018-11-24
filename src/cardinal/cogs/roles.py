@@ -3,15 +3,15 @@ import logging
 import discord
 from discord.ext import commands
 
-from ..cogs import Cog
-from ..db.roles import Role
+from ..db import JoinRole
 from ..utils import clean_prefix, format_named_entities
 from ..checks import channel_whitelisted
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
 
-class Roles(Cog):
+class Roles(BaseCog):
     @commands.group('role')
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
@@ -43,7 +43,7 @@ class Roles(Cog):
             - role: The role to join, identified by mention, ID, or name. Must be marked as joinable.
         """
 
-        if not ctx.session.query(Role).get(role.id):
+        if not ctx.session.query(JoinRole).get(role.id):
             await ctx.send('Role "{}" is not marked as a joinable role.'.format(role.name))
             return
 
@@ -60,7 +60,7 @@ class Roles(Cog):
             - role: The role to leave, identified by mention, ID, or name. Must be marked as joinable.
         """
 
-        if not ctx.session.query(Role).get(role.id):
+        if not ctx.session.query(JoinRole).get(role.id):
             await ctx.send('Role "{}" cannot be left through this bot.'.format(role.name))
             return
 
@@ -74,7 +74,10 @@ class Roles(Cog):
         List the roles that can be joined through the bot, i.e. that have been marked as joinable for the current server.
         """
 
-        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in ctx.session.query(Role).filter_by(guild_id=ctx.guild.id)))
+        role_iter = filter(None,
+                           (discord.utils.get(ctx.guild.roles, id=db_role.role_id)
+                            for db_role in ctx.session.query(JoinRole)
+                                                      .filter_by(guild_id=ctx.guild.id)))
         role_list = sorted(role_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Roles that can be joined through this bot:```\n'
@@ -93,7 +96,10 @@ class Roles(Cog):
         Display the member count for each role marked as joinable on the current server.
         """
 
-        role_iter = filter(None, (discord.utils.get(ctx.guild.roles, id=db_role.role_id) for db_role in ctx.session.query(Role).filter_by(guild_id=ctx.guild.id)))
+        role_iter = filter(None,
+                           (discord.utils.get(ctx.guild.roles, id=db_role.role_id)
+                            for db_role in ctx.session.query(JoinRole)
+                                                      .filter_by(guild_id=ctx.guild.id)))
         role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
                          for role in role_iter)
 
@@ -116,11 +122,11 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        if ctx.session.query(Role).get(role.id):
+        if ctx.session.query(JoinRole).get(role.id):
             await ctx.send('Role "{}" is already marked as a joinable role.'.format(role.name))
             return
 
-        ctx.session.add(Role(role_id=role.id, guild_id=role.guild.id))
+        ctx.session.add(JoinRole(role_id=role.id, guild_id=role.guild.id))
 
         await ctx.send('Marked role "{}" as joinable.'.format(role.name))
 
@@ -137,7 +143,7 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        db_role = ctx.session.query(Role).get(role.id)
+        db_role = ctx.session.query(JoinRole).get(role.id)
 
         if not db_role:
             await ctx.send('Role "{}" is not marked as a joinable role'.format(role.name))
@@ -163,7 +169,7 @@ class Roles(Cog):
 
         role = await ctx.guild.create_role(name=rolename)
 
-        ctx.session.add(Role(role_id=role.id, guild_id=role.guild.id))
+        ctx.session.add(JoinRole(role_id=role.id, guild_id=role.guild.id))
 
         logger.info('Created role "{}" ({}) on guild {} and marked it as joinable.'.format(rolename, role.id, *format_named_entities(ctx.guild)))
         await ctx.send('Created role "{}" and marked it as joinable.'.format(rolename))
@@ -181,7 +187,7 @@ class Roles(Cog):
             - Manage Roles
         """
 
-        role_db = ctx.session.query(Role).get(role.id)
+        role_db = ctx.session.query(JoinRole).get(role.id)
         if role_db:
             ctx.session.delete(role_db)
 

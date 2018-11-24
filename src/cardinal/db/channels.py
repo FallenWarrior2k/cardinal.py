@@ -1,9 +1,9 @@
 from sqlalchemy import Column, BigInteger
 
-from .. import db
+from .base import Base
 
 
-class Channel(db.Base):
+class OptinChannel(Base):
     __tablename__ = 'optin_channels'
 
     channel_id = Column(BigInteger, primary_key=True, autoincrement=False)

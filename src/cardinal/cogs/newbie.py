@@ -7,9 +7,9 @@ import re
 import discord
 from discord.ext import commands
 
-from ..cogs import Cog
-from ..db.newbie import User, Guild, Channel
+from ..db.newbie import NewbieUser, NewbieGuild, NewbieChannel
 from ..utils import clean_prefix, format_named_entities
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def newbie_enabled(func):
     async def wrapper(*args, **kwargs):
         ctx = next(i for i in args if isinstance(i, commands.Context))  # No try-catch necessary, context is always passed since rewrite
 
-        if not (ctx.guild and ctx.session.query(Guild).get(ctx.guild.id)):
+        if not (ctx.guild and ctx.session.query(NewbieGuild).get(ctx.guild.id)):
             await ctx.send('Newbie roling is not enabled on this server. Please enable it before using these commands.')
             return
 
@@ -39,7 +39,7 @@ def newbie_enabled(func):
         return wrapper
 
 
-class Newbies(Cog):
+class Newbies(BaseCog):
     channel_re = re.compile(
         r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')  # Matches either a channel mention of the form "<#id>" or a raw ID. The actual ID can be extracted from the 'id' group of the match object
 
@@ -53,7 +53,7 @@ class Newbies(Cog):
             with self.bot.session_scope() as session:
                 # Get users who have passed the timeout
                 # !IMPORTANT! Filter inequation must not be changed or it will break SQLite support (and possibly other DBMSs as well)
-                for db_user in session.query(User).join(User.guild).filter(datetime.datetime.utcnow() > Guild.timeout + User.joined_at):
+                for db_user in session.query(NewbieUser).join(NewbieUser.guild).filter(datetime.datetime.utcnow() > NewbieGuild.timeout + NewbieUser.joined_at):
 
                     guild = self.bot.get_guild(db_user.guild_id)
                     if not guild:
@@ -79,8 +79,8 @@ class Newbies(Cog):
             await asyncio.sleep(60)
 
     @staticmethod
-    async def add_member(session, db_guild: Guild, member: discord.Member):
-        if session.query(User).get((member.id, db_guild.guild_id)):
+    async def add_member(session, db_guild: NewbieGuild, member: discord.Member):
+        if session.query(NewbieUser).get((member.id, db_guild.guild_id)):
             return  # Exit if user already in DB
 
         message_content = db_guild.welcome_message
@@ -99,7 +99,7 @@ class Newbies(Cog):
             return
         else:
             # Use utcnow() instead of member.joined_at to treat members who got the message too late fairly
-            db_user = User(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
+            db_user = NewbieUser(guild_id=member.guild.id, user_id=member.id, message_id=message.id, joined_at=datetime.datetime.utcnow())
             session.add(db_user)
             session.commit()
             logger.info('Added new user {} to database for guild {}.'.format(*format_named_entities(member, member.guild)))
@@ -111,7 +111,7 @@ class Newbies(Cog):
 
     async def on_ready(self):
         with self.bot.session_scope() as session:
-            for db_guild in session.query(Guild):
+            for db_guild in session.query(NewbieGuild):
                 guild = self.bot.get_guild(db_guild.guild_id)
                 if not guild:
                     continue
@@ -126,7 +126,7 @@ class Newbies(Cog):
 
     async def on_member_join(self, member: discord.Member):
         with self.bot.session_scope() as session:
-            db_guild = session.query(Guild).get(member.guild.id)
+            db_guild = session.query(NewbieGuild).get(member.guild.id)
 
             if db_guild is None:
                 return
@@ -136,11 +136,11 @@ class Newbies(Cog):
     async def on_member_remove(self, member: discord.Member):
         with self.bot.session_scope() as session:
             # Using query instead of object deletion to prevent redundant SELECT query
-            session.query(User).filter(User.user_id == member.id, User.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+            session.query(NewbieUser).filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id).delete(synchronize_session=False)  # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         with self.bot.session_scope() as session:
-            db_user = session.query(User).get((before.id, before.guild.id))
+            db_user = session.query(NewbieUser).get((before.id, before.guild.id))
 
             if not db_user:
                 return
@@ -161,7 +161,7 @@ class Newbies(Cog):
             return
 
         with self.bot.session_scope() as session:
-            for db_user in session.query(User).filter(User.user_id == msg.author.id):
+            for db_user in session.query(NewbieUser).filter(NewbieUser.user_id == msg.author.id):
                 db_guild = db_user.guild
 
                 guild = self.bot.get_guild(db_user.guild_id)
@@ -236,7 +236,7 @@ class Newbies(Cog):
         This will add a role to new members, restricting their permissions to send messages, and additionally restricts their read access to certain channels.
         """
 
-        if ctx.session.query(Guild).get(ctx.guild.id):
+        if ctx.session.query(NewbieGuild).get(ctx.guild.id):
             await ctx.send('Automated newbie roling is already enabled for this server.')
             return
 
@@ -286,9 +286,9 @@ class Newbies(Cog):
 
         await everyone_role.edit(permissions=everyone_permissions)
 
-        db_guild = Guild(guild_id=ctx.guild.id, role_id=member_role.id,
-                         welcome_message=welcome_message.content.strip(),
-                         response_message=response_message.content.strip())
+        db_guild = NewbieGuild(guild_id=ctx.guild.id, role_id=member_role.id,
+                               welcome_message=welcome_message.content.strip(),
+                               response_message=response_message.content.strip())
 
         if timeout_int > 0:
             db_guild.timeout = datetime.timedelta(hours=timeout_int)
@@ -307,7 +307,7 @@ class Newbies(Cog):
                 everyone_overwrite = channel.overwrites_for(everyone_role)
                 everyone_overwrite.update(read_messages=True, read_message_history=True)
                 await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
-                db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
+                db_channel = NewbieChannel(channel_id=channel.id, guild_id=ctx.guild.id)
                 ctx.session.add(db_channel)
 
         logger.info('Enabled newbie roling on guild {}.'.format(*format_named_entities(ctx.guild)))
@@ -319,7 +319,7 @@ class Newbies(Cog):
         Disable automatic newbie roling for this server. New members will instantly have write access, unless verification prevents that.
         """
 
-        db_guild = ctx.session.query(Guild).get(ctx.guild.id)
+        db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         if not db_guild:
             await ctx.send('Automatic newbie roling is not enabled for this server.')
 
@@ -338,7 +338,7 @@ class Newbies(Cog):
         await everyone_role.edit(permissions=merged_perms)
         await role.delete()
 
-        for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id):
+        for db_channel in ctx.session.query(NewbieChannel).filter_by(guild_id=ctx.guild.id):
             channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
             if not channel:
                 continue
@@ -363,7 +363,7 @@ class Newbies(Cog):
             - [optional] delay: A decimal number describing the delay before a kick in hours. Defaults to zero, which means no timeout at all.
         """
 
-        db_guild = ctx.session.query(Guild).get(ctx.guild.id)
+        db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
 
         if delay > 0:
             db_guild.timeout = datetime.timedelta(hours=delay)
@@ -386,7 +386,7 @@ class Newbies(Cog):
             await ctx.send('Terminating process due to timeout.')
             return
 
-        db_guild = ctx.session.query(Guild).get(ctx.guild.id)
+        db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         db_guild.welcome_message = welcome_message.content
 
         logger.info('Changed welcome message for guild {}.'.format(*format_named_entities(ctx.guild)))
@@ -411,7 +411,7 @@ class Newbies(Cog):
 
             msg = response_message.content
 
-        db_guild = ctx.session.query(Guild).get(ctx.guild.id)
+        db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         db_guild.response_message = msg
 
         # TODO: Edit already sent messages
@@ -447,7 +447,7 @@ class Newbies(Cog):
             await ctx.send('The provided channel is not on this server.')
             return
 
-        if ctx.session.query(Channel).get(channel.id):
+        if ctx.session.query(NewbieChannel).get(channel.id):
             await ctx.send('This channel is already visible to unconfirmed users.')
             return
 
@@ -456,7 +456,7 @@ class Newbies(Cog):
         everyone_overwrite.update(read_messages=True, read_message_history=True)
         await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
 
-        db_channel = Channel(channel_id=channel.id, guild_id=ctx.guild.id)
+        db_channel = NewbieChannel(channel_id=channel.id, guild_id=ctx.guild.id)
         ctx.session.add(db_channel)
 
         logger.info('Added channel {} to visble channels for {}.'.format(*format_named_entities(channel, ctx.guild)))
@@ -479,7 +479,7 @@ class Newbies(Cog):
             await ctx.send('The provided channel is not on this server.')
             return
 
-        db_channel = ctx.session.query(Channel).get(channel.id)
+        db_channel = ctx.session.query(NewbieChannel).get(channel.id)
         if not db_channel:
             await ctx.send('The provided channel is not visible to unconfirmed members.')
             return
@@ -502,7 +502,7 @@ class Newbies(Cog):
         """
 
         answer = 'The following channels are visible to unconfirmed users of this server.```'
-        for db_channel in ctx.session.query(Channel).filter(Channel.guild_id == ctx.guild.id):
+        for db_channel in ctx.session.query(NewbieChannel).filter(NewbieChannel.guild_id == ctx.guild.id):
             channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
             if channel:
                 answer += '#'

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, BigInteger
 
-from .. import db
+from .base import Base
 
 
-class Role(db.Base):
+class JoinRole(Base):
     __tablename__ = 'join_roles'
 
     role_id = Column(BigInteger, primary_key=True, autoincrement=False)

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, BigInteger
 
-from .. import db
+from .base import Base
 
 
-class WhitelistedChannel(db.Base):
+class WhitelistedChannel(Base):
     __tablename__ = 'whitelisted_channels'
 
     channel_id = Column(BigInteger, primary_key=True, autoincrement=False)

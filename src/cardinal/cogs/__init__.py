@@ -4,12 +4,9 @@ import importlib
 import logging
 import pkgutil
 
+from .basecog import BaseCog
+
 logger = logging.getLogger(__name__)
-
-
-class Cog:
-    def __init__(self, bot):
-        self.bot = bot
 
 
 def all_subclasses(cls):
@@ -28,7 +25,7 @@ def setup(bot):
         except:
             logger.exception('Error while importing "{}.{}".'.format(__name__, mod_name))
 
-    for cog in all_subclasses(Cog):
+    for cog in all_subclasses(BaseCog):
         logger.info('Initializing "{}".'.format(cog.__name__))
         try:
             bot.add_cog(cog(bot))

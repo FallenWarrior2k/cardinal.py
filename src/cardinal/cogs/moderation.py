@@ -3,12 +3,12 @@ import logging
 import discord
 from discord.ext import commands
 
-from ..cogs import Cog
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
 
-class Moderation(Cog):
+class Moderation(BaseCog):
     """
     A collection of general moderation commands to simplify the daily life of a mod.
     """

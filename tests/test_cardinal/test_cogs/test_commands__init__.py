@@ -9,7 +9,7 @@ from cardinal import cogs
 
 def test_cog_ctor():
     bot = mock.Mock()
-    cog = cogs.Cog(bot)
+    cog = cogs.BaseCog(bot)
 
     assert cog.bot is bot
 
@@ -85,6 +85,7 @@ class TestSetup:
         iter_modules = mocker.patch('pkgutil.iter_modules')
         import_module = mocker.patch('importlib.import_module')
         all_subclasses = mocker.patch('cardinal.cogs.all_subclasses')
+
         return {
             'iter_modules': iter_modules,
             'import_module': import_module,
@@ -116,7 +117,7 @@ class TestSetup:
             cogs.setup(bot)
 
         patches['iter_modules'].assert_called_once_with(cogs.__path__)
-        patches['all_subclasses'].assert_called_once_with(cogs.Cog)
+        patches['all_subclasses'].assert_called_once_with(cogs.BaseCog)
         for record in caplog.records:
             assert record.levelname != 'ERROR'
 

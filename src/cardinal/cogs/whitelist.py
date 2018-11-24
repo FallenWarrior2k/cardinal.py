@@ -3,14 +3,14 @@ import logging
 import discord
 from discord.ext import commands
 
-from ..cogs import Cog
-from ..db.whitelist import WhitelistedChannel
+from ..db import WhitelistedChannel
 from ..utils import clean_prefix, format_named_entities
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
 
-class Whitelisting(Cog):
+class Whitelisting(BaseCog):
     @commands.group()
     @commands.guild_only()
     async def whitelist(self, ctx: commands.Context):
