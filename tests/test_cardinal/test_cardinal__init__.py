@@ -91,25 +91,6 @@ class BotOnReadyTestCase(ut.TestCase):
         create_all.assert_called_once_with(bot.engine)
 
 
-@mock.patch.object(commands.Bot, 'invoke', new_callable=CoroMock)
-@mock.patch('discord.ext.commands.Context')
-@mock.patch.object(commands.Bot, 'get_context', new_callable=CoroMock)
-class BotOnMessageTestCase(ut.TestCase):
-    def test_invalid(self, get_context, context, invoke):
-        get_context.coro.return_value = mock.NonCallableMock(valid=False)
-        msg = mock.NonCallableMock()
-        loop.run_until_complete(bot.on_message(msg))
-        get_context.assert_called_once_with(msg, cls=context)
-        invoke.assert_not_called()
-
-    def test_valid(self, get_context, context, invoke):
-        get_context.coro.return_value = mock.NonCallableMock(valid=True)
-        msg = mock.NonCallableMock()
-        loop.run_until_complete(bot.on_message(msg))
-        get_context.assert_called_once_with(msg, cls=context)
-        invoke.assert_called_once_with(get_context.coro.return_value)
-
-
 @mock.patch('cardinal.format_message', return_value='Test message')
 class BotOnCommandTestCase(ut.TestCase):
     def test(self, format_message):
@@ -119,12 +100,6 @@ class BotOnCommandTestCase(ut.TestCase):
 
         self.assertMultiLineEqual(log.output[0], 'INFO:cardinal:Test message')
         format_message.assert_called_once_with(ctx.message)
-
-
-class BotOnCommandCompletionTestCase(ut.TestCase):
-    def test(self):
-        ctx = mock.NonCallableMock()
-        loop.run_until_complete(bot.on_command_completion(ctx))
 
 
 @mock.patch('cardinal.clean_prefix', return_value='Test prefix')

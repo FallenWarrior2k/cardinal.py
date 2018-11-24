@@ -56,16 +56,8 @@ class Bot(commands.Bot):
         create_all(self.engine)
         logger.info('Logged into Discord as {}'.format(self.user))
 
-    async def on_message(self, msg: discord.Message):
-        ctx = await self.get_context(msg, cls=commands.Context)
-        if ctx.valid:
-            await self.invoke(ctx)
-
     async def on_command(self, ctx: commands.Context):
         logger.info(format_message(ctx.message))
-
-    async def on_command_completion(self, ctx: commands.Context):
-        pass  # Placeholder for future usage
 
     async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
         error_msg = ''
