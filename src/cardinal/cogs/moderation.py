@@ -39,7 +39,7 @@ class Moderation(BaseCog):
         """
 
         await user.kick(reason=reason)
-        await ctx.send('User **{}** was kicked by {}.'.format(user.name, ctx.author.mention))
+        await ctx.send('User **{0}** ({0.id}) was kicked by {1}.'.format(user, ctx.author.mention))
 
     @commands.command()
     @commands.guild_only()
@@ -75,4 +75,4 @@ class Moderation(BaseCog):
             prune_days = 7
 
         await user.ban(reason=reason, delete_message_days=prune_days)
-        await ctx.send('User **{}** was banned by {}.'.format(user.name, ctx.author.mention))
+        await ctx.send('User **{0}** ({0.id}) was banned by {1}.'.format(user, ctx.author.mention))
