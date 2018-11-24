@@ -1,6 +1,22 @@
+import sys
 from pathlib import Path
 
 from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
+
+
+class Tox(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded
+        import tox
+        errcode = tox.cmdline(self.test_args)
+        sys.exit(errcode)
+
 
 # Check if Git is present before enabling setuptools_scm
 version_kwargs = {}
@@ -29,5 +45,10 @@ setup(
         'aiodns',
         'SQLAlchemy>=1.1',
         'alembic'
-    ]
+    ],
+    tests_require=['tox'],
+    extras_require={
+        'tests': ['tox']
+    },
+    cmdclass={'test': Tox}
 )
