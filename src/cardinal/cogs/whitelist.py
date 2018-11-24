@@ -22,7 +22,8 @@ class Whitelisting(BaseCog):
 
         if ctx.invoked_subcommand is None:
             await ctx.send(
-                'Invalid command passed. Possible choices are "add" and "remove".\n Please refer to `{}help {}` for further information.'
+                'Invalid command passed. Possible choices are "add" and "remove".\n'
+                'Please refer to `{}help {}` for further information.'
                 .format(clean_prefix(ctx), ctx.invoked_with))
             return
 
@@ -36,7 +37,8 @@ class Whitelisting(BaseCog):
             - Manage Channels
 
         Parameters:
-            - [optional] channel: The channel to whitelist, identified by mention, ID, or name. Defaults to the current channel.
+            - [optional] channel: The channel to whitelist, identified by mention, ID, or name.
+            Defaults to the current channel.
         """
 
         if channel is None:
@@ -49,7 +51,8 @@ class Whitelisting(BaseCog):
         db_channel = WhitelistedChannel(channel_id=channel.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
 
-        logger.info('Added channel {} on guild {} to whitelist.'.format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Added channel {} on guild {} to whitelist.'
+                    .format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('Whitelisted channel {}.'.format(channel.mention))
 
     @whitelist.command()
@@ -62,7 +65,9 @@ class Whitelisting(BaseCog):
             - Manage Channels
 
         Parameters:
-            - [optional] channel: The channel to remove from the whitelist, identified by mention, ID, or name. Defaults to the current channel.
+            - [optional] channel: The channel to remove from the whitelist,
+            identified by mention, ID, or name.
+            Defaults to the current channel.
         """
 
         if not channel:
@@ -75,7 +80,8 @@ class Whitelisting(BaseCog):
 
         ctx.session.delete(db_channel)
 
-        logger.info('Removed channel {} on guild {} from whitelist.'.format(*format_named_entities(channel, ctx.guild)))
+        logger.info('Removed channel {} on guild {} from whitelist.'
+                    .format(*format_named_entities(channel, ctx.guild)))
         await ctx.send('Removed channel {} from whitelist.'.format(channel.mention))
 
     @whitelist.command('list')

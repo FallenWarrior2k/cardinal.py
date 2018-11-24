@@ -5,8 +5,8 @@ import discord
 from discord.ext import commands
 from sqlalchemy.orm import sessionmaker
 
-from .errors import UserBlacklisted
 from .db import create_all
+from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class Bot(commands.Bot):
         try:
             yield session
             session.commit()
-        except:
+        except BaseException:
             session.rollback()
             raise
         finally:
@@ -81,7 +81,9 @@ class Bot(commands.Bot):
                 .format(clean_prefix(ctx), ctx.command.qualified_name)
 
         if isinstance(ex, commands.CommandInvokeError):
-            logger.error('An exception was raised while executing the command for "{}".'.format(ctx.message.content), exc_info=ex.original)
+            logger.error(
+                'An exception was raised while executing the command for "{}".'
+                .format(ctx.message.content), exc_info=ex.original)
             error_msg += 'An error occurred while executing the command.'
 
         if error_msg != '':

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, BigInteger, UnicodeText, DateTime, Interval
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Interval, UnicodeText
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -18,7 +18,10 @@ class NewbieUser(Base):
     __tablename__ = 'newbie_users'
 
     user_id = Column(BigInteger, primary_key=True, autoincrement=False)
-    guild_id = Column(BigInteger, ForeignKey(NewbieGuild.guild_id), primary_key=True, autoincrement=False)
+    guild_id = Column(BigInteger,
+                      ForeignKey(NewbieGuild.guild_id),
+                      primary_key=True,
+                      autoincrement=False)
     message_id = Column(BigInteger, unique=True, nullable=False)
     joined_at = Column(DateTime, nullable=False)
 
@@ -30,5 +33,13 @@ class NewbieChannel(Base):
     guild_id = Column(BigInteger, ForeignKey(NewbieGuild.guild_id), nullable=False)
 
 
-NewbieGuild.users = relationship(NewbieUser, backref='guild', innerjoin=True, cascade='all, delete-orphan', lazy=True)  # TODO: Decide on lazy (True) or eager (False) loading
-NewbieGuild.channels = relationship(NewbieChannel, backref='guild', cascade='all, delete-orphan', lazy=True)
+# TODO: Decide on lazy (True) or eager (False) loading
+NewbieGuild.users = relationship(NewbieUser,
+                                 backref='guild',
+                                 innerjoin=True,
+                                 cascade='all, delete-orphan',
+                                 lazy=True)
+NewbieGuild.channels = relationship(NewbieChannel,
+                                    backref='guild',
+                                    cascade='all, delete-orphan',
+                                    lazy=True)
