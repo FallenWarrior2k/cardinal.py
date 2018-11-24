@@ -3,7 +3,7 @@ import unittest as ut
 import unittest.mock as mock
 from asyncio import get_event_loop
 
-import discord.ext.commands as commands
+from discord.ext import commands
 from sqlalchemy.orm import Session, sessionmaker
 
 from . import CoroMock
@@ -110,7 +110,7 @@ class BotOnMessageTestCase(ut.TestCase):
         invoke.assert_called_once_with(get_context.coro.return_value)
 
 
-@mock.patch('cardinal.utils.format_message', return_value='Test message')
+@mock.patch('cardinal.format_message', return_value='Test message')
 class BotOnCommandTestCase(ut.TestCase):
     def test(self, format_message):
         ctx = mock.NonCallableMock()
@@ -127,7 +127,7 @@ class BotOnCommandCompletionTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_completion(ctx))
 
 
-@mock.patch('cardinal.utils.clean_prefix', return_value='Test prefix')
+@mock.patch('cardinal.clean_prefix', return_value='Test prefix')
 class BotOnCommandErrorTestCase(ut.TestCase):
     def setUp(self):
         ctx = mock.NonCallableMock()

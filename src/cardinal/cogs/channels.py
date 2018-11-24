@@ -1,7 +1,7 @@
 import logging
 
 import discord
-import discord.ext.commands as commands
+from discord.ext import commands
 
 from ..cogs import Cog
 from ..db.channels import Channel

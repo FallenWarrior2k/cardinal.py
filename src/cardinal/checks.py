@@ -1,4 +1,4 @@
-import discord.ext.commands as commands
+from discord.ext import commands
 
 from .db.whitelist import WhitelistedChannel
 from .errors import ChannelNotWhitelisted

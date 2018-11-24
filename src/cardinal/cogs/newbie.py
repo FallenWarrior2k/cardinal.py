@@ -5,7 +5,7 @@ import logging
 import re
 
 import discord
-import discord.ext.commands as commands
+from discord.ext import commands
 
 from ..cogs import Cog
 from ..db.newbie import User, Guild, Channel
@@ -340,10 +340,12 @@ class Newbies(Cog):
 
         for db_channel in ctx.session.query(Channel).filter_by(guild_id=ctx.guild.id):
             channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
-            if channel:
-                everyone_overwrite = channel.overwrites_for(everyone_role)
-                everyone_overwrite.update(read_messages=None, read_message_history=None)
-                await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
+            if not channel:
+                continue
+
+            everyone_overwrite = channel.overwrites_for(everyone_role)
+            everyone_overwrite.update(read_messages=None, read_message_history=None)
+            await channel.set_permissions(everyone_role, overwrite=everyone_overwrite)
 
         ctx.session.delete(db_guild)
 

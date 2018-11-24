@@ -2,21 +2,22 @@ import contextlib
 import logging
 
 import discord
-import discord.ext.commands as _commands
+from discord.ext import commands
 from sqlalchemy.orm import sessionmaker
 
-from . import errors, utils
+from .errors import UserBlacklisted
 from .db import create_all
+from .utils import clean_prefix, format_message
 
 logger = logging.getLogger(__name__)
 
 
 # TODO: Implement server-specific prefixes
-class Bot(_commands.Bot):
-    async def before_invoke_hook(self, ctx: _commands.Context):
+class Bot(commands.Bot):
+    async def before_invoke_hook(self, ctx: commands.Context):
         ctx.session = self.sessionmaker()
 
-    async def after_invoke_hook(self, ctx: _commands.Context):
+    async def after_invoke_hook(self, ctx: commands.Context):
         if ctx.command_failed:
             ctx.session.rollback()
         else:
@@ -56,38 +57,38 @@ class Bot(_commands.Bot):
         logger.info('Logged into Discord as {}'.format(self.user))
 
     async def on_message(self, msg: discord.Message):
-        ctx = await self.get_context(msg, cls=_commands.Context)
+        ctx = await self.get_context(msg, cls=commands.Context)
         if ctx.valid:
             await self.invoke(ctx)
 
-    async def on_command(self, ctx: _commands.Context):
-        logger.info(utils.format_message(ctx.message))
+    async def on_command(self, ctx: commands.Context):
+        logger.info(format_message(ctx.message))
 
-    async def on_command_completion(self, ctx: _commands.Context):
+    async def on_command_completion(self, ctx: commands.Context):
         pass  # Placeholder for future usage
 
-    async def on_command_error(self, ctx: _commands.Context, ex: _commands.CommandError):
+    async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
         error_msg = ''
 
-        if isinstance(ex, _commands.NoPrivateMessage):
+        if isinstance(ex, commands.NoPrivateMessage):
             error_msg = 'Command cannot be used in private message channels.'
-        elif isinstance(ex, _commands.CheckFailure) and not isinstance(ex, errors.UserBlacklisted):
+        elif isinstance(ex, commands.CheckFailure) and not isinstance(ex, UserBlacklisted):
             error_msg = 'This command cannot be used in this context.\n'
             error_msg += str(ex)
-        elif isinstance(ex, _commands.MissingRequiredArgument):
+        elif isinstance(ex, commands.MissingRequiredArgument):
             error_msg = 'Too few arguments. Did you forget anything?'
-        elif isinstance(ex, _commands.TooManyArguments):
+        elif isinstance(ex, commands.TooManyArguments):
             error_msg = 'Too many arguments. Did you miss any quotes?'
-        elif isinstance(ex, _commands.BadArgument):
+        elif isinstance(ex, commands.BadArgument):
             error_msg = 'Argument parsing failed. Did you mistype anything?'
-        elif isinstance(ex, _commands.CommandOnCooldown):
+        elif isinstance(ex, commands.CommandOnCooldown):
             error_msg = str(ex)
 
-        if isinstance(ex, _commands.UserInputError):
+        if isinstance(ex, commands.UserInputError):
             error_msg += '\nSee `{}help {}` for information on the command.' \
-                .format(utils.clean_prefix(ctx), ctx.command.qualified_name)
+                .format(clean_prefix(ctx), ctx.command.qualified_name)
 
-        if isinstance(ex, _commands.CommandInvokeError):
+        if isinstance(ex, commands.CommandInvokeError):
             logger.error('An exception was raised while executing the command for "{}".'.format(ctx.message.content), exc_info=ex.original)
             error_msg += 'An error occurred while executing the command.'
 

@@ -1,8 +1,8 @@
 import logging
 import unittest.mock as mock
 
-import discord.ext.commands as _commands
 import pytest
+from discord.ext import commands
 
 from cardinal import cogs
 
@@ -110,7 +110,7 @@ class TestSetup:
         return request.param
 
     def test_no_exception(self, patches, caplog, modules, subclasses):
-        bot = mock.Mock(spec=_commands.Bot)
+        bot = mock.Mock(spec=commands.Bot)
 
         with caplog.at_level(logging.INFO, logger=cogs.__name__):
             cogs.setup(bot)
@@ -138,7 +138,7 @@ class TestSetup:
             bot.add_cog.assert_any_call(cls.return_value)
 
     def test_import_exception(self, patches, caplog, modules):
-        bot = mock.Mock(spec=_commands.Bot)
+        bot = mock.Mock(spec=commands.Bot)
         patches['import_module'].side_effect = (Exception(), None)
 
         cogs.setup(bot)
@@ -155,7 +155,7 @@ class TestSetup:
 
     @pytest.mark.usefixtures('patches')
     def test_init_exception(self, caplog, subclasses):
-        bot = mock.Mock(spec=_commands.Bot)
+        bot = mock.Mock(spec=commands.Bot)
 
         if subclasses:
             subclasses[0].side_effect = Exception()

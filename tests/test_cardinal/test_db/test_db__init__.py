@@ -2,7 +2,7 @@ import logging
 import unittest as ut
 import unittest.mock as mock
 
-import cardinal.db as db
+from cardinal import db
 
 
 @mock.patch.object(db.Base.metadata, 'create_all')
