@@ -21,9 +21,13 @@ setup(
     platforms='any',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
+    package_data={
+        'cardinal': ['db/migrations/*', 'db/migrations/**/*']
+    },
     install_requires=[
         'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
         'aiodns',
-        'SQLAlchemy>=1.1'
+        'SQLAlchemy>=1.1',
+        'alembic'
     ]
 )
