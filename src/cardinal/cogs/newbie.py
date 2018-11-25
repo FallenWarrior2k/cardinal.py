@@ -1,14 +1,14 @@
 import asyncio
-import functools
 import logging
 import re
 from datetime import datetime, timedelta
+from functools import partial, wraps
 
 import discord
 from discord.ext import commands
 
 from ..db import NewbieChannel, NewbieGuild, NewbieUser
-from ..utils import clean_prefix
+from ..utils import clean_prefix, prompt
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ def newbie_enabled(func):
     else:
         cmd = func
 
-    @functools.wraps(cmd)
+    @wraps(cmd)
     async def wrapper(*args, **kwargs):
         # No try-catch necessary, context is always passed since rewrite
         ctx = next(i for i in args if isinstance(i, commands.Context))
@@ -276,39 +276,34 @@ class Newbies(BaseCog):
         everyone_permissions.read_message_history = False
         member_permissions = discord.Permissions(0x400 | 0x800 | 0x10000)
 
-        def pred(msg):
-            return msg.author.id == ctx.author.id and msg.channel.id == ctx.channel.id
+        bound_prompt = partial(prompt, ctx=ctx)
 
-        await ctx.send('Please enter the channels that are to remain visible to newbies, '
-                       'separated by spaces.\n_Takes channel mentions, names, and IDs._')
-        channels_message = await self.bot.wait_for('message', check=pred, timeout=60.0)
+        channels_message = await bound_prompt(
+            'Please enter the channels that are to remain visible to newbies, '
+            'separated by spaces.\n_Takes channel mentions, names, and IDs._')
         if not channels_message:
-            await ctx.send('Terminating process due to timeout.')
             return
 
-        await ctx.send('Enter the welcome message that should be displayed to new users.')
-        welcome_message = await self.bot.wait_for('message', check=pred, timeout=60.0)
+        welcome_message = await bound_prompt(
+            'Enter the welcome message that should be displayed to new users.')
         if not welcome_message:
-            await ctx.send('Terminating process due to timeout.')
             return
 
-        await ctx.send('Enter the message the user has to respond with.')
-        response_message = await self.bot.wait_for('message', check=pred, timeout=60.0)
+        response_message = await bound_prompt('Enter the message the user has to respond with.')
         if not response_message:
-            await ctx.send('Terminating process due to timeout.')
             return
 
-        await ctx.send('Enter a timeout for new users in hours. Enter 0 to disable timeouts.')
-        timeout_message = await self.bot.wait_for('message', check=pred, timeout=60.0)
+        timeout_message = await bound_prompt(
+            'Enter a timeout for new users in hours. Enter 0 to disable timeouts.'
+        )
         if not timeout_message:
-            await ctx.send('Terminating process due to timeout.')
             return
 
         try:
             timeout_int = int(timeout_message.content.strip())
         except ValueError:
             timeout_int = 0
-            await ctx.send('The entered value is invalid')
+            await ctx.send('The entered value is invalid. Disabling timeouts.')
 
         member_role = await ctx.guild.create_role(name='Member', permissions=member_permissions)
         for member in ctx.guild.members:
@@ -412,13 +407,11 @@ class Newbies(BaseCog):
         Set the welcome message for the server.
         """
 
-        await ctx.send('Please enter the message you would like to display to new users.')
-        welcome_message = await self.bot.wait_for(
-            'message',
-            check=lambda msg: msg.author.id == ctx.author.id and msg.channel.id == ctx.channel.id,
-            timeout=60.0)
+        welcome_message = await prompt(
+            'Please enter the message you would like to display to new users.',
+            ctx
+        )
         if not welcome_message:
-            await ctx.send('Terminating process due to timeout.')
             return
 
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
@@ -441,14 +434,11 @@ class Newbies(BaseCog):
         """
 
         if not msg:
-            await ctx.send(
-                'Please enter the response message users have to enter upon joining the server.')
-            response_message = await self.bot.wait_for(
-                'message',
-                check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
-                timeout=60.0)
+            response_message = await prompt(
+                'Please enter the response message users have to enter upon joining the server.',
+                ctx
+            )
             if not response_message:
-                await ctx.send('Terminating process due to timeout.')
                 return
 
             msg = response_message.content

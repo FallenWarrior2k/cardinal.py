@@ -19,3 +19,15 @@ def format_message(msg):
     else:
         return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
                '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
+
+
+async def prompt(msg, ctx, timeout=60.0):
+    def pred(m):
+        return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
+
+    await ctx.send(msg)
+    response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
+    if not response:
+        await ctx.send('Terminating process due to timeout.')
+
+    return response
