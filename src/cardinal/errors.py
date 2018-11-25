@@ -11,3 +11,7 @@ class ChannelNotWhitelisted(commands.CheckFailure):
 class UserBlacklisted(commands.CheckFailure):
     def __init__(self, ctx: commands.Context):
         self.user = ctx.author
+
+
+class PromptTimeout(Exception):
+    pass

@@ -5,6 +5,7 @@ from asyncio import new_event_loop
 import pytest
 
 import cardinal.utils as utils
+from cardinal.errors import PromptTimeout
 
 from . import CoroMock
 
@@ -172,8 +173,7 @@ class TestPrompt:
     def test_timeout_triggered(self, ctx, loop, msg):
         ctx.bot.wait_for.coro.return_value = None
 
-        loop.run_until_complete(utils.prompt(msg, ctx))
+        with pytest.raises(PromptTimeout):
+            loop.run_until_complete(utils.prompt(msg, ctx))
 
-        assert ctx.send.call_count == 2
-        assert ctx.send.call_args_list[0] == ((msg,), {})
-        assert ctx.send.call_args_list[1] == (('Terminating process due to timeout.',), {})
+        ctx.send.assert_called_once_with(msg)

@@ -1,3 +1,6 @@
+from .errors import PromptTimeout
+
+
 def clean_prefix(ctx):
     user = ctx.me
     replacement = user.nick if ctx.guild and ctx.me.nick else user.name
@@ -28,6 +31,6 @@ async def prompt(msg, ctx, timeout=60.0):
     await ctx.send(msg)
     response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
     if not response:
-        await ctx.send('Terminating process due to timeout.')
+        raise PromptTimeout()
 
     return response

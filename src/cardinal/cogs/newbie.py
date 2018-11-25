@@ -8,6 +8,7 @@ import discord
 from discord.ext import commands
 
 from ..db import NewbieChannel, NewbieGuild, NewbieUser
+from ..errors import PromptTimeout
 from ..utils import clean_prefix, prompt
 from .basecog import BaseCog
 
@@ -278,25 +279,21 @@ class Newbies(BaseCog):
 
         bound_prompt = partial(prompt, ctx=ctx)
 
-        channels_message = await bound_prompt(
-            'Please enter the channels that are to remain visible to newbies, '
-            'separated by spaces.\n_Takes channel mentions, names, and IDs._')
-        if not channels_message:
-            return
+        try:
+            channels_message = await bound_prompt(
+                'Please enter the channels that are to remain visible to newbies, '
+                'separated by spaces.\n_Takes channel mentions, names, and IDs._')
 
-        welcome_message = await bound_prompt(
-            'Enter the welcome message that should be displayed to new users.')
-        if not welcome_message:
-            return
+            welcome_message = await bound_prompt(
+                'Enter the welcome message that should be displayed to new users.')
 
-        response_message = await bound_prompt('Enter the message the user has to respond with.')
-        if not response_message:
-            return
+            response_message = await bound_prompt('Enter the message the user has to respond with.')
 
-        timeout_message = await bound_prompt(
-            'Enter a timeout for new users in hours. Enter 0 to disable timeouts.'
-        )
-        if not timeout_message:
+            timeout_message = await bound_prompt(
+                'Enter a timeout for new users in hours. Enter 0 to disable timeouts.'
+            )
+        except PromptTimeout:
+            await ctx.send('Terminating process due to timeout.')
             return
 
         try:
@@ -407,11 +404,13 @@ class Newbies(BaseCog):
         Set the welcome message for the server.
         """
 
-        welcome_message = await prompt(
-            'Please enter the message you would like to display to new users.',
-            ctx
-        )
-        if not welcome_message:
+        try:
+            welcome_message = await prompt(
+                'Please enter the message you would like to display to new users.',
+                ctx
+            )
+        except PromptTimeout:
+            await ctx.send('Terminating process due to timeout.')
             return
 
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
@@ -434,11 +433,14 @@ class Newbies(BaseCog):
         """
 
         if not msg:
-            response_message = await prompt(
-                'Please enter the response message users have to enter upon joining the server.',
-                ctx
-            )
-            if not response_message:
+            try:
+                response_message = await prompt(
+                    'Please enter the response message users have to enter '
+                    'upon joining the server.',
+                    ctx
+                )
+            except PromptTimeout:
+                await ctx.send('Terminating process due to timeout.')
                 return
 
             msg = response_message.content
