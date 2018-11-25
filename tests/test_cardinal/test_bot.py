@@ -7,7 +7,8 @@ from discord.ext import commands
 from sqlalchemy.orm import Session, sessionmaker
 
 from . import CoroMock
-from cardinal import Bot, errors
+from cardinal.bot import Bot
+from cardinal.errors import UserBlacklisted
 
 default_game = 'Test game'
 engine = mock.NonCallableMock()
@@ -81,28 +82,24 @@ class BotSessionScopeTestCase(ut.TestCase):
         session.close.assert_called_once_with()
 
 
-@mock.patch('cardinal.create_all')
 class BotOnReadyTestCase(ut.TestCase):
-    def test(self, create_all):
-
-        with self.assertLogs('cardinal'):
+    def test(self):
+        with self.assertLogs('cardinal.bot'):
             loop.run_until_complete(bot.on_ready())
 
-        create_all.assert_called_once_with(bot.engine)
 
-
-@mock.patch('cardinal.format_message', return_value='Test message')
+@mock.patch('cardinal.bot.format_message', return_value='Test message')
 class BotOnCommandTestCase(ut.TestCase):
     def test(self, format_message):
         ctx = mock.NonCallableMock()
-        with self.assertLogs('cardinal') as log:
+        with self.assertLogs('cardinal.bot') as log:
             loop.run_until_complete(bot.on_command(ctx))
 
-        self.assertMultiLineEqual(log.output[0], 'INFO:cardinal:Test message')
+        self.assertMultiLineEqual(log.output[0], 'INFO:cardinal.bot:Test message')
         format_message.assert_called_once_with(ctx.message)
 
 
-@mock.patch('cardinal.clean_prefix', return_value='Test prefix')
+@mock.patch('cardinal.bot.clean_prefix', return_value='Test prefix')
 class BotOnCommandErrorTestCase(ut.TestCase):
     def setUp(self):
         ctx = mock.NonCallableMock()
@@ -126,8 +123,9 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_called_once_with(self.ctx)
-        error_msg = 'Too few arguments. Did you forget anything?\nSee `{}help {}` for information on the command.'\
-            .format(clean_prefix.return_value, self.ctx.command.qualified_name)
+        error_msg = 'Too few arguments. Did you forget anything?\n' \
+                    'See `{}help {}` for information on the command.'\
+                    .format(clean_prefix.return_value, self.ctx.command.qualified_name)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
@@ -136,8 +134,9 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_called_once_with(self.ctx)
-        error_msg = 'Argument parsing failed. Did you mistype anything?\nSee `{}help {}` for information on the command.'\
-            .format(clean_prefix.return_value, self.ctx.command.qualified_name)
+        error_msg = 'Argument parsing failed. Did you mistype anything?\n' \
+                    'See `{}help {}` for information on the command.'\
+                    .format(clean_prefix.return_value, self.ctx.command.qualified_name)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
@@ -156,7 +155,8 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'.format(error.__str__.return_value)
+        error_msg = 'This command cannot be used in this context.\n' \
+                    '{}'.format(error.__str__.return_value)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
@@ -178,7 +178,7 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         error = mock.NonCallableMock(spec=commands.CommandInvokeError)
         error.original = mock.NonCallableMagicMock()
 
-        with self.assertLogs('cardinal', logging.ERROR):
+        with self.assertLogs('cardinal.bot', logging.ERROR):
             loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_not_called()
@@ -191,8 +191,9 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_called_once_with(self.ctx)
-        error_msg = 'Too many arguments. Did you miss any quotes?\nSee `{}help {}` for information on the command.'\
-            .format(clean_prefix.return_value, self.ctx.command.qualified_name)
+        error_msg = 'Too many arguments. Did you miss any quotes?\n' \
+                    'See `{}help {}` for information on the command.'\
+                    .format(clean_prefix.return_value, self.ctx.command.qualified_name)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
@@ -220,7 +221,8 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'.format(error.__str__.return_value)
+        error_msg = 'This command cannot be used in this context.\n{}'\
+                    .format(error.__str__.return_value)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
@@ -229,7 +231,8 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'.format(error.__str__.return_value)
+        error_msg = 'This command cannot be used in this context.\n{}'\
+                    .format(error.__str__.return_value)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
@@ -238,12 +241,13 @@ class BotOnCommandErrorTestCase(ut.TestCase):
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'.format(error.__str__.return_value)
+        error_msg = 'This command cannot be used in this context.\n{}'\
+                    .format(error.__str__.return_value)
         self.ctx.send.assert_called_once_with(error_msg)
         self.assertIn(error_msg, self.output)
 
     def test_user_blacklisted(self, clean_prefix):
-        error = mock.NonCallableMock(spec=errors.UserBlacklisted)
+        error = mock.NonCallableMock(spec=UserBlacklisted)
         loop.run_until_complete(bot.on_command_error(self.ctx, error))
 
         clean_prefix.assert_not_called()
@@ -254,5 +258,5 @@ class BotOnErrorTestCase(ut.TestCase):
     def test(self):
         name = 'Test name'
 
-        with self.assertLogs('cardinal', logging.ERROR):
+        with self.assertLogs('cardinal.bot', logging.ERROR):
             loop.run_until_complete(bot.on_error(name))
