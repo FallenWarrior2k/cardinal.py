@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 from sqlalchemy.orm import sessionmaker
 
-from .db import create_all
 from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
@@ -53,7 +52,6 @@ class Bot(commands.Bot):
             session.close()
 
     async def on_ready(self):
-        create_all(self.engine)
         logger.info('Logged into Discord as {}'.format(self.user))
 
     async def on_command(self, ctx: commands.Context):
