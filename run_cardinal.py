@@ -29,7 +29,6 @@ if __name__ == '__main__':
 
     engine = create_engine(config['db']['connect_string'], **config['db']['options'])
     bot = Bot(command_prefix=config['cmd_prefix'],
-              description='cardinal.py',
               engine=engine,
               default_game=config['default_game'])
 
