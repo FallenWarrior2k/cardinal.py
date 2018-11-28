@@ -18,5 +18,6 @@ def setup(bot):
             bot.add_cog(cog(bot))
         except Exception:
             logger.exception('Error during initialization of "{}".'.format(cog.__name__))
+            raise  # Propagate to prevent starting an incomplete bot
         else:
             logger.info('Successfully initialized "{}".'.format(cog.__name__))

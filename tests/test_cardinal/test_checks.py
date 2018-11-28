@@ -14,16 +14,19 @@ class ChannelWhitelistedTestCase(ut.TestCase):
 
     # Hooks
     def setUp(self):
+        # TODO: Clean up this god-forsaken mess
         engine = create_engine('sqlite:///')
         session = Session(bind=engine)
         Base.metadata.create_all(engine)
 
-        ctx = mock.Mock()
-        ctx.session = session
+        ctx = mock.MagicMock()
+        ctx.bot.session_scope.return_value.__enter__.return_value = session
         ctx.channel.id = 123456789
         ctx.channel.mention = '<#123456789>'
-        self.ctx = ctx
+
         self.command = mock.Mock()
+        self.ctx = ctx
+        self.session = session
 
     # Helpers
     def expect_fail(self, command):
@@ -39,7 +42,7 @@ class ChannelWhitelistedTestCase(ut.TestCase):
         self.assertTrue(pred(self.ctx))
 
     def whitelist_channel(self):
-        self.ctx.session.add(WhitelistedChannel(channel_id=self.ctx.channel.id))
+        self.session.add(WhitelistedChannel(channel_id=self.ctx.channel.id))
 
     # Tests
     def test_not_whitelisted_no_predicate(self):
