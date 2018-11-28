@@ -8,6 +8,6 @@ install:
   - pip install pytest pytest-cov pytest-mock coveralls
 script:
   - pytest -v --cov=src/cardinal tests
-after_success: 
+after_success:
   - coveralls
-  - curl --data "source_type=Branch" --data "source_name=${TRAVIS_BRANCH}" -X POST "https://registry.hub.docker.com/u/fallenwarrior2k/cardinal.py/trigger/${DOCKERHUB_TOKEN}"
+  - curl --data "source_type=Branch" --data "source_name=${TRAVIS_BRANCH}" -X POST "https://registry.hub.docker.com/u/fallenwarrior2k/cardinal.py/trigger/${DOCKERHUB_TOKEN}/"
