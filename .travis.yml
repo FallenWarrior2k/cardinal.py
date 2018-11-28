@@ -3,6 +3,7 @@ language: python
 python:
   - "3.5"
 install:
+  - pip install -U pip
   - pip install -e .
   - pip install pytest pytest-cov pytest-mock coveralls
 script:
