@@ -1,26 +1,30 @@
-from discord.ext.commands import check
+from discord.ext import commands
 
-from cardinal.db import session_scope
-from cardinal.db.whitelist import WhitelistedChannel
-from cardinal.errors import ChannelNotWhitelisted
+from .db.whitelist import WhitelistedChannel
+from .errors import ChannelNotWhitelisted
 
 
 def channel_whitelisted(exception_predicate=None):
     """
     Decorator that marks a channel as required to be whitelisted by a previous command.
-    Takes an optional :param:`exception_predicate`, that checks whether or not an exception should be made for the current context.
+    Takes an optional predicate,
+    that checks whether or not an exception should be made for the current context.
+    Args:
+        exception_predicate (typing.Callable): A predicate taking a context as its only argument,
+        returning a boolean value.
 
-    :param exception_predicate: A predicate taking a context as its only argument, returning a boolean value.
-    :type exception_predicate: callable
+    Returns:
+        typing.Callable: Decorator to use on discord.py commands.
     """
 
-    def predicate(ctx):
-        channel = ctx.channel
+    def predicate(ctx: commands.Context):
+        # Manually create session as ctx.session is not created until after checks have succeeded
+        with ctx.bot.session_scope() as session:
+            db_channel = session.query(WhitelistedChannel).get(ctx.channel.id)
 
-        with session_scope() as session:
-            if not (session.query(WhitelistedChannel).get(channel.id) or (callable(exception_predicate) and exception_predicate(ctx)) ):
-                raise ChannelNotWhitelisted(ctx)
+        if not (db_channel or (callable(exception_predicate) and exception_predicate(ctx))):
+            raise ChannelNotWhitelisted(ctx)
 
-            return True
+        return True
 
-    return check(predicate)
+    return commands.check(predicate)

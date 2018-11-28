@@ -1,14 +1,14 @@
 import logging
 
 import discord
-import discord.ext.commands as commands
+from discord.ext import commands
 
-from cardinal.commands import Cog
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
 
-class Moderation(Cog):
+class Moderation(BaseCog):
     """
     A collection of general moderation commands to simplify the daily life of a mod.
     """
@@ -25,7 +25,8 @@ class Moderation(Cog):
         Kick a member from the current server.
 
         Parameters:
-            - user: The member to kick, identified by mention, ID, or name. Must be a member of the server.
+            - user: The member to kick, identified by mention, ID, or name.
+            Must be a member of the server.
             - [optional] reason: The reason for kicking the user. Defaults to empty.
 
         Required context: Server
@@ -36,21 +37,27 @@ class Moderation(Cog):
         Required bot permissions:
             - Kick Members
         """
-        
+
         await user.kick(reason=reason)
-        await ctx.send('User **{}** was kicked by {}.'.format(user.name, ctx.author.mention))
+        await ctx.send('User **{0}** ({0.id}) was kicked by {1}.'.format(user, ctx.author.mention))
 
     @commands.command()
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def ban(self, ctx: commands.Context, user: discord.Member, prune_days: int = 1, *, reason: str = None):
+    async def ban(self,
+                  ctx: commands.Context,
+                  user: discord.Member,
+                  prune_days: int = 1,
+                  *,
+                  reason: str = None):
         """
         Ban a user from the current server
 
         Parameters:
             - user: The member to ban, identified by mention, ID, or name.
-            - [optional] prune_days: The amount of days for which the user's message should be pruned. Defaults to one day.
+            - [optional] prune_days: The number of days
+            for which the user's message should be pruned. Defaults to one day.
             - [optional] reason: The reason for banning the user. Defaults to empty.
 
         Required context: Server
@@ -68,4 +75,4 @@ class Moderation(Cog):
             prune_days = 7
 
         await user.ban(reason=reason, delete_message_days=prune_days)
-        await ctx.send('User **{}** was banned by {}.'.format(user.name, ctx.author.mention))
+        await ctx.send('User **{0}** ({0.id}) was banned by {1}.'.format(user, ctx.author.mention))

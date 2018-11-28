@@ -1,20 +1,16 @@
 import logging
 
 import discord
-import discord.ext.commands as commands
+from discord.ext import commands
 
-from cardinal.commands import Cog
-from cardinal.db import session_scope
-from cardinal.db.whitelist import WhitelistedChannel
-from cardinal.utils import clean_prefix
+from ..db import WhitelistedChannel
+from ..utils import clean_prefix
+from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
 
 
-class Whitelisting(Cog):
-    def __init__(self, bot):
-        super().__init__(bot)
-
+class Whitelisting(BaseCog):
     @commands.group()
     @commands.guild_only()
     async def whitelist(self, ctx: commands.Context):
@@ -26,7 +22,8 @@ class Whitelisting(Cog):
 
         if ctx.invoked_subcommand is None:
             await ctx.send(
-                'Invalid command passed. Possible choices are "add" and "remove".\n Please refer to `{}help {}` for further information.'
+                'Invalid command passed. Possible choices are "add" and "remove".\n'
+                'Please refer to `{}help {}` for further information.'
                 .format(clean_prefix(ctx), ctx.invoked_with))
             return
 
@@ -40,20 +37,21 @@ class Whitelisting(Cog):
             - Manage Channels
 
         Parameters:
-            - [optional] channel: The channel to whitelist, identified by mention, ID, or name. Defaults to the current channel.
+            - [optional] channel: The channel to whitelist, identified by mention, ID, or name.
+            Defaults to the current channel.
         """
 
         if channel is None:
             channel = ctx.channel
 
-        with session_scope() as session:
-            if session.query(WhitelistedChannel).get(channel.id):
-                await ctx.send('Channel {} is already whitelisted.'.format(channel.mention))
-                return
+        if ctx.session.query(WhitelistedChannel).get(channel.id):
+            await ctx.send('Channel {} is already whitelisted.'.format(channel.mention))
+            return
 
-            db_channel = WhitelistedChannel(channel_id=channel.id, guild_id=channel.guild.id)
-            session.add(db_channel)
+        db_channel = WhitelistedChannel(channel_id=channel.id, guild_id=channel.guild.id)
+        ctx.session.add(db_channel)
 
+        logger.info('Added channel {} on guild {} to whitelist.'.format(channel, ctx.guild))
         await ctx.send('Whitelisted channel {}.'.format(channel.mention))
 
     @whitelist.command()
@@ -66,19 +64,22 @@ class Whitelisting(Cog):
             - Manage Channels
 
         Parameters:
-            - [optional] channel: The channel to remove from the whitelist, identified by mention, ID, or name. Defaults to the current channel.
+            - [optional] channel: The channel to remove from the whitelist,
+            identified by mention, ID, or name.
+            Defaults to the current channel.
         """
 
-        if channel is None:
+        if not channel:
             channel = ctx.channel
 
-        with session_scope() as session:
-            db_channel = session.query(WhitelistedChannel).get(channel.id)
-            if not db_channel:
-                await ctx.send('Channel {} is not whitelisted.'.format(channel.mention))
-                return
+        db_channel = ctx.session.query(WhitelistedChannel).get(channel.id)
+        if not db_channel:
+            await ctx.send('Channel {} is not whitelisted.'.format(channel.mention))
+            return
 
-            session.delete(db_channel)
+        ctx.session.delete(db_channel)
+
+        logger.info('Removed channel {} on guild {} from whitelist.'.format(channel, ctx.guild))
         await ctx.send('Removed channel {} from whitelist.'.format(channel.mention))
 
     @whitelist.command('list')
@@ -91,14 +92,13 @@ class Whitelisting(Cog):
 
         channel_list = []
 
-        with session_scope() as session:
-            for db_channel in session.query(WhitelistedChannel).filter_by(guild_id=ctx.guild.id):
-                channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
-                if not channel:
-                    session.delete(db_channel)
-                    continue
+        for db_channel in ctx.session.query(WhitelistedChannel).filter_by(guild_id=ctx.guild.id):
+            channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+            if not channel:
+                ctx.session.delete(db_channel)
+                continue
 
-                channel_list.append(channel)
+            channel_list.append(channel)
 
         channel_list.sort(key=lambda c: c.position)
 

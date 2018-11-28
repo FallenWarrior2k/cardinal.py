@@ -1,13 +1,10 @@
-import logging
-
-import discord
-
-logger = logging.getLogger(__name__)
+from .errors import PromptTimeout
 
 
 def clean_prefix(ctx):
-    user = ctx.bot.user
-    return ctx.prefix.replace(user.mention, '@' + user.name)
+    user = ctx.me
+    replacement = user.nick if ctx.guild and ctx.me.nick else user.name
+    return ctx.prefix.replace(user.mention, '@' + replacement)
 
 
 def format_message(msg):
@@ -21,18 +18,19 @@ def format_message(msg):
     """
 
     if msg.guild is None:
-        return '[PM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
     else:
-        return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
+               '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
 
 
-def format_discord_user(user: discord.User):
-    return '"{0.name}" ({0.id})'.format(user)
+async def prompt(msg, ctx, timeout=60.0):
+    def pred(m):
+        return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
 
+    await ctx.send(msg)
+    response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
+    if not response:
+        raise PromptTimeout()
 
-def format_discord_guild(guild: discord.Guild):
-    return '"{0.name}" ({0.id})'.format(guild)
-
-
-def format_discord_channel(channel):
-    return '"{0.name}" ({0.id})'.format(channel)
+    return response

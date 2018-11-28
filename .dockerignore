@@ -1,0 +1,31 @@
+# Python stuff
+.coverage*
+.eggs/
+.pytest_cache/
+.tox/
+__pycache__/
+venv/
+*.egg-info/
+
+# Docker meta files
+.dockerignore
+Dockerfile
+
+# Git stuff
+.git/
+.gitignore
+
+# JetBrains IDE workspace info
+.idea/
+
+# (Meta)files unnecessary for running
+.travis.yml
+LICENSE
+README.md
+config.json.example
+tests/
+tox.ini
+
+# Live stuffs
+*.sqlite
+config.json

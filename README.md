@@ -1,5 +1,9 @@
 # cardinal.py
 
+[![Build Status](https://travis-ci.org/FallenWarrior2k/cardinal.py.svg?branch=master)](https://travis-ci.org/FallenWarrior2k/cardinal.py)
+[![Coverage Status](https://coveralls.io/repos/github/FallenWarrior2k/cardinal.py/badge.svg?branch=master)](https://coveralls.io/github/FallenWarrior2k/cardinal.py?branch=master)
+[![Requirements Status](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements.svg?branch=master)](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements/?branch=master)
+
 A growing Discord bot for managing a server.
 
 ## Features
@@ -7,7 +11,9 @@ A growing Discord bot for managing a server.
 - a selfroling system
 - opt-in channels, i.e. hidden channels that only appear to users after issuing a command
 - restricting bot commands to certain channels
-- much more coming soon, mainly moderation features
+- moderation features like kicking and banning
+- restricting new members' privileges until they confirm themselves
+- much more to come
 
 ## Setup
 
