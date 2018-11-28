@@ -1,8 +1,8 @@
 # cardinal.py
 
-[![Build Status](https://travis-ci.org/FallenWarrior2k/cardinal.py.svg?branch=test)](https://travis-ci.org/FallenWarrior2k/cardinal.py)
-[![Coverage Status](https://coveralls.io/repos/github/FallenWarrior2k/cardinal.py/badge.svg?branch=test)](https://coveralls.io/github/FallenWarrior2k/cardinal.py?branch=test)
-[![Requirements Status](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements.svg?branch=test)](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements/?branch=test)
+[![Build Status](https://travis-ci.org/FallenWarrior2k/cardinal.py.svg?branch=master)](https://travis-ci.org/FallenWarrior2k/cardinal.py)
+[![Coverage Status](https://coveralls.io/repos/github/FallenWarrior2k/cardinal.py/badge.svg?branch=master)](https://coveralls.io/github/FallenWarrior2k/cardinal.py?branch=master)
+[![Requirements Status](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements.svg?branch=master)](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements/?branch=master)
 
 A growing Discord bot for managing a server.
 
