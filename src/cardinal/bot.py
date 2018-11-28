@@ -29,7 +29,7 @@ class Bot(commands.Bot):
         if default_game:
             game = discord.Game(name=default_game)
 
-        super().__init__(*args, **kwargs, game=game)
+        super().__init__(*args, **kwargs, description='cardinal.py', game=game)
 
         self.engine = engine
         _Session = sessionmaker()
