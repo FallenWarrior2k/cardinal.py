@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from ..checks import channel_whitelisted
+from ..context import Context
 from ..db import OptinChannel
 from ..utils import clean_prefix
 from .basecog import BaseCog
@@ -16,7 +17,7 @@ class Channels(BaseCog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
-    async def channels(self, ctx: commands.Context):
+    async def channels(self, ctx: Context):
         """
         Access opt-in channels and/or manage them.
 
@@ -37,7 +38,7 @@ class Channels(BaseCog):
             return
 
     @channels.command(aliases=['show'])
-    async def join(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def join(self, ctx: Context, *, channel: discord.TextChannel):
         """
         Grant a user access to an opt-in enabled channel.
 
@@ -62,7 +63,7 @@ class Channels(BaseCog):
                        .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command(aliases=['hide'])
-    async def leave(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def leave(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Revoke a user's access to an opt-in enabled channel.
 
@@ -94,7 +95,7 @@ class Channels(BaseCog):
                        .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command('list')
-    async def _list(self, ctx: commands.Context):
+    async def _list(self, ctx: Context):
         """
         List all channels that can be joined through the bot.
         """
@@ -117,7 +118,7 @@ class Channels(BaseCog):
         await ctx.send(answer)
 
     @channels.command()
-    async def stats(self, ctx: commands.Context):
+    async def stats(self, ctx: Context):
         """
         Display the member count for each opt-in channel on the current server.
         """
@@ -138,7 +139,7 @@ class Channels(BaseCog):
     @channels.group('opt-in')
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
-    async def _opt_in(self, ctx: commands.Context):
+    async def _opt_in(self, ctx: Context):
         """
         Allows moderators to toggle a channel's opt-in status.
 
@@ -153,7 +154,7 @@ class Channels(BaseCog):
             await ctx.send('Invalid command passed: possible options are "enable" and "disable".')
 
     @_opt_in.command()
-    async def enable(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def enable(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Make a channel opt-in, revoking access for @\u200beveryone
          and granting it only to a specifically created role.
@@ -186,7 +187,7 @@ class Channels(BaseCog):
         await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
 
     @_opt_in.command()
-    async def disable(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def disable(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Remove the opt-in status from a channel, making it accessible for @\u200beveryone again.
 

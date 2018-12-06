@@ -3,11 +3,13 @@ import unittest as ut
 import unittest.mock as mock
 from asyncio import get_event_loop
 
+import pytest
 from discord.ext import commands
 from sqlalchemy.orm import Session, sessionmaker
 
 from . import CoroMock
 from cardinal.bot import Bot
+from cardinal.context import Context
 from cardinal.errors import UserBlacklisted
 
 default_game = 'Test game'
@@ -23,19 +25,8 @@ def tearDownModule():
 
 class BotCtorTestCase(ut.TestCase):
     def test(self):
-        self.assertIs(bot.engine, engine)
+        self.assertIs(bot.sessionmaker.kw['bind'], engine)
         self.assertIsInstance(bot.sessionmaker, sessionmaker)
-
-
-@mock.patch.object(bot, 'sessionmaker', side_effect=lambda: mock.NonCallableMock(spec=Session))
-class BotBeforeInvokeHookTestCase(ut.TestCase):
-    def test(self, sessionmaker):
-        ctx = mock.NonCallableMock()
-
-        loop.run_until_complete(bot.before_invoke_hook(ctx))
-
-        sessionmaker.assert_called_once_with()
-        self.assertIsInstance(ctx.session, Session)
 
 
 class BotAfterInvokeHookTestCase(ut.TestCase):
@@ -44,7 +35,14 @@ class BotAfterInvokeHookTestCase(ut.TestCase):
         ctx.session = mock.NonCallableMock(spec=Session)
         self.ctx = ctx
 
+    def test_unused(self):
+        self.ctx.session_used = False
+        loop.run_until_complete(bot.after_invoke_hook(self.ctx))
+
+        self.assertEqual(self.ctx.session.mock_calls, [])  # Assert mock hasn't been touched
+
     def test_failed(self):
+        self.ctx.session_used = True
         self.ctx.command_failed = True
         loop.run_until_complete(bot.after_invoke_hook(self.ctx))
 
@@ -52,11 +50,27 @@ class BotAfterInvokeHookTestCase(ut.TestCase):
         self.ctx.session.close.assert_called_once_with()
 
     def test_success(self):
+        self.ctx.session_used = True
         self.ctx.command_failed = False
         loop.run_until_complete(bot.after_invoke_hook(self.ctx))
 
         self.ctx.session.commit.assert_called_once_with()
         self.ctx.session.close.assert_called_once_with()
+
+
+class TestBeforeInvokeHook:
+    @pytest.fixture
+    def ctx(self, mocker):
+        return mocker.Mock()
+
+    @pytest.fixture
+    def bot(self):
+        global bot
+        return bot
+
+    def test(self, bot, ctx):
+        loop.run_until_complete(bot.before_invoke_hook(ctx))
+        assert ctx.session_allowed
 
 
 @mock.patch.object(bot, 'sessionmaker', side_effect=lambda: mock.NonCallableMock(spec=Session))
@@ -86,6 +100,26 @@ class BotOnReadyTestCase(ut.TestCase):
     def test(self):
         with self.assertLogs('cardinal.bot'):
             loop.run_until_complete(bot.on_ready())
+
+
+class TestOnMessage:
+    @pytest.fixture
+    def ctx(self, mocker):
+        return mocker.Mock()
+
+    @pytest.fixture
+    def bot(self, ctx, mocker):
+        mocker.patch.object(bot, 'get_context', new_callable=CoroMock, return_value=ctx)
+        mocker.patch.object(bot, 'invoke', new_callable=CoroMock)
+
+        return bot
+
+    def test(self, bot, ctx, mocker):
+        msg = mocker.Mock()
+        loop.run_until_complete(bot.on_message(msg))
+
+        bot.get_context.assert_called_once_with(msg, cls=Context)
+        bot.invoke.assert_called_once_with(ctx)
 
 
 @mock.patch('cardinal.bot.format_message', return_value='Test message')

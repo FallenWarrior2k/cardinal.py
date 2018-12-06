@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 from sqlalchemy.orm import sessionmaker
 
+from .context import Context
 from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
@@ -13,10 +14,13 @@ logger = logging.getLogger(__name__)
 
 # TODO: Implement server-specific prefixes
 class Bot(commands.Bot):
-    async def before_invoke_hook(self, ctx: commands.Context):
-        ctx.session = self.sessionmaker()
+    async def before_invoke_hook(self, ctx: Context):
+        ctx.session_allowed = True
 
-    async def after_invoke_hook(self, ctx: commands.Context):
+    async def after_invoke_hook(self, ctx: Context):
+        if not ctx.session_used:
+            return
+
         if ctx.command_failed:
             ctx.session.rollback()
         else:
@@ -31,10 +35,7 @@ class Bot(commands.Bot):
 
         super().__init__(*args, **kwargs, description='cardinal.py', game=game)
 
-        self.engine = engine
-        _Session = sessionmaker()
-        _Session.configure(bind=engine)
-        self.sessionmaker = _Session
+        self.sessionmaker = sessionmaker(bind=engine)
         self.before_invoke(self.before_invoke_hook)
         self.after_invoke(self.after_invoke_hook)
 
@@ -54,10 +55,14 @@ class Bot(commands.Bot):
     async def on_ready(self):
         logger.info('Logged into Discord as {}'.format(self.user))
 
-    async def on_command(self, ctx: commands.Context):
+    async def on_message(self, msg):
+        ctx = await self.get_context(msg, cls=Context)
+        await self.invoke(ctx)
+
+    async def on_command(self, ctx: Context):
         logger.info(format_message(ctx.message))
 
-    async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
+    async def on_command_error(self, ctx: Context, ex: commands.CommandError):
         error_msg = ''
 
         if isinstance(ex, commands.NoPrivateMessage):

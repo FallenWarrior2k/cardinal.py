@@ -44,7 +44,8 @@ setup(
         'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
         'aiodns',
         'SQLAlchemy>=1.1',
-        'alembic'
+        'alembic',
+        'lazy'
     ],
     tests_require=['tox'],
     extras_require={

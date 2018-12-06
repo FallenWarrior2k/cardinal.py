@@ -3,6 +3,7 @@ import logging
 import discord
 from discord.ext import commands
 
+from ..context import Context
 from ..db import WhitelistedChannel
 from ..utils import clean_prefix
 from .basecog import BaseCog
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class Whitelisting(BaseCog):
     @commands.group()
     @commands.guild_only()
-    async def whitelist(self, ctx: commands.Context):
+    async def whitelist(self, ctx: Context):
         """
         Whitelist channels to allow for command usage.
 
@@ -29,7 +30,7 @@ class Whitelisting(BaseCog):
 
     @whitelist.command()
     @commands.has_permissions(manage_channels=True)
-    async def add(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def add(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Add a channel to the whitelist.
 
@@ -56,7 +57,7 @@ class Whitelisting(BaseCog):
 
     @whitelist.command()
     @commands.has_permissions(manage_channels=True)
-    async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def remove(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Remove a channel from the whitelist.
 
@@ -83,7 +84,7 @@ class Whitelisting(BaseCog):
         await ctx.send('Removed channel {} from whitelist.'.format(channel.mention))
 
     @whitelist.command('list')
-    async def _list(self, ctx: commands.Context):
+    async def _list(self, ctx: Context):
         """
         Enumerate whitelisted channels on the current server.
         """
