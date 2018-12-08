@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+echo '$TRAVIS_PULL_REQUEST =' "'$TRAVIS_PULL_REQUEST'"
+echo '$TRAVIS_TAG = ' "'$TRAVIS_TAG'"
+echo '$TRAVIS_BRANCH = ' "'$TRAVIS_BRANCH'"
+
 # Don't submit Docker builds for PRs
 if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
     exit
