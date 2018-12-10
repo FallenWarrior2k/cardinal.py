@@ -14,9 +14,6 @@ class Moderation(BaseCog):
     A collection of general moderation commands to simplify the daily life of a mod.
     """
 
-    def __init__(self, bot):
-        super().__init__(bot)
-
     @commands.command()
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
