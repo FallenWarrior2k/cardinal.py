@@ -193,10 +193,10 @@ class Anilist(BaseCog):
              - search: Term to search for.
         """
 
-        async with ctx.channel.typing():
+        async with ctx.typing():
             data = await self.execute_graphql(isAnime=True, search=search)
 
-        await ctx.channel.send(embed=make_embed(data['anime']))
+        await ctx.send(embed=make_embed(data['anime']))
 
     @commands.command()
     async def manga(self, ctx, *, search: str):
@@ -207,12 +207,12 @@ class Anilist(BaseCog):
              - search: Term to search for.
         """
 
-        async with ctx.channel.typing():
+        async with ctx.typing():
             data = await self.execute_graphql(isAnime=False,
                                               format=['MANGA', 'ONE_SHOT'],
                                               search=search)
 
-        await ctx.channel.send(embed=make_embed(data['manga']))
+        await ctx.send(embed=make_embed(data['manga']))
 
     @commands.command()
     async def ln(self, ctx, *, search: str):
@@ -223,9 +223,9 @@ class Anilist(BaseCog):
             - search: Term to search for.
         """
 
-        async with ctx.channel.typing():
+        async with ctx.typing():
             data = await self.execute_graphql(isAnime=False,
                                               format=['NOVEL'],
                                               search=search)
 
-        await ctx.channel.send(embed=make_embed(data['manga']))
+        await ctx.send(embed=make_embed(data['manga']))
