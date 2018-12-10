@@ -152,6 +152,16 @@ class Newbies(BaseCog):
             if db_guild is None:
                 return
 
+            # Bots don't need confirmation, since they were manually added by a bot
+            # Not like they could confirm themselves anyways
+            if member.bot:
+                role = discord.utils.get(member.guild.roles, id=db_guild.role_id)
+                if not role:
+                    return
+
+                await member.add_roles(role)
+                return
+
             await self.add_member(session, db_guild, member)
 
     async def on_member_remove(self, member: discord.Member):
