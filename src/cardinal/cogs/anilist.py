@@ -184,7 +184,7 @@ class Anilist(BaseCog):
 
         return res_body['data']
 
-    @commands.command()
+    @commands.command(aliases=['ani', 'al', 'anilist'])
     async def anime(self, ctx, *, search: str):
         """
         Look up an anime on Anilist.
@@ -214,7 +214,7 @@ class Anilist(BaseCog):
 
         await ctx.send(embed=make_embed(data['manga']))
 
-    @commands.command()
+    @commands.command(aliases=['lightnovel', 'novel'])
     async def ln(self, ctx, *, search: str):
         """
         Look up a light novel on Anilist.
