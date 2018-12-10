@@ -1,0 +1,30 @@
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+
+from .base import Base
+
+
+class MuteGuild(Base):
+    __tablename__ = 'mute_guilds'
+
+    guild_id = Column(BigInteger, primary_key=True, autoincrement=False)
+    role_id = Column(BigInteger, nullable=False)
+
+
+class MuteUser(Base):
+    __tablename__ = 'mute_users'
+
+    user_id = Column(BigInteger, primary_key=True, autoincrement=False)
+    guild_id = Column(BigInteger,
+                      ForeignKey(MuteGuild.guild_id),
+                      primary_key=True,
+                      autoincrement=False)
+    muted_until = Column(DateTime, nullable=True)
+    channel_id = Column(BigInteger, nullable=True)
+
+
+MuteGuild.mutes = relationship(MuteUser,
+                               backref='guild',
+                               innerjoin=True,
+                               cascade='all, delete-orphan',
+                               lazy=True)
