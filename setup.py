@@ -45,7 +45,8 @@ setup(
         'aiodns',
         'SQLAlchemy>=1.1',
         'alembic',
-        'lazy'
+        'lazy',
+        'markdownify'
     ],
     tests_require=['tox'],
     extras_require={
