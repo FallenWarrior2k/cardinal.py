@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey
+from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, or_
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -21,6 +21,13 @@ class MuteUser(Base):
                       autoincrement=False)
     muted_until = Column(DateTime, nullable=True)
     channel_id = Column(BigInteger, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            or_(channel_id.is_(None), muted_until.isnot(None)),
+            name='channel_id_only_on_finite'
+        ),
+    )
 
 
 MuteGuild.mutes = relationship(MuteUser,
