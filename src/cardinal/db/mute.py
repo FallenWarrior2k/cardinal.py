@@ -8,7 +8,7 @@ class MuteGuild(Base):
     __tablename__ = 'mute_guilds'
 
     guild_id = Column(BigInteger, primary_key=True, autoincrement=False)
-    role_id = Column(BigInteger, nullable=False)
+    role_id = Column(BigInteger, unique=True, nullable=False)
 
 
 class MuteUser(Base):
