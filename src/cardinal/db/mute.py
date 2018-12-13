@@ -19,7 +19,7 @@ class MuteUser(Base):
                       ForeignKey(MuteGuild.guild_id),
                       primary_key=True,
                       autoincrement=False)
-    muted_until = Column(DateTime, nullable=True)
+    muted_until = Column(DateTime, index=True, nullable=True)
     channel_id = Column(BigInteger, nullable=True)
 
     __table_args__ = (
