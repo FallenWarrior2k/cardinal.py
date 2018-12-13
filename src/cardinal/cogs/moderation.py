@@ -14,7 +14,7 @@ class Moderation(BaseCog):
     A collection of general moderation commands to simplify the daily life of a mod.
     """
 
-    @commands.command()
+    @commands.command(aliases=['boot'])
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
@@ -39,7 +39,7 @@ class Moderation(BaseCog):
         await user.kick(reason=reason)
         await ctx.send('User **{0}** ({0.id}) was kicked by {1}.'.format(user, ctx.author.mention))
 
-    @commands.command()
+    @commands.command(aliases=['getout', 'gulag'])
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)

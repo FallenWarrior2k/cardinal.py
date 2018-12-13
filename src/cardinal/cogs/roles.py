@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Roles(BaseCog):
-    @commands.group('role')
+    @commands.group('role', aliases=['roles'])
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()

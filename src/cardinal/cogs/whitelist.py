@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class Whitelisting(BaseCog):
-    @commands.group()
+    @commands.group(aliases=['wl'])
     @commands.guild_only()
     async def whitelist(self, ctx: Context):
         """
