@@ -138,7 +138,7 @@ class Newbies(BaseCog):
                 if not guild:
                     continue
 
-                member_role = discord.utils.get(guild.roles, id=db_guild.role_id)
+                member_role = guild.get_role(db_guild.role_id)
                 if not member_role:
                     continue
 
@@ -157,7 +157,7 @@ class Newbies(BaseCog):
             # Bots don't need confirmation, since they were manually added by a mod/admin
             # Not like they could confirm themselves anyways
             if member.bot:
-                role = discord.utils.get(member.guild.roles, id=db_guild.role_id)
+                role = member.guild.get_role(db_guild.role_id)
                 if not role:
                     return
 
@@ -183,7 +183,7 @@ class Newbies(BaseCog):
             if not db_user:
                 return
 
-            role = discord.utils.get(before.guild.roles, id=db_user.guild.role_id)
+            role = before.guild.get_role(db_user.guild.role_id)
 
             if not role:
                 return
@@ -233,7 +233,7 @@ class Newbies(BaseCog):
                 if not msg.content.lower().strip() == db_guild.response_message.lower():
                     continue
 
-                member_role = discord.utils.get(guild.roles, id=db_guild.role_id)
+                member_role = guild.get_role(db_guild.role_id)
                 if not member_role:
                     continue
 
@@ -337,7 +337,7 @@ class Newbies(BaseCog):
             match = channel_re.match(channel_string)
             if match:
                 channel_id = int(match.group('id'))
-                channel = discord.utils.get(ctx.guild.text_channels, id=channel_id)
+                channel = ctx.guild.get_channel(channel_id)
             else:
                 channel = discord.utils.get(ctx.guild.text_channels, name=channel_string.lower())
 
@@ -363,7 +363,7 @@ class Newbies(BaseCog):
             await ctx.send('Automatic newbie roling is not enabled for this server.')
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_guild.role_id)
+        role = ctx.guild.get_role(db_guild.role_id)
         if not role:
             await ctx.send('Role has already been deleted.')
             return
@@ -380,7 +380,7 @@ class Newbies(BaseCog):
         await role.delete()
 
         for db_channel in ctx.session.query(NewbieChannel).filter_by(guild_id=ctx.guild.id):
-            channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+            channel = ctx.guild.get_channel(db_channel.channel_id)
             if not channel:
                 continue
 
@@ -562,7 +562,7 @@ class Newbies(BaseCog):
         q = ctx.session.query(NewbieChannel)\
             .filter(NewbieChannel.guild_id == ctx.guild.id)
         for db_channel in q:
-            channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+            channel = ctx.guild.get_channel(db_channel.channel_id)
             if channel:
                 answer += '#'
                 answer += channel.name

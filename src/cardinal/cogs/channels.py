@@ -55,7 +55,7 @@ class Channels(BaseCog):
                            .format(channel.mention))
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+        role = ctx.guild.get_role(db_channel.role_id)
 
         await ctx.author.add_roles(role, reason='User joined opt-in channel.')
 
@@ -82,7 +82,7 @@ class Channels(BaseCog):
                            .format(channel.mention))
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+        role = ctx.guild.get_role(db_channel.role_id)
 
         if not role:
             ctx.session.delete(db_channel)
@@ -101,9 +101,10 @@ class Channels(BaseCog):
         """
 
         q = ctx.session.query(OptinChannel).filter_by(guild_id=ctx.guild.id)
-        channel_iter = filter(None,
-                              (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
-                               for db_channel in q))
+        channel_iter = filter(
+            None,
+            (ctx.guild.get_channel(db_channel.channel_id) for db_channel in q)
+        )
         channel_list = sorted(channel_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Channels that can be joined through this bot:```\n'
@@ -124,11 +125,11 @@ class Channels(BaseCog):
         """
 
         q = ctx.session.query(OptinChannel).filter_by(guild_id=ctx.guild.id)
-        role_iter = filter(None,
-                           (discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
-                            for db_channel in q))
-        role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
-                         for role in role_iter)
+        role_iter = filter(None, (ctx.guild.get_role(db_channel.role_id) for db_channel in q))
+        role_dict = dict(
+            (role, sum(1 for member in ctx.guild.members if role in member.roles))
+            for role in role_iter
+        )
 
         em = discord.Embed(title='Channel stats for ' + ctx.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
@@ -204,7 +205,7 @@ class Channels(BaseCog):
             await ctx.send('Channel {} is not opt-in'.format(channel.mention))
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+        role = ctx.guild.get_role(db_channel.role_id)
 
         if not role:
             await ctx.send('Could not find role. Was it already deleted?')

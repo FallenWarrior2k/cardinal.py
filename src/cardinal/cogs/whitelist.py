@@ -94,7 +94,7 @@ class Whitelisting(BaseCog):
         channel_list = []
 
         for db_channel in ctx.session.query(WhitelistedChannel).filter_by(guild_id=ctx.guild.id):
-            channel = discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
+            channel = ctx.guild.get_channel(db_channel.channel_id)
             if not channel:
                 ctx.session.delete(db_channel)
                 continue
