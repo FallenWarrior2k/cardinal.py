@@ -18,19 +18,24 @@ if __name__ == '__main__':
 
     with open(config_file_path) as config_file:
         config = json.load(config_file)
+
+    log_level = config.get('log_level') or config.get('logging_level') or 'INFO'
     try:
-        logging.basicConfig(level=config['logging_level'].upper())
+        logging.basicConfig(level=log_level.upper())
     except ValueError:
         logging.basicConfig(level=logging.INFO)
-        logging.warning('"{}" is not a valid logging level. Defauted to "INFO".'
-                        .format(config['logging_level']))
+        logging.warning('"{}" is not a valid logging level. Defauted to "INFO".'.format(log_level))
 
     logger = logging.getLogger(__name__)
 
-    engine = create_engine(config['db']['connect_string'], **config['db']['options'])
-    bot = Bot(command_prefix=config['cmd_prefix'],
-              engine=engine,
-              default_game=config['default_game'])
+    db_opts = config['db']
+
+    engine = create_engine(db_opts['connect_string'], **db_opts.get('options', {}))
+    bot = Bot(
+        command_prefix=config.get('cmd_prefix', '%'),
+        default_game=config.get('default_game'),
+        engine=engine
+    )
 
     logger.info('Loading cogs.')
     bot.load_extension('cardinal.cogs')
