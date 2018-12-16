@@ -39,6 +39,10 @@ def make_embed(item):
     )
 
     embed.set_thumbnail(url=item['coverImage']['large'])
+    embed.set_footer(
+        text='Powered by AniList',
+        icon_url='https://anilist.co/img/icons/favicon-32x32.png'
+    )
 
     score = '{} %'.format(item['averageScore']) if item['averageScore'] else '-'
     embed.add_field(name='Average Score', value=score, inline=False)
