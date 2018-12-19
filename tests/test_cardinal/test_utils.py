@@ -1,111 +1,104 @@
-import unittest as ut
-import unittest.mock as mock
-from asyncio import new_event_loop
-
 import pytest
 
 import cardinal.utils as utils
 from cardinal.errors import PromptTimeout
 
-from . import CoroMock
 
-
-class FormatMessageTestCase(ut.TestCase):
-    def setUp(self):
-        msg = mock.NonCallableMock()
+class TestFormatMessage:
+    @pytest.fixture
+    def msg(self, mocker):
+        msg = mocker.Mock()
         msg.content = 'Test message'
         msg.author.name = 'Test author name'
         msg.author.id = 123456789
         msg.guild = None
-        self.msg = msg
+        return msg
 
-    def test_dm(self):
-        expected = '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(self.msg)
-        got = utils.format_message(self.msg)
-        self.assertMultiLineEqual(expected, got)
+    def test_dm(self, msg):
+        expected = '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        got = utils.format_message(msg)
+        assert expected == got
 
-    def test_guild(self):
-        self.msg.guild = mock.NonCallableMock()
-        self.msg.guild.name = 'Test guild'
-        self.msg.guild.id = 987654321
-        self.msg.channel.name = 'Test channel'
-        self.msg.channel.id = 123459876
+    def test_guild(self, mocker, msg):
+        msg.guild = mocker.Mock()
+        msg.guild.name = 'Test guild'
+        msg.guild.id = 987654321
+        msg.channel.name = 'Test channel'
+        msg.channel.id = 123459876
 
-        expected = '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] {0.author.name} ({0.author.id}): {0.content}'.format(self.msg)
-        got = utils.format_message(self.msg)
-        self.assertMultiLineEqual(expected, got)
+        expected = '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
+                   '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        got = utils.format_message(msg)
+        assert expected == got
 
 
-class CleanPrefixTestCase(ut.TestCase):
-    def setUp(self):
-        ctx = mock.NonCallableMock()
+class TestCleanPrefix:
+    @pytest.fixture
+    def ctx(self, mocker):
+        ctx = mocker.Mock()
         ctx.me.mention = '<@123456789>'
         ctx.me.name = 'Test bot'
         ctx.guild = None
-        self.ctx = ctx
+        return ctx
 
-    def test_regular_dm(self):
-        self.ctx.prefix = '?'
+    def test_regular_dm(self, ctx):
+        ctx.prefix = '?'
         expected = '?'
-        got = utils.clean_prefix(self.ctx)
-        self.assertMultiLineEqual(expected, got)
+        got = utils.clean_prefix(ctx)
+        assert expected == got
 
-    def test_mention_dm(self):
-        self.ctx.prefix = self.ctx.me.mention
-        expected = '@{}'.format(self.ctx.me.name)
-        got = utils.clean_prefix(self.ctx)
-        self.assertMultiLineEqual(expected, got)
+    def test_mention_dm(self, ctx):
+        ctx.prefix = ctx.me.mention
+        expected = '@{}'.format(ctx.me.name)
+        got = utils.clean_prefix(ctx)
+        assert expected == got
 
-    def test_regular_guild_no_nick(self):
-        self.ctx.guild = True
-        self.ctx.me.nick = None
-        self.ctx.prefix = '?'
+    def test_regular_guild_no_nick(self, ctx):
+        ctx.guild = True
+        ctx.me.nick = None
+        ctx.prefix = '?'
         expected = '?'
-        got = utils.clean_prefix(self.ctx)
-        self.assertMultiLineEqual(expected, got)
+        got = utils.clean_prefix(ctx)
+        assert expected == got
 
-    def test_mention_guild_no_nick(self):
-        self.ctx.guild = True
-        self.ctx.me.nick = None
-        self.ctx.prefix = self.ctx.me.mention
-        expected = '@{}'.format(self.ctx.me.name)
-        got = utils.clean_prefix(self.ctx)
-        self.assertMultiLineEqual(expected, got)
+    def test_mention_guild_no_nick(self, ctx):
+        ctx.guild = True
+        ctx.me.nick = None
+        ctx.prefix = ctx.me.mention
+        expected = '@{}'.format(ctx.me.name)
+        got = utils.clean_prefix(ctx)
+        assert expected == got
 
-    def test_regular_guild_nick(self):
-        self.ctx.guild = True
-        self.ctx.me.nick = 'Test nick'
-        self.ctx.prefix = '?'
+    def test_regular_guild_nick(self, ctx):
+        ctx.guild = True
+        ctx.me.nick = 'Test nick'
+        ctx.prefix = '?'
         expected = '?'
-        got = utils.clean_prefix(self.ctx)
-        self.assertMultiLineEqual(expected, got)
+        got = utils.clean_prefix(ctx)
+        assert expected == got
 
-    def test_mention_guild_nick(self):
-        self.ctx.guild = True
-        self.ctx.me.nick = 'Test nick'
-        self.ctx.prefix = self.ctx.me.mention
-        expected = '@{}'.format(self.ctx.me.nick)
-        got = utils.clean_prefix(self.ctx)
-        self.assertMultiLineEqual(expected, got)
+    def test_mention_guild_nick(self, ctx):
+        ctx.guild = True
+        ctx.me.nick = 'Test nick'
+        ctx.prefix = ctx.me.mention
+        expected = '@{}'.format(ctx.me.nick)
+        got = utils.clean_prefix(ctx)
+        assert expected == got
 
 
 class TestPrompt:
     @pytest.fixture
-    def loop(self):
-        return new_event_loop()
-
-    @pytest.fixture
     def bot(self, mocker):
-        _bot = mocker.Mock()
-        _bot.wait_for = CoroMock()
+        bot = mocker.Mock()
+        bot.wait_for = mocker.CoroMock()
 
-        return _bot
+        return bot
 
     @pytest.fixture
     def ctx(self, mocker, bot):
         ctx = mocker.Mock()
         ctx.bot = bot
-        ctx.send = CoroMock()
+        ctx.send = mocker.CoroMock()
 
         return ctx
 
@@ -113,15 +106,17 @@ class TestPrompt:
     def msg(self, mocker):
         return mocker.Mock()
 
-    def test_response(self, ctx, loop, mocker, msg):
+    @pytest.mark.asyncio
+    async def test_response(self, ctx, mocker, msg):
         expected = mocker.Mock()
         ctx.bot.wait_for.coro.return_value = expected
 
-        response = loop.run_until_complete(utils.prompt(msg, ctx))
+        response = await utils.prompt(msg, ctx)
         assert response is expected
 
-    def test_default_timeout(self, ctx, loop, msg):
-        loop.run_until_complete(utils.prompt(msg, ctx))
+    @pytest.mark.asyncio
+    async def test_default_timeout(self, ctx, msg):
+        await utils.prompt(msg, ctx)
 
         assert ctx.bot.wait_for.call_count == 1
 
@@ -129,8 +124,8 @@ class TestPrompt:
         assert args == ('message',)
         assert kwargs['timeout'] == 60.0
 
-    def test_custom_timeout(self, ctx, loop, msg):
-        loop.run_until_complete(utils.prompt(msg, ctx, 1234))
+    async def test_custom_timeout(self, ctx, msg):
+        await utils.prompt(msg, ctx, 1234)
 
         assert ctx.bot.wait_for.call_count == 1
 
@@ -138,8 +133,8 @@ class TestPrompt:
         assert args == ('message',)
         assert kwargs['timeout'] == 1234
 
-    def test_pred(self, ctx, loop, msg):
-        loop.run_until_complete(utils.prompt(msg, ctx))
+    async def test_pred(self, ctx, msg):
+        await utils.prompt(msg, ctx)
 
         *_, kwargs = ctx.bot.wait_for.call_args
         pred = kwargs['check']
@@ -166,14 +161,14 @@ class TestPrompt:
         ctx.channel.id = 3
         assert pred(msg)
 
-    def test_timeout_not_triggered(self, ctx, loop, msg):
-        loop.run_until_complete(utils.prompt(msg, ctx))
+    async def test_timeout_not_triggered(self, ctx, msg):
+        await utils.prompt(msg, ctx)
         ctx.send.assert_called_once_with(msg)
 
-    def test_timeout_triggered(self, ctx, loop, msg):
+    async def test_timeout_triggered(self, ctx, msg):
         ctx.bot.wait_for.coro.return_value = None
 
         with pytest.raises(PromptTimeout):
-            loop.run_until_complete(utils.prompt(msg, ctx))
+            await utils.prompt(msg, ctx)
 
         ctx.send.assert_called_once_with(msg)
