@@ -124,6 +124,7 @@ class TestPrompt:
         assert args == ('message',)
         assert kwargs['timeout'] == 60.0
 
+    @pytest.mark.asyncio
     async def test_custom_timeout(self, ctx, msg):
         await utils.prompt(msg, ctx, 1234)
 
@@ -133,6 +134,7 @@ class TestPrompt:
         assert args == ('message',)
         assert kwargs['timeout'] == 1234
 
+    @pytest.mark.asyncio
     async def test_pred(self, ctx, msg):
         await utils.prompt(msg, ctx)
 
@@ -161,10 +163,12 @@ class TestPrompt:
         ctx.channel.id = 3
         assert pred(msg)
 
+    @pytest.mark.asyncio
     async def test_timeout_not_triggered(self, ctx, msg):
         await utils.prompt(msg, ctx)
         ctx.send.assert_called_once_with(msg)
 
+    @pytest.mark.asyncio
     async def test_timeout_triggered(self, ctx, msg):
         ctx.bot.wait_for.coro.return_value = None
 
