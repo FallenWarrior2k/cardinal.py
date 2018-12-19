@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
 
 
@@ -41,8 +41,9 @@ setup(
         'cardinal': ['db/migrations/*', 'db/migrations/**/*']
     },
     install_requires=[
-        'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
         'aiodns',
+        'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
+        'aiohttp',
         'SQLAlchemy>=1.1',
         'alembic',
         'lazy',

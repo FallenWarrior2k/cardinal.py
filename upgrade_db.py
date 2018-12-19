@@ -6,7 +6,6 @@ from pathlib import Path
 
 from alembic.config import main as alembic
 
-
 if __name__ == '__main__':
     path = sys.argv[1] if len(sys.argv) >= 2 else 'config.json'
 

@@ -166,7 +166,7 @@ class Anilist(BaseCog):
     fragment animeFields on Media {
         episodes
     }
-    
+
     fragment mangaFields on Media {
         chapters
         volumes
@@ -175,7 +175,7 @@ class Anilist(BaseCog):
 
     async def execute_graphql(self, **variables):
         body = {
-            'query':     self.query,
+            'query': self.query,
             'variables': variables
         }
 

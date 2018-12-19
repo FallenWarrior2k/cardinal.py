@@ -18,4 +18,3 @@ class Context(commands.Context):
 
         self.session_used = True
         return self.bot.sessionmaker()
-

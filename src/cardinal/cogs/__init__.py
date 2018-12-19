@@ -1,7 +1,6 @@
 import logging
 
 from .anilist import Anilist
-from .basecog import BaseCog
 from .channels import Channels
 from .moderation import Moderation
 from .newbie import Newbies
