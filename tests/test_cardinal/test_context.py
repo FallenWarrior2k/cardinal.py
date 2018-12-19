@@ -9,13 +9,13 @@ def base_ctor(mocker):
     return mocker.patch('cardinal.context.commands.Context.__init__')
 
 
-@pytest.fixture(params=[
-    {},
-    {'asdf': 123}
-])
+@pytest.fixture
 def ctx(base_ctor, request):
-    yield Context(**request.param)
-    base_ctor.assert_called_once_with(**request.param)
+    kwargs = getattr(request, 'param', {})
+
+    yield Context(**kwargs)
+    if hasattr(request, 'param'):
+        base_ctor.assert_called_once_with(**kwargs)  # Skip unnecessary assertions
 
 
 @pytest.fixture
@@ -24,6 +24,14 @@ def sessionmaker(ctx, mocker):
     return ctx.bot.sessionmaker
 
 
+@pytest.mark.parametrize(
+    ['ctx'],
+    [
+        ({},),
+        ({'asdf': 123},)
+    ],
+    indirect=True
+)
 def test_ctor(ctx):
     assert not ctx.session_used
 
