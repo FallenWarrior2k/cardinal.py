@@ -33,6 +33,7 @@ async def test_before_invoke_hook(bot, mocker):
     assert ctx.session_allowed
 
 
+@pytest.mark.asyncio
 class TestAfterInvokeHook:
     @pytest.fixture
     def ctx(self, mocker):
@@ -40,14 +41,12 @@ class TestAfterInvokeHook:
         ctx.session = mocker.Mock(spec=Session)
         return ctx
 
-    @pytest.mark.asyncio
     async def test_unused(self, bot, ctx):
         ctx.session_used = False
         await bot.after_invoke_hook(ctx)
 
         assert ctx.session.mock_calls == []  # Assert mock hasn't been touched
 
-    @pytest.mark.asyncio
     async def test_failed(self, bot, ctx):
         ctx.session_used = True
         ctx.command_failed = True
@@ -56,7 +55,6 @@ class TestAfterInvokeHook:
         ctx.session.rollback.assert_called_once_with()
         ctx.session.close.assert_called_once_with()
 
-    @pytest.mark.asyncio
     async def test_success(self, bot, ctx):
         ctx.session_used = True
         ctx.command_failed = False
@@ -131,6 +129,7 @@ async def test_on_command(bot, caplog, mocker):
     format_message.assert_called_once_with(ctx.message)
 
 
+@pytest.mark.asyncio
 class TestOnCommandError:
     @pytest.fixture
     def clean_prefix(self, mocker):
@@ -145,7 +144,6 @@ class TestOnCommandError:
 
         return ctx
 
-    @pytest.mark.asyncio
     async def test_command_error(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.CommandError)
         await bot.on_command_error(ctx, error)
@@ -153,7 +151,6 @@ class TestOnCommandError:
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_missing_required_argument(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.MissingRequiredArgument)
         await bot.on_command_error(ctx, error)
@@ -164,7 +161,6 @@ class TestOnCommandError:
                     .format(clean_prefix.return_value, ctx.command.qualified_name)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_bad_argument(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.BadArgument)
         await bot.on_command_error(ctx, error)
@@ -175,7 +171,6 @@ class TestOnCommandError:
                     .format(clean_prefix.return_value, ctx.command.qualified_name)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_no_private_message(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.NoPrivateMessage)
         await bot.on_command_error(ctx, error)
@@ -185,7 +180,6 @@ class TestOnCommandError:
             .format(clean_prefix.return_value, ctx.command.qualified_name)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_check_failure(self, bot, clean_prefix, ctx, mocker):
         error = mocker.MagicMock(spec=commands.CheckFailure)
         await bot.on_command_error(ctx, error)
@@ -195,7 +189,6 @@ class TestOnCommandError:
                     '{}'.format(error.__str__.return_value)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_command_not_found(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.CommandNotFound)
         await bot.on_command_error(ctx, error)
@@ -203,7 +196,6 @@ class TestOnCommandError:
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_disabled_command(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.DisabledCommand)
         await bot.on_command_error(ctx, error)
@@ -211,7 +203,6 @@ class TestOnCommandError:
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_command_invoke_error(self, bot, caplog, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.CommandInvokeError)
         error.original = mocker.MagicMock()
@@ -224,7 +215,6 @@ class TestOnCommandError:
         error_msg = 'An error occurred while executing the command.'
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_too_many_arguments(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.TooManyArguments)
         await bot.on_command_error(ctx, error)
@@ -235,7 +225,6 @@ class TestOnCommandError:
                     .format(clean_prefix.return_value, ctx.command.qualified_name)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_user_input_error(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=commands.UserInputError)
         await bot.on_command_error(ctx, error)
@@ -245,7 +234,6 @@ class TestOnCommandError:
             .format(clean_prefix.return_value, ctx.command.qualified_name)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_command_on_cooldown(self, bot, clean_prefix, ctx, mocker):
         error = mocker.MagicMock(spec=commands.CommandOnCooldown)
         await bot.on_command_error(ctx, error)
@@ -254,7 +242,6 @@ class TestOnCommandError:
         error_msg = error.__str__.return_value
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_not_owner(self, bot, clean_prefix, ctx, mocker):
         error = mocker.MagicMock(spec=commands.NotOwner)
         await bot.on_command_error(ctx, error)
@@ -264,7 +251,6 @@ class TestOnCommandError:
                     .format(error.__str__.return_value)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_missing_permissions(self, bot, clean_prefix, ctx, mocker):
         error = mocker.MagicMock(spec=commands.MissingPermissions)
         await bot.on_command_error(ctx, error)
@@ -274,7 +260,6 @@ class TestOnCommandError:
                     .format(error.__str__.return_value)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_bot_missing_permissions(self, bot, clean_prefix, ctx, mocker):
         error = mocker.MagicMock(spec=commands.BotMissingPermissions)
         await bot.on_command_error(ctx, error)
@@ -284,7 +269,6 @@ class TestOnCommandError:
                     .format(error.__str__.return_value)
         ctx.send.assert_called_once_with(error_msg)
 
-    @pytest.mark.asyncio
     async def test_user_blacklisted(self, bot, clean_prefix, ctx, mocker):
         error = mocker.Mock(spec=UserBlacklisted)
         await bot.on_command_error(ctx, error)

@@ -86,6 +86,7 @@ class TestCleanPrefix:
         assert expected == got
 
 
+@pytest.mark.asyncio
 class TestPrompt:
     @pytest.fixture
     def bot(self, mocker):
@@ -106,7 +107,6 @@ class TestPrompt:
     def msg(self, mocker):
         return mocker.Mock()
 
-    @pytest.mark.asyncio
     async def test_response(self, ctx, mocker, msg):
         expected = mocker.Mock()
         ctx.bot.wait_for.coro.return_value = expected
@@ -114,7 +114,6 @@ class TestPrompt:
         response = await utils.prompt(msg, ctx)
         assert response is expected
 
-    @pytest.mark.asyncio
     async def test_default_timeout(self, ctx, msg):
         await utils.prompt(msg, ctx)
 
@@ -124,7 +123,6 @@ class TestPrompt:
         assert args == ('message',)
         assert kwargs['timeout'] == 60.0
 
-    @pytest.mark.asyncio
     async def test_custom_timeout(self, ctx, msg):
         await utils.prompt(msg, ctx, 1234)
 
@@ -134,7 +132,6 @@ class TestPrompt:
         assert args == ('message',)
         assert kwargs['timeout'] == 1234
 
-    @pytest.mark.asyncio
     async def test_pred(self, ctx, msg):
         await utils.prompt(msg, ctx)
 
@@ -163,12 +160,10 @@ class TestPrompt:
         ctx.channel.id = 3
         assert pred(msg)
 
-    @pytest.mark.asyncio
     async def test_timeout_not_triggered(self, ctx, msg):
         await utils.prompt(msg, ctx)
         ctx.send.assert_called_once_with(msg)
 
-    @pytest.mark.asyncio
     async def test_timeout_triggered(self, ctx, msg):
         ctx.bot.wait_for.coro.return_value = None
 
