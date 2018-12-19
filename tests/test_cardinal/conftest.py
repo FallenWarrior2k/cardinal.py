@@ -6,13 +6,14 @@ import pytest
 @pytest.fixture
 def mocker(mocker):
     """
-    Extend the global mocker fixture with a mock for coroutines.
+    Extend the global mocker fixture with a coroutine mock and non-callable mocks.
 
     Args:
         mocker: Global mocker fixture as exported by pytest-mock.
 
     Returns:
-        Modified mocker fixture that has an added `CoroMock` attribute.
+        Modified mocker fixture that additionally supports `CoroMock`,
+        :class:`unittest.mock.NonCallableMock` and :class:`unittest.mock.NonCallableMagicMock`.
     """
     def CoroMock(*args, **kwargs):
         coro = mocker.Mock(name="CoroutineResult", *args, **kwargs)
@@ -21,4 +22,6 @@ def mocker(mocker):
         return corofunc
 
     mocker.CoroMock = CoroMock
+    mocker.NonCallableMock = mocker.mock_module.NonCallableMock
+    mocker.NonCallableMagicMock = mocker.mock_module.NonCallableMagicMock
     return mocker
