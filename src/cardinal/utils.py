@@ -1,4 +1,10 @@
+from logging import getLogger
+
+from discord import HTTPException
+
 from .errors import PromptTimeout
+
+logger = getLogger(__name__)
 
 
 def clean_prefix(ctx):
@@ -50,3 +56,29 @@ async def prompt(msg, ctx, timeout=60.0):
         raise PromptTimeout()
 
     return response
+
+
+async def maybe_send(target, *args, **kwargs):
+    """
+    Send a message to a given :class:`discord.abc.Messageable`, ignoring potential errors.
+
+    Args:
+        target (discord.abc.Messageable): Target to send to.
+        *args, **kwargs: Passed through to send call.
+
+    Returns:
+        discord.Message: Newly created message object or None if failed.
+    """
+    try:
+        return await target.send(*args, **kwargs)
+    except HTTPException:
+        if hasattr(target, 'id'):  # Target is channel or user
+            channel = target
+        else:  # Target is context instance
+            channel = target.channel
+
+        logger.warning(
+            'Could not send message to {0} ({0.id}).'.format(channel),
+            exc_info=True
+        )
+        return None

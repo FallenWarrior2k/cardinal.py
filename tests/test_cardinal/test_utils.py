@@ -1,4 +1,8 @@
+import logging
+from unittest import mock
+
 import pytest
+from discord import HTTPException
 
 import cardinal.utils as utils
 from cardinal.errors import PromptTimeout
@@ -171,3 +175,66 @@ class TestPrompt:
             await utils.prompt(msg, ctx)
 
         ctx.send.assert_called_once_with(msg)
+
+
+@pytest.mark.asyncio
+class TestMaybeSend:
+    @pytest.fixture
+    def target(self, mocker, request):
+        kwargs = getattr(request, 'param', {})
+        return_value = kwargs.get('return_value', mocker.DEFAULT)
+        side_effect = kwargs.get('side_effect')
+
+        target = mocker.MagicMock()
+
+        target.kwargs = kwargs  # Convenience for lookup
+
+        # Allow tests to make this raise an exception
+        target.send = mocker.CoroMock(return_value=return_value, side_effect=side_effect)
+
+        return target
+
+    @pytest.fixture(params=[
+        (), ('',), ('asdf', '1234')
+    ])
+    def args(self, request):
+        return request.param
+
+    @pytest.fixture(params=[
+        {}, {'a': 'b'}, {'key': 'value', 'foo': 'bar'}
+    ])
+    def kwargs(self, request):
+        return request.param
+
+    @pytest.mark.parametrize(
+        ['target'],
+        [
+            [{'return_value': mock.Mock()}]
+        ],
+        indirect=True
+    )
+    async def test_success(self, target, args, kwargs):
+        msg = await utils.maybe_send(target, *args, **kwargs)
+
+        target.send.assert_called_once_with(*args, **kwargs)
+        assert msg is target.kwargs['return_value']
+
+    @pytest.mark.parametrize(
+        ['target', 'use_id'],
+        [
+            [{'side_effect': HTTPException(mock.MagicMock(), mock.MagicMock())}, True],
+            [{'side_effect': HTTPException(mock.MagicMock(), mock.MagicMock())}, False]
+        ],
+        indirect=['target']
+    )
+    async def test_http_exception(self, caplog, target, args, kwargs, use_id):
+        if use_id:
+            target.id = 1234  # Ensure first execution path is selected
+        else:
+            del target.id  # Ensure second path is selected
+
+        with caplog.at_level(logging.WARNING, logger='cardinal.utils'):
+            msg = await utils.maybe_send(target, *args, **kwargs)
+
+        assert msg is None
+        assert caplog.records != []
