@@ -9,12 +9,13 @@ def clean_prefix(ctx):
 
 def format_message(msg):
     """
-    Formats a :class:`discord.Message` for convenient output to e.g. loggers.
+    Format a :class:`discord.Message` for convenient output to e.g. loggers.
 
-    :param msg: The message to format.
-    :type msg: discord.Message
-    :return: The formatted message as a string.
-    :rtype: str
+    Args:
+        msg (discord.Message): Message to format.
+
+    Returns:
+        str: Input message formatted as a string.
     """
 
     if msg.guild is None:
@@ -25,6 +26,21 @@ def format_message(msg):
 
 
 async def prompt(msg, ctx, timeout=60.0):
+    """
+    Prompt a user with a given message
+
+    Args:
+        msg (str): Prompt to display to the user.
+        ctx (cardinal.context.Context): Context that holds the channel and the user to listen for.
+        timeout (typings.Union[float, int]): How long (in seconds) to wait for a response.
+        Defaults to 60.
+
+    Returns:
+        discord.Message: Response sent by the user.
+
+    Raises:
+        cardinal.errors.PromptTimeout: No response by the user within the given timeframe.
+    """
     def pred(m):
         return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
 
