@@ -3,6 +3,7 @@ import logging
 
 import discord
 from discord.ext import commands
+from lazy import lazy
 from sqlalchemy.orm import sessionmaker
 
 from .context import Context
@@ -28,7 +29,10 @@ class Bot(commands.Bot):
         else:
             ctx.session.commit()
 
-        ctx.session.close()
+        session = ctx.session  # Local reference to close after it gets deleted from Context object
+        ctx.session_allowed = False
+        lazy.invalidate(ctx, 'session')  # Ensure nothing tries to use the session after closing it
+        session.close()
 
     def __init__(self, *args, engine, default_game=None, **kwargs):
         game = None

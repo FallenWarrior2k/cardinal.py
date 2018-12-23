@@ -56,7 +56,7 @@ async def test_before_invoke_hook(bot, mocker):
 class TestAfterInvokeHook:
     @pytest.fixture
     def ctx(self, mocker):
-        ctx = mocker.Mock()
+        ctx = mocker.Mock(spec=Context)
         ctx.session = mocker.Mock(spec=Session)
         return ctx
 
@@ -72,7 +72,6 @@ class TestAfterInvokeHook:
         await bot.after_invoke_hook(ctx)
 
         ctx.session.rollback.assert_called_once_with()
-        ctx.session.close.assert_called_once_with()
 
     async def test_success(self, bot, ctx):
         ctx.session_used = True
@@ -80,6 +79,15 @@ class TestAfterInvokeHook:
         await bot.after_invoke_hook(ctx)
 
         ctx.session.commit.assert_called_once_with()
+
+    async def test_cleanup(self, bot, ctx, mocker):
+        ctx.session_used = True
+        ctx.command_failed = False  # Irrelevant, tested above
+        invalidate = mocker.patch('lazy.lazy.invalidate')
+        await bot.after_invoke_hook(ctx)
+
+        assert ctx.session_allowed is False
+        invalidate.assert_called_once_with(ctx, 'session')
         ctx.session.close.assert_called_once_with()
 
 
