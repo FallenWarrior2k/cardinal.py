@@ -58,6 +58,9 @@ class Bot(commands.Bot):
         logger.info('Logged into Discord as {}'.format(self.user))
 
     async def on_message(self, msg):
+        if msg.author.bot:
+            return
+
         ctx = await self.get_context(msg, cls=Context)
         await self.invoke(ctx)
 

@@ -103,17 +103,34 @@ async def test_on_ready(bot, caplog, mocker):
     assert caplog.records != []
 
 
+@pytest.mark.usefixtures("patches")
 @pytest.mark.asyncio
-async def test_on_message(bot, mocker):
-    ctx = mocker.Mock()
-    mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
-    mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
+class TestOnMessage:
+    @pytest.fixture
+    def ctx(self, mocker):
+        return mocker.Mock()
 
-    msg = mocker.Mock()
-    await bot.on_message(msg)
+    @pytest.fixture
+    def patches(self, bot, ctx, mocker):
+        mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
+        mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
 
-    bot.get_context.assert_called_once_with(msg, cls=Context)
-    bot.invoke.assert_called_once_with(ctx)
+    async def test_not_bot(self, bot, ctx, mocker):
+        msg = mocker.Mock()
+        msg.author.bot = False
+
+        await bot.on_message(msg)
+
+        bot.get_context.assert_called_once_with(msg, cls=Context)
+        bot.invoke.assert_called_once_with(ctx)
+
+    async def test_bot(self, bot, mocker):
+        msg = mocker.Mock()
+        msg.author.bot = True
+
+        await bot.on_message(msg)
+        bot.get_context.assert_not_called()
+        bot.invoke.assert_not_called()
 
 
 @pytest.mark.asyncio
