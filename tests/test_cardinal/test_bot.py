@@ -1,5 +1,6 @@
 import logging
 
+import discord
 import pytest
 from discord.ext import commands
 from sqlalchemy.orm import Session, sessionmaker
@@ -15,15 +16,33 @@ def engine(mocker):
 
 
 @pytest.fixture
-def bot(engine, mocker, request):
-    mocker.patch('cardinal.bot.commands.Bot.__init__')
+def baseclass_ctor(mocker):
+    return mocker.patch('cardinal.bot.commands.Bot.__init__')
+
+
+@pytest.fixture
+def bot(baseclass_ctor, engine, mocker, request):
     kwargs = getattr(request, 'param', {})  # Use request param if provided
     return Bot(engine=engine, **kwargs)
 
 
-def test_ctor(bot, engine):
-    assert bot.sessionmaker.kw['bind'] is engine
-    assert isinstance(bot.sessionmaker, sessionmaker)
+class TestCtor:
+    def test_no_game(self, baseclass_ctor, bot, engine):
+        assert bot.sessionmaker.kw['bind'] is engine
+        assert isinstance(bot.sessionmaker, sessionmaker)
+
+        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=None)
+
+    @pytest.mark.parametrize(
+        ['bot'],
+        [
+            [{'default_game': 'test 123'}]
+        ],
+        indirect=True
+    )
+    def test_game(self, baseclass_ctor, bot):
+        game = discord.Game('test 123')
+        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=game)
 
 
 @pytest.mark.asyncio
