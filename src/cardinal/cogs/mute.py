@@ -1,11 +1,9 @@
-from asyncio import Lock, gather, sleep
+from asyncio import gather, sleep
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from itertools import chain
 from logging import getLogger
 
-from async_generator import async_generator, asynccontextmanager, yield_
-from async_exit_stack import AsyncExitStack
 from discord import CategoryChannel, Colour, Forbidden, HTTPException, Member, PermissionOverwrite, Role, TextChannel
 from discord.ext.commands import bot_has_permissions, command, guild_only, has_permissions, group
 
@@ -92,26 +90,6 @@ async def init_role(ctx, db_guild=None):
               for channel in chain(ctx.guild.text_channels, ctx.guild.voice_channels)
               if not is_synced(channel))
         )
-
-        # Don't ask me why I left the old code here
-        # I'll prolly axe this after committing it once, just to be safe
-
-        # for category in ctx.guild.categories:
-        #     await category.set_permissions(mute_role, send_messages=False, speak=False)
-
-        # for channel in ctx.guild.text_channels:
-        #     overwrite = channel.overwrites_for(mute_role)
-        #     if overwrite.send_messages is False:  # Channel is synced, skip
-        #         continue
-        #
-        #     await channel.set_permissions(mute_role, send_messages=False)
-
-        # for channel in ctx.guild.voice_channels:
-        #     overwrite = channel.overwrites_for(mute_role)
-        #     if overwrite.speak is False:  # Channel is synced, skip
-        #         continue
-        #
-        #     await channel.set_permissions(mute_role, speak=False)
     except HTTPException as e:
         logger.exception(
             'Setting up mute role for guild {} failed due to HTTP error {}.'
@@ -166,54 +144,6 @@ async def unmute_member(member, mute_role, channel=None, *, delay_until=None, de
     await maybe_send(channel, 'User {} was unmuted automatically.'.format(member.mention))
 
 
-class MemberLockHelper:
-    class _LockWrapper:
-        """
-        Wrapper around :class:`asyncio.Lock` that maintains a reference count so that it can be
-        cleaned up when no longer needed.
-        """
-        def __init__(self):
-            self.lock = Lock()
-            self.ref_count = 0
-
-    def __init__(self):
-        self._locks = {}
-
-    @contextmanager
-    def _get_lock(self, member_or_id, guild_id=None):
-        if not guild_id:
-            guild = getattr(member_or_id, 'guild', None)
-            guild_id = getattr(guild, 'id', None)
-            member_id = getattr(member_or_id, 'id', None)
-        else:
-            member_id = member_or_id
-
-        if not (isinstance(member_id, int) and isinstance(guild_id, int)):
-            raise ValueError("No valid ID pair could be constructed from the given arguments.")
-
-        key = (member_id, guild_id)
-
-        wrapper = self._locks.setdefault(key, self._LockWrapper())
-        wrapper.ref_count += 1
-
-        try:
-            yield wrapper.lock
-        finally:
-            assert self._locks.get(key) is wrapper  # TODO: Remove once I know this works
-
-            wrapper.ref_count -= 1
-            if wrapper.ref_count == 0:
-                self._locks.pop(key)
-
-    @asynccontextmanager
-    @async_generator
-    async def lock_member(self, member_or_id, guild_id=None):
-        async with AsyncExitStack() as stack:
-            lock = stack.enter_context(self._get_lock(member_or_id, guild_id))
-            await stack.enter_async_context(lock)
-            await yield_()
-
-
 class Mute(BaseCog):
     """
     Mute utility commands.
@@ -247,7 +177,6 @@ class Mute(BaseCog):
             )
 
     def _get_unmutes(self):
-        # tasks = []
         with self.bot.session_scope() as session:
             # Query for mutes that run before the next iteration
             # No need to delete by hand, self.on_guild_member_update() will clean up
@@ -258,28 +187,6 @@ class Mute(BaseCog):
                         >= MuteUser.muted_until)
 
             return chain.from_iterable(self._process_guild(db_guild) for db_guild in q)
-
-        #     for db_guild in q:
-        #         guild = self.bot.get_guild(db_guild.guild_id)
-        #         if not guild:
-        #             continue
-        #
-        #         mute_role = guild.get_role(db_guild.role_id)
-        #         if not mute_role:
-        #             continue
-        #
-        #         for db_mute in db_guild.mutes:
-        #             member = guild.get_member(db_mute.user_id)
-        #             if member:
-        #                 # create_task() unnecessary because no more awaits happen until gather
-        #                 tasks.append(unmute_member(
-        #                     member,
-        #                     mute_role,
-        #                     guild.get_channel(db_mute.channel_id),
-        #                     delay_until=db_mute.muted_until
-        #                 ))
-        #
-        # return tasks
 
     async def check_mute_timeouts(self):
         await self.bot.wait_until_ready()
