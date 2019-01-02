@@ -43,7 +43,6 @@ setup(
     install_requires=[
         'aiodns',
         'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
-        'aiohttp',
         'SQLAlchemy>=1.1',
         'alembic',
         'lazy',
