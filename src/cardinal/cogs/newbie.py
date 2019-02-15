@@ -152,7 +152,7 @@ class Newbies(BaseCog):
             if db_guild is None:
                 return
 
-            # Bots don't need confirmation, since they were manually added by a bot
+            # Bots don't need confirmation, since they were manually added by a mod/admin
             # Not like they could confirm themselves anyways
             if member.bot:
                 role = discord.utils.get(member.guild.roles, id=db_guild.role_id)
