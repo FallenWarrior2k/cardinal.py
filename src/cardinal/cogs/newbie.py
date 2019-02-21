@@ -356,10 +356,12 @@ class Newbies(BaseCog):
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         if not db_guild:
             await ctx.send('Automatic newbie roling is not enabled for this server.')
+            return
 
         role = discord.utils.get(ctx.guild.roles, id=db_guild.role_id)
         if not role:
             await ctx.send('Role has already been deleted.')
+            return
 
         everyone_role = ctx.guild.default_role
         everyone_perms = everyone_role.permissions
