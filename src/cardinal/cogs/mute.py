@@ -4,8 +4,11 @@ from datetime import datetime, timedelta
 from itertools import chain
 from logging import getLogger
 
-from discord import CategoryChannel, Colour, Forbidden, HTTPException, Member, PermissionOverwrite, Role, TextChannel
-from discord.ext.commands import bot_has_permissions, command, guild_only, has_permissions, group
+from discord import (
+    CategoryChannel, Colour, Forbidden, HTTPException,
+    Member, PermissionOverwrite, Role, TextChannel
+)
+from discord.ext.commands import bot_has_permissions, command, group, guild_only, has_permissions
 
 from ..db import MuteGuild, MuteUser
 from ..utils import maybe_send
@@ -14,22 +17,22 @@ from .basecog import BaseCog
 logger = getLogger(__name__)
 
 units = {
-    's':        1,
-    'sec':      1,
-    'secs':     1,
-    'second':   1,
-    'seconds':  1,
-    'm':        1 * 60,
-    'min':      1 * 60,
-    'mins':     1 * 60,
-    'minute':   1 * 60,
-    'minutes':  1 * 60,
-    'h':        1 * 60 * 60,
-    'hour':     1 * 60 * 60,
-    'hours':    1 * 60 * 60,
-    'd':        1 * 60 * 60 * 24,
-    'day':      1 * 60 * 60 * 24,
-    'days':     1 * 60 * 60 * 24
+    's': 1,
+    'sec': 1,
+    'secs': 1,
+    'second': 1,
+    'seconds': 1,
+    'm': 1 * 60,
+    'min': 1 * 60,
+    'mins': 1 * 60,
+    'minute': 1 * 60,
+    'minutes': 1 * 60,
+    'h': 1 * 60 * 60,
+    'hour': 1 * 60 * 60,
+    'hours': 1 * 60 * 60,
+    'd': 1 * 60 * 60 * 24,
+    'day': 1 * 60 * 60 * 24,
+    'days': 1 * 60 * 60 * 24
 }
 
 
@@ -180,11 +183,11 @@ class Mute(BaseCog):
         with self.bot.session_scope() as session:
             # Query for mutes that run before the next iteration
             # No need to delete by hand, self.on_guild_member_update() will clean up
+            next_iteration_timestamp = (datetime.utcnow() + timedelta(seconds=self.check_period))
             q = session.query(MuteGuild) \
                 .join(MuteGuild.mutes) \
                 .filter(MuteUser.muted_until.isnot(None),
-                        (datetime.utcnow() + timedelta(seconds=self.check_period))
-                        >= MuteUser.muted_until)
+                        next_iteration_timestamp >= MuteUser.muted_until)
 
             return chain.from_iterable(self._process_guild(db_guild) for db_guild in q)
 
