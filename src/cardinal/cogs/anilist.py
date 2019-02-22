@@ -7,7 +7,7 @@ from markdownify import markdownify as md
 
 from .basecog import BaseCog
 
-format_map = {
+format_repr = {
     'TV': 'TV',
     'TV_SHORT': 'TV Short',
     'MOVIE': 'Movie',
@@ -47,7 +47,7 @@ def make_embed(item):
     score = '{} %'.format(item['averageScore']) if item['averageScore'] else '-'
     embed.add_field(name='Average Score', value=score, inline=False)
 
-    embed.add_field(name='Format', value=format_map[item['format']])
+    embed.add_field(name='Format', value=format_repr[item['format']])
     embed.add_field(name='Source', value=normalize_ssc(item['source']))
 
     if 'episodes' in item:
