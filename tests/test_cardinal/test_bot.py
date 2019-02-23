@@ -111,7 +111,7 @@ class TestSessionScope:
     def test_exception(self, bot, session, sessionmaker):
         exc_message = 'Test exception message'
         exc = Exception(exc_message)
-        with pytest.raises(Exception, message=exc_message):
+        with pytest.raises(Exception, match=exc_message):
             with bot.session_scope() as new_session:
                 assert new_session is session
                 raise exc

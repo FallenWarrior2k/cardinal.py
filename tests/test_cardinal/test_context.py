@@ -14,8 +14,8 @@ def ctx(base_ctor, request):
     kwargs = getattr(request, 'param', {})
 
     yield Context(**kwargs)
-    if hasattr(request, 'param'):
-        base_ctor.assert_called_once_with(**kwargs)  # Skip unnecessary assertions
+    if hasattr(request, 'param'):  # Skip unnecessary assertions
+        base_ctor.assert_called_once_with(**kwargs)
 
 
 @pytest.fixture

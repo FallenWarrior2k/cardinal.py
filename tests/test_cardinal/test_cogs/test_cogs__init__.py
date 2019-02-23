@@ -52,9 +52,9 @@ class TestSetup:
     def test_exception(self, bot, cog_list):
         # Retrieve the first exception that will be raised, which should also be re-raised
         first_exc_cog, first_exc_i = next((_c, i) for i, _c in enumerate(cog_list)
-                                            if _c.side_effect)
+                                          if _c.side_effect)
 
-        with pytest.raises(Exception, message=str(first_exc_cog.side_effect)):
+        with pytest.raises(Exception, match=str(first_exc_cog.side_effect)):
             cogs.setup(bot)
 
         # Check cogs that came before the one with the exception
