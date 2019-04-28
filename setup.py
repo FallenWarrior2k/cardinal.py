@@ -44,7 +44,7 @@ setup(
         'aiodns',
         'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
         'aiohttp',
-        'SQLAlchemy>=1.1',
+        'SQLAlchemy>=1.3',
         'alembic',
         'lazy',
         'markdownify'
