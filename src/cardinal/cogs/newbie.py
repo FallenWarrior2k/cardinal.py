@@ -173,7 +173,7 @@ class Newbies(BaseCog):
             if not role:
                 return
 
-            if role in before.roles and role not in after.roles:
+            if role not in before.roles and role in after.roles:
                 session.delete(db_user)
 
     async def on_message(self, msg: discord.Message):
