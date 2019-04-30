@@ -130,6 +130,7 @@ class Newbies(BaseCog):
                 # First message went through, no need to further handle this, should it ever occur
                 pass
 
+    @commands.Cog.listener()
     async def on_ready(self):
         with self.bot.session_scope() as session:
             for db_guild in session.query(NewbieGuild):
@@ -145,6 +146,7 @@ class Newbies(BaseCog):
                 for member in to_add:
                     await self.add_member(session, db_guild, member)
 
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         with self.bot.session_scope() as session:
             db_guild = session.query(NewbieGuild).get(member.guild.id)
@@ -164,6 +166,7 @@ class Newbies(BaseCog):
 
             await self.add_member(session, db_guild, member)
 
+    @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         with self.bot.session_scope() as session:
             # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
@@ -172,6 +175,7 @@ class Newbies(BaseCog):
                 .filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id)\
                 .delete(synchronize_session=False)
 
+    @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         with self.bot.session_scope() as session:
             db_user = session.query(NewbieUser).get((before.id, before.guild.id))
@@ -187,6 +191,7 @@ class Newbies(BaseCog):
             if role not in before.roles and role in after.roles:
                 session.delete(db_user)
 
+    @commands.Cog.listener()
     async def on_message(self, msg: discord.Message):
         if msg.author.id == self.bot.user.id:
             return
