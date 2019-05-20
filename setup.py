@@ -41,9 +41,8 @@ setup(
         'cardinal': ['db/migrations/*', 'db/migrations/**/*']
     },
     install_requires=[
-        'aiodns',
-        'discord.py@git+https://github.com/Rapptz/discord.py@rewrite',
-        'SQLAlchemy>=1.1',
+        'discord.py>=1.0',
+        'SQLAlchemy>=1.3',
         'alembic',
         'lazy',
         'markdownify'
