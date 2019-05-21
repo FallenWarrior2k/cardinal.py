@@ -179,6 +179,22 @@ async def unmute_member(member, mute_role, channel=None, *, delay_until=None, de
     await maybe_send(channel, 'User {} was unmuted automatically.'.format(member.mention))
 
 
+# TODO: Maybe remove when lock problem fixed
+def make_lock_key(member: Member):
+    """
+    Construct a key tuple from a member object.
+
+    Args:
+        member (discord.Member): Member to build the key from.
+
+    Returns:
+        tuple[int, int]: Snowflake IDs of the member and the associated guild.
+    """
+    member_id = member.id
+    guild_id = member.guild.id
+    return member_id, guild_id
+
+
 class Mute(BaseCog):
     """
     Mute utility commands.
@@ -187,8 +203,25 @@ class Mute(BaseCog):
     def __init__(self, bot, check_period=30):
         super().__init__(bot)
         self.check_period = check_period
-        self._locks = {}
+        self._locks = set()
         self.bot.loop.create_task(self.check_mute_timeouts())
+
+    # TODO: Find cleaner solution for this hackjob
+    # Issue: Possible race condition if same member is processed concurrently by multiple calls
+    # Possible solution: make context manager store how many locks exist for a given member
+    @contextmanager
+    def lock_member(self, member):
+        key = make_lock_key(member)
+
+        self._locks.add(key)
+        try:
+            yield
+        finally:
+            self._locks.remove(key)
+
+    def member_is_locked(self, member):
+        key = make_lock_key(member)
+        return key in self._locks
 
     def _process_guild(self, db_guild):
         guild = self.bot.get_guild(db_guild.guild_id)
@@ -276,6 +309,9 @@ class Mute(BaseCog):
 
     @BaseCog.listener()
     async def on_member_update(self, before, after):
+        if self.member_is_locked(before):
+            return  # Don't touch locked members
+
         with self.bot.session_scope() as session:
             db_guild = session.query(MuteGuild).get(before.guild.id)
             if not db_guild:
@@ -347,17 +383,18 @@ class Mute(BaseCog):
                 db_mute.channel_id = ctx.channel.id
 
             ctx.session.add(db_mute)
-            ctx.session.commit()  # Necessary to prevent race condition with event handler
 
-        await member.add_roles(mute_role, reason='Muted by {}.'.format(ctx.author))
+        with self.lock_member(member):  # Lock member until command terminates
+            await member.add_roles(mute_role, reason='Muted by {}.'.format(ctx.author))
 
-        # TODO: Include duration in message
-        await maybe_send(ctx, 'User {} was muted by {}.'.format(member.mention, ctx.author.mention))
+            # TODO: Include duration in message
+            await maybe_send(ctx, 'User {} was muted by {}.'
+                             .format(member.mention, ctx.author.mention))
 
-        # User should be muted for less than one check period
-        # => queue unmute directly and don't touch DB from here
-        if is_short_mute:
-            await unmute_member(member, mute_role, ctx.channel, delay_delta=duration)
+            # User should be muted for less than one check period
+            # => queue unmute directly and don't touch DB from here
+            if is_short_mute:
+                await unmute_member(member, mute_role, ctx.channel, delay_delta=duration)
 
     @mute.command()
     @guild_only()
