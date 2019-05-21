@@ -37,7 +37,7 @@ units = {
 }
 
 
-def to_timedelta(arg):
+def _to_timedelta(arg):
     """
     Try converting a string with an optional suffix to :class:`timedelta`.
 
@@ -73,7 +73,7 @@ def to_timedelta(arg):
     return timedelta(seconds=value)
 
 
-async def init_role(ctx, db_guild=None):
+async def _init_role(ctx, db_guild=None):
     """
     Create a mute role and register it with the database.
 
@@ -136,7 +136,7 @@ async def init_role(ctx, db_guild=None):
     return mute_role
 
 
-async def unmute_member(member, mute_role, channel=None, *, delay_until=None, delay_delta=None):
+async def _unmute_member(member, mute_role, channel=None, *, delay_until=None, delay_delta=None):
     """
     Unmute a given member, optionally after a given delay.
 
@@ -180,7 +180,7 @@ async def unmute_member(member, mute_role, channel=None, *, delay_until=None, de
     await maybe_send(channel, 'User {} was unmuted automatically.'.format(member.mention))
 
 
-def make_lock_key(member: Member):
+def _make_lock_key(member: Member):
     """
     Construct a key tuple from a member object.
 
@@ -204,11 +204,11 @@ class Mute(BaseCog):
         super().__init__(bot)
         self.check_period = check_period
         self._locks = defaultdict(lambda: 0)
-        self.bot.loop.create_task(self.check_mute_timeouts())
+        self.bot.loop.create_task(self._check_mute_timeouts())
 
     @contextmanager
-    def lock_member(self, member):
-        key = make_lock_key(member)
+    def _lock_member(self, member):
+        key = _make_lock_key(member)
 
         self._locks[key] += 1
         try:
@@ -220,8 +220,8 @@ class Mute(BaseCog):
             if self._locks[key] == 0:
                 del self._locks[key]  # Expunge unused keys to reduce memory usage
 
-    def member_is_locked(self, member):
-        key = make_lock_key(member)
+    def _member_is_locked(self, member):
+        key = _make_lock_key(member)
         return self._locks[key] > 0
 
     def _process_guild(self, db_guild):
@@ -238,7 +238,7 @@ class Mute(BaseCog):
             if not member:
                 continue
 
-            yield unmute_member(
+            yield _unmute_member(
                 member,
                 mute_role,
                 guild.get_channel(db_mute.channel_id),
@@ -257,7 +257,7 @@ class Mute(BaseCog):
 
             return chain.from_iterable(self._process_guild(db_guild) for db_guild in q)
 
-    async def check_mute_timeouts(self):
+    async def _check_mute_timeouts(self):
         await self.bot.wait_until_ready()
 
         while True:
@@ -310,7 +310,7 @@ class Mute(BaseCog):
 
     @BaseCog.listener()
     async def on_member_update(self, before, after):
-        if self.member_is_locked(before):
+        if self._member_is_locked(before):
             return  # Don't touch locked members
 
         with self.bot.session_scope() as session:
@@ -343,7 +343,7 @@ class Mute(BaseCog):
     @guild_only()
     @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_roles=True)
-    async def mute(self, ctx, member: Member, *, duration: to_timedelta = None):
+    async def mute(self, ctx, member: Member, *, duration: _to_timedelta = None):
         """
         Mute a user from chat, optionally specifying an automatic timeout.
         Does nothing if the user is already muted.
@@ -370,7 +370,7 @@ class Mute(BaseCog):
 
         if not mute_role:
             # No role => create new and save to DB
-            mute_role = await init_role(ctx, db_guild)
+            mute_role = await _init_role(ctx, db_guild)
 
         if mute_role in member.roles:  # Mute role already there, nothing to do here
             return
@@ -385,7 +385,7 @@ class Mute(BaseCog):
 
             ctx.session.add(db_mute)
 
-        with self.lock_member(member):  # Lock member until command terminates
+        with self._lock_member(member):  # Lock member until command terminates
             await member.add_roles(mute_role, reason='Muted by {}.'.format(ctx.author))
 
             # TODO: Include duration in message
@@ -395,7 +395,7 @@ class Mute(BaseCog):
             # User should be muted for less than one check period
             # => queue unmute directly and don't touch DB from here
             if is_short_mute:
-                await unmute_member(member, mute_role, ctx.channel, delay_delta=duration)
+                await _unmute_member(member, mute_role, ctx.channel, delay_delta=duration)
 
     @mute.command()
     @guild_only()
