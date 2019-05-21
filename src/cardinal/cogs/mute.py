@@ -1,4 +1,5 @@
 from asyncio import gather, sleep
+from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from itertools import chain
@@ -179,7 +180,6 @@ async def unmute_member(member, mute_role, channel=None, *, delay_until=None, de
     await maybe_send(channel, 'User {} was unmuted automatically.'.format(member.mention))
 
 
-# TODO: Maybe remove when lock problem fixed
 def make_lock_key(member: Member):
     """
     Construct a key tuple from a member object.
@@ -203,25 +203,26 @@ class Mute(BaseCog):
     def __init__(self, bot, check_period=30):
         super().__init__(bot)
         self.check_period = check_period
-        self._locks = set()
+        self._locks = defaultdict(lambda: 0)
         self.bot.loop.create_task(self.check_mute_timeouts())
 
-    # TODO: Find cleaner solution for this hackjob
-    # Issue: Possible race condition if same member is processed concurrently by multiple calls
-    # Possible solution: make context manager store how many locks exist for a given member
     @contextmanager
     def lock_member(self, member):
         key = make_lock_key(member)
 
-        self._locks.add(key)
+        self._locks[key] += 1
         try:
             yield
         finally:
-            self._locks.remove(key)
+            self._locks[key] -= 1
+            assert self._locks[key] >= 0  # Leave this in until I know this works
+
+            if self._locks[key] == 0:
+                del self._locks[key]  # Expunge unused keys to reduce memory usage
 
     def member_is_locked(self, member):
         key = make_lock_key(member)
-        return key in self._locks
+        return self._locks[key] > 0
 
     def _process_guild(self, db_guild):
         guild = self.bot.get_guild(db_guild.guild_id)
