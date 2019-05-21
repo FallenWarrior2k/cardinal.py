@@ -37,6 +37,18 @@ units = {
 
 
 def to_timedelta(arg):
+    """
+    Try converting a string with an optional suffix to :class:`timedelta`.
+
+    Args:
+        arg (str): String to parse.
+
+    Returns:
+        timedelta: Parsed value of the input string.
+
+    Raises:
+        ValueError: Argument could not be parsed or was not strictly positive.
+    """
     if not arg:
         return None
 
@@ -61,6 +73,16 @@ def to_timedelta(arg):
 
 
 async def init_role(ctx, db_guild=None):
+    """
+    Create a mute role and register it with the database.
+
+    Args:
+        ctx (cardinal.context.Context): Context to create the role in.
+        db_guild (cardinal.db.MuteGuild): Database binding for the guild if one exists.
+
+    Returns:
+        discord.Role: Newly created role with permissions already set.
+    """
     mute_role = await ctx.guild.create_role(name='Muted',
                                             colour=Colour.red(),
                                             hoist=True,
@@ -114,6 +136,16 @@ async def init_role(ctx, db_guild=None):
 
 
 async def unmute_member(member, mute_role, channel=None, *, delay_until=None, delay_delta=None):
+    """
+    Unmute a given member, optionally after a given delay.
+
+    Args:
+        member (discord.Member): Member to unmute.
+        mute_role (discord.Role): Role to remove.
+        channel (discord.TextChannel): Channel to send the auto-unmute message in.
+        delay_until (datetime): Delay execution until a given timestamp passes.
+        delay_delta (timedelta): Delay execution for a given timespan.
+    """
     delay_seconds = 0
 
     if delay_until:
