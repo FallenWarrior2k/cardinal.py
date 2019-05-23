@@ -150,7 +150,7 @@ class Anilist(BaseCog):
         anime: Media(
             type: ANIME,
             search: $search,
-            sort: POPULARITY_DESC
+            sort: SEARCH_MATCH
         ) @include(if: $isAnime) {
             ...baseFields
             ...animeFields
@@ -160,7 +160,7 @@ class Anilist(BaseCog):
             type: MANGA,
             format_in: $format,
             search: $search,
-            sort: POPULARITY_DESC
+            sort: SEARCH_MATCH
         ) @skip(if: $isAnime) {
                 ...baseFields
                 ...mangaFields
