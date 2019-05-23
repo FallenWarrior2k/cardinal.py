@@ -21,6 +21,49 @@ format_repr = {
 }
 
 
+class FuzzyDate:
+    def __init__(self, **kwargs):
+        self.year = kwargs.get('year')
+
+        if self.year:
+            self.month = kwargs.get('month')
+
+            if self.month:
+                self.day = kwargs.get('day')
+
+    def __bool__(self):
+        return bool(self.year)
+
+    def __str__(self):
+        if hasattr(self, 'day') and self.day:
+            return '{} {}, {}'.format(month_name[self.month], self.day, self.year)
+
+        if hasattr(self, 'month') and self.month:
+            return '{} {}'.format(month_name[self.month], self.year)
+
+        if self.year:
+            return str(self.year)
+
+        return 'unknown'
+
+
+def normalize_ssc(name):
+    """
+    Convert a name in SCREAMING_SNAKE_CASE to regular notation,
+    e.g. "Screaming snake case".
+
+    Args:
+        name: Name to convert.
+
+    Returns:
+        str: Converted name.
+    """
+    if not name:
+        return
+
+    return ' '.join(part for part in name.split('_')).capitalize()
+
+
 def make_embed(item):
     titles = item['title']
     title_english = titles['english']
@@ -69,48 +112,6 @@ def make_embed(item):
     embed.add_field(name='Description', value=md(item['description']), inline=False)
 
     return embed
-
-
-def normalize_ssc(name):
-    """
-    Convert a name in SCREAMING_SNAKE_CASE to regular notation,
-    e.g. "Screaming snake case".
-    Args:
-        name: Name to convert.
-
-    Returns:
-        str: Converted name.
-    """
-    if not name:
-        return
-
-    return ' '.join(part for part in name.split('_')).capitalize()
-
-
-class FuzzyDate:
-    def __init__(self, **kwargs):
-        self.year = kwargs.get('year')
-
-        if self.year:
-            self.month = kwargs.get('month')
-
-            if self.month:
-                self.day = kwargs.get('day')
-
-    def __bool__(self):
-        return bool(self.year)
-
-    def __str__(self):
-        if hasattr(self, 'day') and self.day:
-            return '{} {}, {}'.format(month_name[self.month], self.day, self.year)
-
-        if hasattr(self, 'month') and self.month:
-            return '{} {}'.format(month_name[self.month], self.year)
-
-        if self.year:
-            return str(self.year)
-
-        return 'unknown'
 
 
 class Anilist(BaseCog):
