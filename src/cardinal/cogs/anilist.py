@@ -62,8 +62,8 @@ def make_embed(item):
     embed.add_field(name='Status',
                     value=normalize_ssc(item['status']) or 'unknown')
 
-    embed.add_field(name='Start', value=FuzzyDate(**item['startDate']))
-    embed.add_field(name='End', value=FuzzyDate(**item['endDate']))
+    embed.add_field(name='Start', value=str(FuzzyDate(**item['startDate'])))
+    embed.add_field(name='End', value=str(FuzzyDate(**item['endDate'])))
 
     embed.add_field(name='Genres', value=', '.join(item['genres']), inline=False)
     embed.add_field(name='Description', value=md(item['description']), inline=False)
