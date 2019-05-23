@@ -64,6 +64,24 @@ def normalize_ssc(name):
     return ' '.join(part for part in name.split('_')).capitalize()
 
 
+def truncate_field(content):
+    """
+    Truncate a string to Discord's requirement for embed fields,
+    i.e. a maximum length of 1024.
+
+    Args:
+        content (str): String to truncate.
+
+    Returns:
+        str: Possibly truncated string, with ellipsis if truncated.
+
+    Todo:
+        This currently uses a naive string truncation,
+        which might damage the underlying Markdown.
+    """
+    return content if len(content) <= 1024 else content[:1021] + '...'
+
+
 def make_embed(item):
     titles = item['title']
     title_english = titles['english']
@@ -109,7 +127,7 @@ def make_embed(item):
     embed.add_field(name='End', value=str(FuzzyDate(**item['endDate'])))
 
     embed.add_field(name='Genres', value=', '.join(item['genres']), inline=False)
-    embed.add_field(name='Description', value=md(item['description']), inline=False)
+    embed.add_field(name='Description', value=truncate_field(md(item['description'])), inline=False)
 
     return embed
 
