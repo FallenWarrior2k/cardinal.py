@@ -6,10 +6,11 @@ from .moderation import Moderation
 from .mute import Mute
 from .newbie import Newbies
 from .roles import Roles
+from .stop import Stop
 from .whitelist import Whitelisting
 
 logger = logging.getLogger(__name__)
-cogs = (Anilist, Channels, Moderation, Mute, Newbies, Roles, Whitelisting)
+cogs = (Anilist, Channels, Moderation, Mute, Newbies, Roles, Stop, Whitelisting)
 
 
 def setup(bot):
