@@ -1,4 +1,5 @@
 import logging
+from asyncio import TimeoutError
 from unittest import mock
 
 from discord import HTTPException
@@ -169,12 +170,14 @@ class TestPrompt:
         ctx.send.assert_called_once_with(msg)
 
     async def test_timeout_triggered(self, ctx, msg):
-        ctx.bot.wait_for.coro.return_value = None
+        exc = TimeoutError()
+        ctx.bot.wait_for.coro.side_effect = exc
 
-        with raises(PromptTimeout):
+        with raises(PromptTimeout) as exc_info:
             await prompt(msg, ctx)
 
         ctx.send.assert_called_once_with(msg)
+        assert exc_info.value.__cause__ is exc
 
 
 @mark.asyncio

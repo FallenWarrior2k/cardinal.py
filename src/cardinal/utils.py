@@ -1,3 +1,4 @@
+from asyncio import TimeoutError
 from logging import getLogger
 
 from discord import HTTPException
@@ -51,9 +52,10 @@ async def prompt(msg, ctx, timeout=60.0):
         return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
 
     await ctx.send(msg)
-    response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
-    if not response:
-        raise PromptTimeout()
+    try:
+        response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
+    except TimeoutError as e:
+        raise PromptTimeout() from e
 
     return response
 
