@@ -1,19 +1,19 @@
-import logging
+from logging import getLogger
 
-import discord
-from discord.ext import commands
+from discord import TextChannel
+from discord.ext.commands import group, guild_only, has_permissions
 
 from ..context import Context
 from ..db import WhitelistedChannel
 from ..utils import clean_prefix
 from .basecog import BaseCog
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class Whitelisting(BaseCog):
-    @commands.group(aliases=['wl'])
-    @commands.guild_only()
+    @group(aliases=['wl'])
+    @guild_only()
     async def whitelist(self, ctx: Context):
         """
         Whitelist channels to allow for command usage.
@@ -29,8 +29,8 @@ class Whitelisting(BaseCog):
             return
 
     @whitelist.command()
-    @commands.has_permissions(manage_channels=True)
-    async def add(self, ctx: Context, *, channel: discord.TextChannel = None):
+    @has_permissions(manage_channels=True)
+    async def add(self, ctx: Context, *, channel: TextChannel = None):
         """
         Add a channel to the whitelist.
 
@@ -56,8 +56,8 @@ class Whitelisting(BaseCog):
         await ctx.send('Whitelisted channel {}.'.format(channel.mention))
 
     @whitelist.command()
-    @commands.has_permissions(manage_channels=True)
-    async def remove(self, ctx: Context, *, channel: discord.TextChannel = None):
+    @has_permissions(manage_channels=True)
+    async def remove(self, ctx: Context, *, channel: TextChannel = None):
         """
         Remove a channel from the whitelist.
 

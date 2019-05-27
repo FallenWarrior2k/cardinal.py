@@ -1,4 +1,4 @@
-import pytest
+from pytest import fixture, raises
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -9,21 +9,21 @@ from cardinal.errors import ChannelNotWhitelisted
 
 
 class TestChannelWhitelisted:
-    @pytest.fixture(scope='class')
+    @fixture(scope='class')
     def engine(self):
         # TODO: Clean up this god-forsaken mess
         engine = create_engine('sqlite:///')
         Base.metadata.create_all(engine)
         return engine
 
-    @pytest.fixture
+    @fixture
     def session(self, engine):
         session = Session(bind=engine)
         yield session
         session.rollback()
         session.close()
 
-    @pytest.fixture
+    @fixture
     def ctx(self, mocker, session):
         ctx = mocker.Mock()
         ctx.bot.session_scope.return_value = mocker.MagicMock()
@@ -33,7 +33,7 @@ class TestChannelWhitelisted:
 
         return ctx
 
-    @pytest.fixture
+    @fixture
     def command(self, mocker):
         return mocker.Mock()
 
@@ -41,7 +41,7 @@ class TestChannelWhitelisted:
     @staticmethod
     def expect_fail(command, ctx):
         pred = command.__commands_checks__[0]
-        with pytest.raises(ChannelNotWhitelisted) as exc_info:
+        with raises(ChannelNotWhitelisted) as exc_info:
             pred(ctx)
 
         exc = exc_info.value

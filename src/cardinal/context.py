@@ -1,10 +1,10 @@
-from discord.ext import commands
+from discord.ext.commands import Context as BaseContext
 from lazy import lazy
 
 from .errors import IllegalSessionUse
 
 
-class Context(commands.Context):
+class Context(BaseContext):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

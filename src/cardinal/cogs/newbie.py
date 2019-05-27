@@ -1,11 +1,13 @@
-import asyncio
-import logging
 import re
+from asyncio import sleep
 from datetime import datetime, timedelta
 from functools import partial, wraps
+from logging import getLogger
 
-import discord
-from discord.ext import commands
+from discord import Forbidden, HTTPException, Member, Message, Permissions, TextChannel
+from discord.abc import PrivateChannel
+from discord.ext.commands import Command, bot_has_permissions, group, guild_only, has_permissions
+from discord.utils import get
 
 from ..context import Context
 from ..db import NewbieChannel, NewbieGuild, NewbieUser
@@ -13,7 +15,7 @@ from ..errors import PromptTimeout
 from ..utils import clean_prefix, prompt
 from .basecog import BaseCog
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 # Matches either a channel mention of the form "<#id>" or a raw ID.
 # The actual ID can be extracted from the 'id' group of the match object
@@ -23,7 +25,7 @@ channel_re = re.compile(r'((<#)|^)(?P<id>\d+)(?(2)>|(\s|$))')
 def newbie_enabled(func):
     """Decorator to check if newbie roling is enabled before running the command."""
 
-    if isinstance(func, commands.Command):
+    if isinstance(func, Command):
         cmd = func.callback
     else:
         cmd = func
@@ -40,7 +42,7 @@ def newbie_enabled(func):
 
         await cmd(*args, **kwargs)
 
-    if isinstance(func, commands.Command):
+    if isinstance(func, Command):
         func.callback = wrapper
         return func
     else:
@@ -77,18 +79,18 @@ class Newbies(BaseCog):
                         await member.kick(reason='Verification timed out.')
                         session.delete(db_user)
                         logger.info('Kicked overdue user {} from guild {}.'.format(member, guild))
-                    except discord.Forbidden:
+                    except Forbidden:
                         logger.exception('Lacking permissions to kick user {} from guild {}.'
                                          .format(member, guild))
-                    except discord.HTTPException as e:
+                    except HTTPException as e:
                         logger.exception(
                             'Failed to kick user {} from guild {} due to HTTP error {}.'
                             .format(member, guild, e.response.status))
 
-            await asyncio.sleep(60)
+            await sleep(60)
 
     @staticmethod
-    async def add_member(session, db_guild: NewbieGuild, member: discord.Member):
+    async def add_member(session, db_guild: NewbieGuild, member: Member):
         if session.query(NewbieUser).get((member.id, db_guild.guild_id)):
             return  # Exit if user already in DB
 
@@ -101,11 +103,11 @@ class Newbies(BaseCog):
 
         try:
             message = await member.send(message_content)
-        except discord.Forbidden:
+        except Forbidden:
             logger.exception('Cannot message user {} and thus cannot prompt for verification.'
                              .format(member))
             return
-        except discord.HTTPException as e:
+        except HTTPException as e:
             logger.exception('Failed sending message to user {} due to HTTP error {}.'
                              .format(member, e.response.status))
             return
@@ -126,11 +128,11 @@ class Newbies(BaseCog):
                     'you agree that this bot stores your user ID for identification purposes.\n'
                     'It shall be deleted once you confirm the above message or leave the server.'
                     .format(member.guild.name))
-            except discord.HTTPException:
+            except HTTPException:
                 # First message went through, no need to further handle this, should it ever occur
                 pass
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_ready(self):
         with self.bot.session_scope() as session:
             for db_guild in session.query(NewbieGuild):
@@ -146,8 +148,8 @@ class Newbies(BaseCog):
                 for member in to_add:
                     await self.add_member(session, db_guild, member)
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member: discord.Member):
+    @BaseCog.listener()
+    async def on_member_join(self, member: Member):
         with self.bot.session_scope() as session:
             db_guild = session.query(NewbieGuild).get(member.guild.id)
 
@@ -166,8 +168,8 @@ class Newbies(BaseCog):
 
             await self.add_member(session, db_guild, member)
 
-    @commands.Cog.listener()
-    async def on_member_remove(self, member: discord.Member):
+    @BaseCog.listener()
+    async def on_member_remove(self, member: Member):
         with self.bot.session_scope() as session:
             # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
             # Use query instead of object deletion to prevent redundant SELECT query
@@ -175,8 +177,8 @@ class Newbies(BaseCog):
                 .filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id)\
                 .delete(synchronize_session=False)
 
-    @commands.Cog.listener()
-    async def on_member_update(self, before: discord.Member, after: discord.Member):
+    @BaseCog.listener()
+    async def on_member_update(self, before: Member, after: Member):
         with self.bot.session_scope() as session:
             db_user = session.query(NewbieUser).get((before.id, before.guild.id))
 
@@ -191,12 +193,12 @@ class Newbies(BaseCog):
             if role not in before.roles and role in after.roles:
                 session.delete(db_user)
 
-    @commands.Cog.listener()
-    async def on_message(self, msg: discord.Message):
+    @BaseCog.listener()
+    async def on_message(self, msg: Message):
         if msg.author.id == self.bot.user.id:
             return
 
-        if not isinstance(msg.channel, discord.abc.PrivateChannel):
+        if not isinstance(msg.channel, PrivateChannel):
             return
 
         with self.bot.session_scope() as session:
@@ -218,10 +220,10 @@ class Newbies(BaseCog):
                     if joined_interval >= db_guild.timeout:
                         try:
                             await member.kick()
-                        except discord.Forbidden:
+                        except Forbidden:
                             logger.exception('Lacking permissions to kick user {} from guild {}.'
                                              .format(member, guild))
-                        except discord.HTTPException as e:
+                        except HTTPException as e:
                             logger.exception(
                                 'Failed to kick user {} from guild {} due to HTTP error {}.'
                                 .format(member, guild, e.response.status))
@@ -244,17 +246,17 @@ class Newbies(BaseCog):
                     logger.info('Verified user {} on guild {}.'.format(member, guild))
 
                     await msg.author.send('Welcome to {}'.format(guild.name))
-                except discord.Forbidden:
+                except Forbidden:
                     logger.exception('Lacking permissions to manage roles for user {} on guild {}.')
-                except discord.HTTPException as e:
+                except HTTPException as e:
                     logger.exception(
                         'Failed to manage roles for user {} on guild {} due to HTTP error {}.'
                         .format(member, guild, e.response.status))
 
-    @commands.group()
-    @commands.guild_only()
-    @commands.has_permissions(manage_guild=True)
-    @commands.bot_has_permissions(manage_roles=True, manage_channels=True)
+    @group()
+    @guild_only()
+    @has_permissions(manage_guild=True)
+    @bot_has_permissions(manage_roles=True, manage_channels=True)
     async def newbie(self, ctx: Context):
         """
         Make new members have restricted permissions until they confirm themselves.
@@ -291,7 +293,7 @@ class Newbies(BaseCog):
         everyone_permissions.read_messages = False
         everyone_permissions.send_messages = False
         everyone_permissions.read_message_history = False
-        member_permissions = discord.Permissions(0x400 | 0x800 | 0x10000)
+        member_permissions = Permissions(0x400 | 0x800 | 0x10000)
 
         bound_prompt = partial(prompt, ctx=ctx)
 
@@ -339,7 +341,7 @@ class Newbies(BaseCog):
                 channel_id = int(match.group('id'))
                 channel = ctx.guild.get_channel(channel_id)
             else:
-                channel = discord.utils.get(ctx.guild.text_channels, name=channel_string.lower())
+                channel = get(ctx.guild.text_channels, name=channel_string.lower())
 
             if channel and channel.guild.id == ctx.guild.id:
                 everyone_overwrite = channel.overwrites_for(everyone_role)
@@ -373,7 +375,7 @@ class Newbies(BaseCog):
         member_perms = role.permissions
 
         # Copy old everyone perms and additionally grant perms on member role
-        merged_perms = discord.Permissions(everyone_perms.value)
+        merged_perms = Permissions(everyone_perms.value)
         merged_perms.update(**{perm: val for perm, val in member_perms if val})
 
         await everyone_role.edit(permissions=merged_perms)
@@ -486,7 +488,7 @@ class Newbies(BaseCog):
 
     @channels.command()
     @newbie_enabled
-    async def add(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def add(self, ctx: Context, *, channel: TextChannel = None):
         """
         Add a channel to the list of channels unconfirmed users can access.
 
@@ -520,7 +522,7 @@ class Newbies(BaseCog):
 
     @channels.command()
     @newbie_enabled
-    async def remove(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def remove(self, ctx: Context, *, channel: TextChannel = None):
         """
         Remove a channel from the list of channels unconfirmed users can access.
 

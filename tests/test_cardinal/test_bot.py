@@ -1,8 +1,12 @@
 import logging
 
-import discord
-import pytest
-from discord.ext import commands
+from discord import Game
+from discord.ext.commands import (
+    BadArgument, BotMissingPermissions, CheckFailure, CommandError, CommandInvokeError,
+    CommandNotFound, CommandOnCooldown, DisabledCommand, MissingPermissions,
+    MissingRequiredArgument, NoPrivateMessage, NotOwner, TooManyArguments, UserInputError
+)
+from pytest import fixture, mark, raises
 from sqlalchemy.orm import Session, sessionmaker
 
 from cardinal.bot import Bot
@@ -10,17 +14,17 @@ from cardinal.context import Context
 from cardinal.errors import UserBlacklisted
 
 
-@pytest.fixture
+@fixture
 def engine(mocker):
     return mocker.Mock()
 
 
-@pytest.fixture
+@fixture
 def baseclass_ctor(mocker):
-    return mocker.patch('cardinal.bot.commands.Bot.__init__')
+    return mocker.patch('cardinal.bot.BaseBot.__init__')
 
 
-@pytest.fixture
+@fixture
 def bot(baseclass_ctor, engine, mocker, request):
     kwargs = getattr(request, 'param', {})  # Use request param if provided
     return Bot(engine=engine, **kwargs)
@@ -33,7 +37,7 @@ class TestCtor:
 
         baseclass_ctor.assert_called_once_with(description='cardinal.py', game=None)
 
-    @pytest.mark.parametrize(
+    @mark.parametrize(
         ['bot'],
         [
             [{'default_game': 'test 123'}]
@@ -41,20 +45,20 @@ class TestCtor:
         indirect=True
     )
     def test_game(self, baseclass_ctor, bot):
-        game = discord.Game('test 123')
+        game = Game('test 123')
         baseclass_ctor.assert_called_once_with(description='cardinal.py', game=game)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_before_invoke_hook(bot, mocker):
     ctx = mocker.Mock()
     await bot.before_invoke_hook(ctx)
     assert ctx.session_allowed
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 class TestAfterInvokeHook:
-    @pytest.fixture
+    @fixture
     def ctx(self, mocker):
         ctx = mocker.Mock(spec=Context)
         ctx.session = mocker.Mock(spec=Session)
@@ -92,11 +96,11 @@ class TestAfterInvokeHook:
 
 
 class TestSessionScope:
-    @pytest.fixture
+    @fixture
     def session(self, mocker):
         return mocker.Mock(spec=Session)
 
-    @pytest.fixture
+    @fixture
     def sessionmaker(self, bot, mocker, session):
         return mocker.patch.object(bot, 'sessionmaker', return_value=session)
 
@@ -111,7 +115,7 @@ class TestSessionScope:
     def test_exception(self, bot, session, sessionmaker):
         exc_message = 'Test exception message'
         exc = Exception(exc_message)
-        with pytest.raises(Exception, match=exc_message):
+        with raises(Exception, match=exc_message):
             with bot.session_scope() as new_session:
                 assert new_session is session
                 raise exc
@@ -121,7 +125,7 @@ class TestSessionScope:
         session.close.assert_called_once_with()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_on_ready(bot, caplog, mocker):
     mocker.patch('cardinal.bot.Bot.user', new_callable=mocker.PropertyMock, return_value='test123')
     with caplog.at_level(logging.INFO, logger='cardinal.bot'):
@@ -130,14 +134,14 @@ async def test_on_ready(bot, caplog, mocker):
     assert caplog.records != []
 
 
-@pytest.mark.usefixtures("patches")
-@pytest.mark.asyncio
+@mark.usefixtures("patches")
+@mark.asyncio
 class TestOnMessage:
-    @pytest.fixture
+    @fixture
     def ctx(self, mocker):
         return mocker.Mock()
 
-    @pytest.fixture
+    @fixture
     def patches(self, bot, ctx, mocker):
         mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
         mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
@@ -160,7 +164,7 @@ class TestOnMessage:
         bot.invoke.assert_not_called()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_on_command(bot, caplog, mocker):
     mock_msg = 'Test message'
     format_message = mocker.patch('cardinal.bot.format_message', return_value=mock_msg)
@@ -173,13 +177,13 @@ async def test_on_command(bot, caplog, mocker):
     format_message.assert_called_once_with(ctx.message)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 class TestOnCommandError:
-    @pytest.fixture
+    @fixture
     def clean_prefix(self, mocker):
         return mocker.patch('cardinal.bot.clean_prefix', return_value='Test prefix')
 
-    @pytest.fixture
+    @fixture
     def ctx(self, mocker):
         ctx = mocker.Mock()
         ctx.command.qualified_name = 'Test command name'
@@ -189,14 +193,14 @@ class TestOnCommandError:
         return ctx
 
     async def test_command_error(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.CommandError)
+        error = mocker.Mock(spec=CommandError)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
     async def test_missing_required_argument(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.MissingRequiredArgument)
+        error = mocker.Mock(spec=MissingRequiredArgument)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
@@ -206,7 +210,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_bad_argument(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.BadArgument)
+        error = mocker.Mock(spec=BadArgument)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
@@ -216,7 +220,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_no_private_message(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.NoPrivateMessage)
+        error = mocker.Mock(spec=NoPrivateMessage)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -225,7 +229,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_check_failure(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.CheckFailure)
+        error = mocker.MagicMock(spec=CheckFailure)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -234,21 +238,21 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_command_not_found(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.CommandNotFound)
+        error = mocker.Mock(spec=CommandNotFound)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
     async def test_disabled_command(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.DisabledCommand)
+        error = mocker.Mock(spec=DisabledCommand)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
     async def test_command_invoke_error(self, bot, caplog, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.CommandInvokeError)
+        error = mocker.Mock(spec=CommandInvokeError)
         error.original = mocker.MagicMock()
 
         with caplog.at_level(logging.ERROR, logger='cardinal.bot'):
@@ -260,7 +264,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_too_many_arguments(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.TooManyArguments)
+        error = mocker.Mock(spec=TooManyArguments)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
@@ -270,7 +274,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_user_input_error(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.UserInputError)
+        error = mocker.Mock(spec=UserInputError)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
@@ -279,7 +283,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_command_on_cooldown(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.CommandOnCooldown)
+        error = mocker.MagicMock(spec=CommandOnCooldown)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -287,7 +291,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_not_owner(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.NotOwner)
+        error = mocker.MagicMock(spec=NotOwner)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -296,7 +300,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_missing_permissions(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.MissingPermissions)
+        error = mocker.MagicMock(spec=MissingPermissions)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -305,7 +309,7 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_bot_missing_permissions(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.BotMissingPermissions)
+        error = mocker.MagicMock(spec=BotMissingPermissions)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -321,7 +325,7 @@ class TestOnCommandError:
         ctx.send.assert_not_called()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_on_error(bot, caplog):
     with caplog.at_level(logging.ERROR, logger='cardinal.bot'):
         await bot.on_error('Test name')

@@ -2,7 +2,7 @@ from calendar import month_name
 
 from aiohttp import ClientSession
 from discord import Embed
-from discord.ext import commands
+from discord.ext.commands import command
 from markdownify import markdownify as md
 
 from .basecog import BaseCog
@@ -210,7 +210,7 @@ class Anilist(BaseCog):
 
         return res_body['data']
 
-    @commands.command(aliases=['ani', 'al', 'anilist'])
+    @command(aliases=['ani', 'al', 'anilist'])
     async def anime(self, ctx, *, search: str):
         """
         Look up an anime on Anilist.
@@ -224,7 +224,7 @@ class Anilist(BaseCog):
 
         await ctx.send(embed=make_embed(data['anime']))
 
-    @commands.command()
+    @command()
     async def manga(self, ctx, *, search: str):
         """
         Look up a manga on Anilist.
@@ -240,7 +240,7 @@ class Anilist(BaseCog):
 
         await ctx.send(embed=make_embed(data['manga']))
 
-    @commands.command(aliases=['lightnovel', 'novel'])
+    @command(aliases=['lightnovel', 'novel'])
     async def ln(self, ctx, *, search: str):
         """
         Look up a light novel on Anilist.

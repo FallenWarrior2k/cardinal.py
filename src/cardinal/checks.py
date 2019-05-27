@@ -1,4 +1,4 @@
-from discord.ext import commands
+from discord.ext.commands import check
 
 from .context import Context
 from .db import WhitelistedChannel
@@ -28,4 +28,4 @@ def channel_whitelisted(exception_predicate=None):
 
         return True
 
-    return commands.check(predicate)
+    return check(predicate)

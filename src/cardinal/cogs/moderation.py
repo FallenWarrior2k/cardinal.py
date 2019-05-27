@@ -1,12 +1,12 @@
-import logging
+from logging import getLogger
 
-import discord
-from discord.ext import commands
+from discord import Member
+from discord.ext.commands import bot_has_permissions, command, guild_only, has_permissions
 
 from ..context import Context
 from .basecog import BaseCog
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class Moderation(BaseCog):
@@ -14,11 +14,11 @@ class Moderation(BaseCog):
     A collection of general moderation commands to simplify the daily life of a mod.
     """
 
-    @commands.command(aliases=['boot'])
-    @commands.guild_only()
-    @commands.has_permissions(kick_members=True)
-    @commands.bot_has_permissions(kick_members=True)
-    async def kick(self, ctx: Context, user: discord.Member, *, reason: str = None):
+    @command(aliases=['boot'])
+    @guild_only()
+    @has_permissions(kick_members=True)
+    @bot_has_permissions(kick_members=True)
+    async def kick(self, ctx: Context, user: Member, *, reason: str = None):
         """
         Kick a member from the current server.
 
@@ -39,13 +39,13 @@ class Moderation(BaseCog):
         await user.kick(reason=reason)
         await ctx.send('User **{0}** ({0.id}) was kicked by {1}.'.format(user, ctx.author.mention))
 
-    @commands.command(aliases=['getout', 'gulag'])
-    @commands.guild_only()
-    @commands.has_permissions(ban_members=True)
-    @commands.bot_has_permissions(ban_members=True)
+    @command(aliases=['getout', 'gulag'])
+    @guild_only()
+    @has_permissions(ban_members=True)
+    @bot_has_permissions(ban_members=True)
     async def ban(self,
                   ctx: Context,
-                  user: discord.Member,
+                  user: Member,
                   prune_days: int = 1,
                   *,
                   reason: str = None):

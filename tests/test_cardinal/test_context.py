@@ -1,15 +1,15 @@
-import pytest
+from pytest import fixture, mark, raises
 
 from cardinal.context import Context
 from cardinal.errors import IllegalSessionUse
 
 
-@pytest.fixture
+@fixture
 def base_ctor(mocker):
-    return mocker.patch('cardinal.context.commands.Context.__init__')
+    return mocker.patch('cardinal.context.BaseContext.__init__')
 
 
-@pytest.fixture
+@fixture
 def ctx(base_ctor, request):
     kwargs = getattr(request, 'param', {})
 
@@ -18,13 +18,13 @@ def ctx(base_ctor, request):
         base_ctor.assert_called_once_with(**kwargs)
 
 
-@pytest.fixture
+@fixture
 def sessionmaker(ctx, mocker):
     ctx.bot = mocker.Mock()
     return ctx.bot.sessionmaker
 
 
-@pytest.mark.parametrize(
+@mark.parametrize(
     ['ctx'],
     [
         ({},),
@@ -37,7 +37,7 @@ def test_ctor(ctx):
 
 
 def test_session_not_allowed(ctx, sessionmaker):
-    with pytest.raises(IllegalSessionUse):
+    with raises(IllegalSessionUse):
         _ = ctx.session
 
     sessionmaker.assert_not_called()

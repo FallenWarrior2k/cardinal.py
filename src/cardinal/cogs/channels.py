@@ -1,7 +1,7 @@
-import logging
+from logging import getLogger
 
-import discord
-from discord.ext import commands
+from discord import Embed, TextChannel
+from discord.ext.commands import bot_has_permissions, group, guild_only, has_permissions
 
 from ..checks import channel_whitelisted
 from ..context import Context
@@ -9,13 +9,13 @@ from ..db import OptinChannel
 from ..utils import clean_prefix
 from .basecog import BaseCog
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class Channels(BaseCog):
-    @commands.group('channel', aliases=['channels'])
-    @commands.guild_only()
-    @commands.bot_has_permissions(manage_roles=True)
+    @group('channel', aliases=['channels'])
+    @guild_only()
+    @bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
     async def channels(self, ctx: Context):
         """
@@ -38,7 +38,7 @@ class Channels(BaseCog):
             return
 
     @channels.command(aliases=['show'])
-    async def join(self, ctx: Context, *, channel: discord.TextChannel):
+    async def join(self, ctx: Context, *, channel: TextChannel):
         """
         Grant a user access to an opt-in enabled channel.
 
@@ -63,7 +63,7 @@ class Channels(BaseCog):
                        .format(user=ctx.author.mention, channel=channel.mention))
 
     @channels.command(aliases=['hide'])
-    async def leave(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def leave(self, ctx: Context, *, channel: TextChannel = None):
         """
         Revoke a user's access to an opt-in enabled channel.
 
@@ -131,15 +131,15 @@ class Channels(BaseCog):
             for role in role_iter
         )
 
-        em = discord.Embed(title='Channel stats for ' + ctx.guild.name, color=0x38CBF0)
+        em = Embed(title='Channel stats for ' + ctx.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
             em.add_field(name='#' + role.name, value=str(role_dict[role]))
 
         await ctx.send(embed=em)
 
     @channels.group('opt-in')
-    @commands.has_permissions(manage_channels=True)
-    @commands.bot_has_permissions(manage_channels=True)
+    @has_permissions(manage_channels=True)
+    @bot_has_permissions(manage_channels=True)
     async def _opt_in(self, ctx: Context):
         """
         Allows moderators to toggle a channel's opt-in status.
@@ -155,7 +155,7 @@ class Channels(BaseCog):
             await ctx.send('Invalid command passed: possible options are "enable" and "disable".')
 
     @_opt_in.command()
-    async def enable(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def enable(self, ctx: Context, *, channel: TextChannel = None):
         """
         Make a channel opt-in, revoking access for @\u200beveryone
          and granting it only to a specifically created role.
@@ -188,7 +188,7 @@ class Channels(BaseCog):
         await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
 
     @_opt_in.command()
-    async def disable(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def disable(self, ctx: Context, *, channel: TextChannel = None):
         """
         Remove the opt-in status from a channel, making it accessible for @\u200beveryone again.
 

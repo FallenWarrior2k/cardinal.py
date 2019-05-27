@@ -1,9 +1,9 @@
 from asyncio import coroutine
 
-import pytest
+from pytest import fixture
 
 
-@pytest.fixture
+@fixture
 def mocker(mocker):
     """
     Extend the global mocker fixture with a coroutine mock and non-callable mocks.

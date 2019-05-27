@@ -1,23 +1,23 @@
-import unittest.mock as mock
 from itertools import islice
+from unittest import mock
 
-import pytest
-from discord.ext import commands
+from discord.ext.commands import Bot
+from pytest import fixture, mark, raises
 
 from cardinal import cogs
 
 
 class TestSetup:
-    @pytest.fixture
+    @fixture
     def bot(self, mocker):
-        return mocker.Mock(spec=commands.Bot)
+        return mocker.Mock(spec=Bot)
 
-    @pytest.fixture
+    @fixture
     def cog_list(self, request, mocker):
         mocker.patch('cardinal.cogs.cogs', new=request.param)
         return request.param
 
-    @pytest.mark.parametrize(
+    @mark.parametrize(
         ['cog_list'],
         [
             ([],),
@@ -37,7 +37,7 @@ class TestSetup:
             cog.assert_called_once_with(bot)
             assert ((cog.return_value,), {}) == bot.add_cog.call_args_list[i]
 
-    @pytest.mark.parametrize(
+    @mark.parametrize(
         ['cog_list'],
         [
             ([mock.MagicMock(__name__='test mock 1', side_effect=Exception('mock exception 1'))],),
@@ -54,7 +54,7 @@ class TestSetup:
         first_exc_cog, first_exc_i = next((_c, i) for i, _c in enumerate(cog_list)
                                           if _c.side_effect)
 
-        with pytest.raises(Exception, match=str(first_exc_cog.side_effect)):
+        with raises(Exception, match=str(first_exc_cog.side_effect)):
             cogs.setup(bot)
 
         # Check cogs that came before the one with the exception
