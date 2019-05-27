@@ -137,11 +137,8 @@ class Anilist(BaseCog):
     Anilist lookup commands.
     """
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.http = ClientSession(loop=self.bot.loop)
-
-    query = """
+    ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
+    QUERY = """
     query(
         $isAnime: Boolean!,
         $format: [MediaFormat],
@@ -196,13 +193,19 @@ class Anilist(BaseCog):
     }
     """
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        # Init session with bot's loop
+        # Set `raise_for_status` so that commands don't touch data if an error happened
+        self.http = ClientSession(loop=self.bot.loop, raise_for_status=True)
+
     async def execute_graphql(self, **variables):
         body = {
-            'query': self.query,
+            'query': self.QUERY,
             'variables': variables
         }
 
-        async with self.http.post('https://graphql.anilist.co', json=body) as res:
+        async with self.http.post(self.ANILIST_GRAPHQL_URL, json=body) as res:
             res_body = await res.json()
 
         return res_body['data']
