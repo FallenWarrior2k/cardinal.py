@@ -5,10 +5,7 @@ from datetime import datetime, timedelta
 from itertools import chain
 from logging import getLogger
 
-from discord import (
-    CategoryChannel, Colour, Forbidden, HTTPException,
-    Member, PermissionOverwrite, Role, TextChannel
-)
+from discord import Colour, Forbidden, HTTPException, Member, PermissionOverwrite, Role
 from discord.ext.commands import bot_has_permissions, command, group, guild_only, has_permissions
 
 from ..db import MuteGuild, MuteUser
@@ -16,7 +13,8 @@ from ..utils import maybe_send
 from .basecog import BaseCog
 
 logger = getLogger(__name__)
-
+# Overwrite to use for new channels
+new_channel_overwrite = PermissionOverwrite(send_messages=False, speak=False)
 units = {
     's': 1,
     'sec': 1,
@@ -94,12 +92,10 @@ async def _init_role(ctx, db_guild=None):
         new_position = ctx.me.top_role.position - 1
         await mute_role.edit(position=new_position)
 
-        new_overwrite = PermissionOverwrite(send_messages=False, speak=False)
-
         # Process all categories before touching specific channels
         # Makes use of permission sync
         await gather(
-            *(category.set_permissions(mute_role, overwrite=new_overwrite)
+            *(category.set_permissions(mute_role, overwrite=new_channel_overwrite)
               for category in ctx.guild.categories)
         )
 
@@ -109,10 +105,10 @@ async def _init_role(ctx, db_guild=None):
 
         def is_synced(channel):
             current_overwrite = channel.overwrites_for(mute_role)
-            return current_overwrite.send_messages is False and current_overwrite.speak is False
+            return current_overwrite == new_channel_overwrite
 
         await gather(
-            *(channel.set_permissions(mute_role, overwrite=new_overwrite)
+            *(channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
               for channel in chain(ctx.guild.text_channels, ctx.guild.voice_channels)
               if not is_synced(channel))
         )
@@ -276,12 +272,7 @@ class Mute(BaseCog):
             if not mute_role:
                 return
 
-            if isinstance(channel, CategoryChannel):
-                await channel.set_permissions(mute_role, send_messages=False, speak=False)
-            elif isinstance(channel, TextChannel):
-                await channel.set_permissions(mute_role, send_messages=False)
-            else:
-                await channel.set_permissions(mute_role, speak=False)
+            await channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
 
     @BaseCog.listener()
     async def on_guild_role_delete(self, role):
