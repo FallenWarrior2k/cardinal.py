@@ -1,6 +1,7 @@
 import logging
 
 from .anilist import Anilist
+from .botadmin import BotAdmin
 from .channels import Channels
 from .jisho import Jisho
 from .moderation import Moderation
@@ -11,7 +12,7 @@ from .stop import Stop
 from .whitelist import Whitelisting
 
 logger = logging.getLogger(__name__)
-cogs = (Anilist, Channels, Jisho, Moderation, Mute, Newbies, Roles, Stop, Whitelisting)
+cogs = (Anilist, BotAdmin, Channels, Jisho, Moderation, Mute, Newbies, Roles, Stop, Whitelisting)
 
 
 def setup(bot):
