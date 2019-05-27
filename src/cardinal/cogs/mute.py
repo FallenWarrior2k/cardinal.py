@@ -14,7 +14,7 @@ from .basecog import BaseCog
 
 logger = getLogger(__name__)
 # Overwrite to use for new channels
-new_channel_overwrite = PermissionOverwrite(send_messages=False, speak=False)
+new_channel_overwrite = PermissionOverwrite(add_reactions=False, send_messages=False, speak=False)
 units = {
     's': 1,
     'sec': 1,
