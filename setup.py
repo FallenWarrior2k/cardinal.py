@@ -38,7 +38,11 @@ setup(
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     package_data={
-        'cardinal': ['db/migrations/*', 'db/migrations/**/*']
+        'cardinal': [
+            'db/migrations/alembic.ini',
+            'db/migrations/env.py',
+            'db/migrations/versions/*.py'
+        ]
     },
     install_requires=[
         'discord.py>=1.5',
