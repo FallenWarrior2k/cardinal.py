@@ -126,10 +126,8 @@ class Channels(BaseCog):
 
         q = ctx.session.query(OptinChannel).filter_by(guild_id=ctx.guild.id)
         role_iter = filter(None, (ctx.guild.get_role(db_channel.role_id) for db_channel in q))
-        role_dict = dict(
-            (role, sum(1 for member in ctx.guild.members if role in member.roles))
-            for role in role_iter
-        )
+        role_dict = {role: sum(1 for member in ctx.guild.members if role in member.roles)
+                     for role in role_iter}
 
         em = Embed(title='Channel stats for ' + ctx.guild.name, color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
