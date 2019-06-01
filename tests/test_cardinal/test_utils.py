@@ -54,7 +54,7 @@ class TestCleanPrefix:
 
     def test_mention_dm(self, ctx):
         ctx.prefix = ctx.me.mention
-        expected = '@{}'.format(ctx.me.display_name)
+        expected = f'@{ctx.me.display_name}'
         got = clean_prefix(ctx)
         assert expected == got
 
@@ -68,7 +68,7 @@ class TestCleanPrefix:
     def test_mention_guild(self, ctx):
         ctx.guild = True
         ctx.prefix = ctx.me.mention
-        expected = '@{}'.format(ctx.me.display_name)
+        expected = f'@{ctx.me.display_name}'
         got = clean_prefix(ctx)
         assert expected == got
 

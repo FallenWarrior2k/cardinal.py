@@ -205,8 +205,8 @@ class TestOnCommandError:
 
         clean_prefix.assert_called_once_with(ctx)
         error_msg = 'Too few arguments. Did you forget anything?\n' \
-                    'See `{}help {}` for information on the command.'\
-                    .format(clean_prefix.return_value, ctx.command.qualified_name)
+                    f'See `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+                    'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_bad_argument(self, bot, clean_prefix, ctx, mocker):
@@ -215,8 +215,8 @@ class TestOnCommandError:
 
         clean_prefix.assert_called_once_with(ctx)
         error_msg = 'Argument parsing failed. Did you mistype anything?\n' \
-                    'See `{}help {}` for information on the command.'\
-                    .format(clean_prefix.return_value, ctx.command.qualified_name)
+                    f'See `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+                    'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_no_private_message(self, bot, clean_prefix, ctx, mocker):
@@ -224,8 +224,7 @@ class TestOnCommandError:
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'Command cannot be used in private message channels.'\
-            .format(clean_prefix.return_value, ctx.command.qualified_name)
+        error_msg = 'Command cannot be used in private message channels.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_check_failure(self, bot, clean_prefix, ctx, mocker):
@@ -234,7 +233,7 @@ class TestOnCommandError:
 
         clean_prefix.assert_not_called()
         error_msg = 'This command cannot be used in this context.\n' \
-                    '{}'.format(error.__str__.return_value)
+                    f'{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_command_not_found(self, bot, clean_prefix, ctx, mocker):
@@ -269,8 +268,8 @@ class TestOnCommandError:
 
         clean_prefix.assert_called_once_with(ctx)
         error_msg = 'Too many arguments. Did you miss any quotes?\n' \
-                    'See `{}help {}` for information on the command.'\
-                    .format(clean_prefix.return_value, ctx.command.qualified_name)
+                    f'See `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+                    'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_user_input_error(self, bot, clean_prefix, ctx, mocker):
@@ -278,8 +277,8 @@ class TestOnCommandError:
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
-        error_msg = '\nSee `{}help {}` for information on the command.' \
-            .format(clean_prefix.return_value, ctx.command.qualified_name)
+        error_msg = f'\nSee `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+            f'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_command_on_cooldown(self, bot, clean_prefix, ctx, mocker):
@@ -295,8 +294,7 @@ class TestOnCommandError:
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'\
-                    .format(error.__str__.return_value)
+        error_msg = f'This command cannot be used in this context.\n{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_missing_permissions(self, bot, clean_prefix, ctx, mocker):
@@ -304,8 +302,7 @@ class TestOnCommandError:
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'\
-                    .format(error.__str__.return_value)
+        error_msg = f'This command cannot be used in this context.\n{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_bot_missing_permissions(self, bot, clean_prefix, ctx, mocker):
@@ -313,8 +310,7 @@ class TestOnCommandError:
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'\
-                    .format(error.__str__.return_value)
+        error_msg = f'This command cannot be used in this context.\n{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_user_blacklisted(self, bot, clean_prefix, ctx, mocker):
