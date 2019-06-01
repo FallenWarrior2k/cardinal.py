@@ -3,21 +3,30 @@
 [![Coverage Status](https://coveralls.io/repos/github/FallenWarrior2k/cardinal.py/badge.svg?branch=master)](https://coveralls.io/github/FallenWarrior2k/cardinal.py?branch=master)
 [![Requirements Status](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements.svg?branch=master)](https://requires.io/github/FallenWarrior2k/cardinal.py/requirements/?branch=master)
 
-A growing Discord bot with a multitude of functionality.
+A growing, general-purpose, all-round Discord bot.
 
 ## Features
 
 ### Management and server structure
 * Selfroling
 * Opt-in channels, i.e. hidden channels that only appear to users after issuing a command
-* Restricting bot commands to certain channels (may be replaced/reworked in a future version)
+* Restricting bot commands to certain channels (due to be replaced/reworked in a future version)
 * Restricting new members' privileges until they confirm themselves
 
 ### Moderation
 * Kicking and banning
+* Muting (restricts Send Messages and Add Reactions in all channels)
+
+### Owner commands
+* Generate an invite link for the bot
+* Make the bot say things
+* Set the bot's avatar to an image supplied by URL or attachment
+* Set the bot's playing/streaming/listening status
+* Shut the bot down
 
 ### Utility
 * [Anilist](https://anilist.co) lookup of anime, manga, and light novels
+* Lookup of terms in [Jisho](https://jisho.org), a Japanese-English dictionary
 
 Albeit quite short right now, this list will probably grow in due time.
 
