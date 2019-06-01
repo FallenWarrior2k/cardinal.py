@@ -39,7 +39,7 @@ async def prompt(msg, ctx, timeout=60.0):
     Args:
         msg (str): Prompt to display to the user.
         ctx (cardinal.context.Context): Context that holds the channel and the user to listen for.
-        timeout (typings.Union[float, int]): How long (in seconds) to wait for a response.
+        timeout (typing.Union[float, int]): How long (in seconds) to wait for a response.
         Defaults to 60.
 
     Returns:
