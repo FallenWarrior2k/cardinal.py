@@ -32,16 +32,16 @@ def _format_word(word):
     reading = word['reading']
 
     if kanji and reading:
-        return '**{}** - {}'.format(kanji, reading)  # Both defined => output both
+        return f'**{kanji}** - {reading}'  # Both defined => output both
     elif kanji or reading:
-        return '**{}**'.format(kanji or reading)  # Just one defined => output whichever is
+        return f'**{kanji or reading}**'  # Just one defined => output whichever is
 
 
 def _format_sense(sense):
     text = comma_join(sense['english_definitions'])
 
     if sense['parts_of_speech']:
-        text += ' ({})'.format(comma_join(map(str.lower, sense['parts_of_speech'])))
+        text += f' ({comma_join(map(str.lower, sense["parts_of_speech"]))})'
 
     return text
 
@@ -58,7 +58,7 @@ def _build_text_response(result):
     """
     text = comma_join(_format_word(word) for word in result['japanese'])
     text += '\n'
-    text += newline_join('• {}'.format(_format_sense(sense)) for sense in result['senses'])
+    text += newline_join(f'• {_format_sense(sense)}' for sense in result['senses'])
     return text
 
 
@@ -96,10 +96,10 @@ class Jisho(BaseCog):
             results = await self._lookup_term(term)
 
         if not results:
-            await maybe_send(ctx, 'Could not find any results for `{}`.'.format(term))
+            await maybe_send(ctx, f'Could not find any results for `{term}`.')
             return
 
         result, *_ = results
         result_text = _build_text_response(result)
-        result_text += '\n\nSee also: <{}>'.format(_build_web_link(term))
+        result_text += f'\n\nSee also: <{_build_web_link(term)}>'
         await ctx.send(result_text)

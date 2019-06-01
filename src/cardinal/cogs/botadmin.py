@@ -95,7 +95,7 @@ class BotAdmin(BaseCog):
         try:
             activity_type = ActivityType[prefix.lower()]
         except KeyError:
-            await maybe_send(ctx, '"{}" is not a valid type of status.'.format(prefix))
+            await maybe_send(ctx, f'"{prefix}" is not a valid type of status.')
             return
 
         activity = Activity(type=activity_type, name=text)

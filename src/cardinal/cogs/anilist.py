@@ -36,10 +36,10 @@ class FuzzyDate:
 
     def __str__(self):
         if hasattr(self, 'day') and self.day:
-            return '{} {}, {}'.format(month_name[self.month], self.day, self.year)
+            return f'{month_name[self.month]} {self.day}, {self.year}'
 
         if hasattr(self, 'month') and self.month:
-            return '{} {}'.format(month_name[self.month], self.year)
+            return f'{month_name[self.month]} {self.year}'
 
         if self.year:
             return str(self.year)
@@ -87,7 +87,7 @@ def make_embed(item):
     title_english = titles['english']
     title_romaji = titles['romaji']
     if title_english and title_romaji and (title_english != title_romaji):
-        title = '{} (_{}_)'.format(title_english, title_romaji)
+        title = f'{title_english} (_{title_romaji}_)'
 
     else:
         title = title_english or title_romaji  # At least one of these should be non-empty
@@ -105,7 +105,7 @@ def make_embed(item):
         icon_url='https://anilist.co/img/icons/favicon-32x32.png'
     )
 
-    score = '{} %'.format(item['averageScore']) if item['averageScore'] else '-'
+    score = f'{item["averageScore"]} %' if item['averageScore'] else '-'
     embed.add_field(name='Average Score', value=score, inline=False)
 
     embed.add_field(name='Format', value=format_repr[item['format']])

@@ -64,7 +64,7 @@ class Bot(BaseBot):
             session.close()
 
     async def on_ready(self):
-        logger.info('Logged into Discord as {}'.format(self.user))
+        logger.info(f'Logged into Discord as {self.user}')
 
     async def on_message(self, msg):
         if msg.author.bot:
@@ -82,8 +82,7 @@ class Bot(BaseBot):
         if isinstance(ex, NoPrivateMessage):
             error_msg = 'Command cannot be used in private message channels.'
         elif isinstance(ex, CheckFailure) and not isinstance(ex, UserBlacklisted):
-            error_msg = 'This command cannot be used in this context.\n'
-            error_msg += str(ex)
+            error_msg = f'This command cannot be used in this context.\n{ex}'
         elif isinstance(ex, MissingRequiredArgument):
             error_msg = 'Too few arguments. Did you forget anything?'
         elif isinstance(ex, TooManyArguments):
@@ -94,17 +93,17 @@ class Bot(BaseBot):
             error_msg = str(ex)
 
         if isinstance(ex, UserInputError):
-            error_msg += '\nSee `{}help {}` for information on the command.' \
-                .format(clean_prefix(ctx), ctx.command.qualified_name)
+            error_msg += f'\nSee `{clean_prefix(ctx)}help {ctx.command.qualified_name}` ' \
+                'for information on the command.'
 
         if isinstance(ex, CommandInvokeError):
             logger.error(
-                'An exception was raised while executing the command for "{}".'
-                .format(ctx.message.content), exc_info=ex.original)
+                f'An exception was raised while executing the command for "{ctx.message.content}".',
+                exc_info=ex.original)
             error_msg += 'An error occurred while executing the command.'
 
         if error_msg != '':
             await ctx.send(error_msg)
 
     async def on_error(self, event, *args, **kwargs):
-        logger.exception('An exception occured while handling event "{}".'.format(event))
+        logger.exception(f'An exception occured while handling event "{event}".')

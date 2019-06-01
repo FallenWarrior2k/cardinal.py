@@ -173,7 +173,7 @@ async def _unmute_member(member, mute_role, channel=None, *, delay_until=None, d
     if not channel:
         return
 
-    await maybe_send(channel, 'User {} was unmuted automatically.'.format(member.mention))
+    await maybe_send(channel, f'User {member.mention} was unmuted automatically.')
 
 
 def _make_lock_key(member: Member):
@@ -377,11 +377,10 @@ class Mute(BaseCog):
             ctx.session.add(db_mute)
 
         with self._lock_member(member):  # Lock member until command terminates
-            await member.add_roles(mute_role, reason='Muted by {}.'.format(ctx.author))
+            await member.add_roles(mute_role, reason=f'Muted by {ctx.author}.')
 
             # TODO: Include duration in message
-            await maybe_send(ctx, 'User {} was muted by {}.'
-                             .format(member.mention, ctx.author.mention))
+            await maybe_send(ctx, f'User {member.mention} was muted by {ctx.author.mention}.')
 
             # User should be muted for less than one check period
             # => queue unmute directly and don't touch DB from here
@@ -464,8 +463,5 @@ class Mute(BaseCog):
             return
 
         # No need to manually delete DB row, member update handler will
-        await member.remove_roles(mute_role, reason='Explicit unmute by {}.'.format(ctx.author))
-        await maybe_send(
-            ctx,
-            'User {} was unmuted by {}.'.format(member.mention, ctx.author.mention)
-        )
+        await member.remove_roles(mute_role, reason=f'Explicit unmute by {ctx.author}.')
+        await maybe_send(ctx, f'User {member.mention} was unmuted by {ctx.author.mention}.')
