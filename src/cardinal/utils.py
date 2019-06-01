@@ -8,10 +8,9 @@ from .errors import PromptTimeout
 logger = getLogger(__name__)
 
 
+# TODO: Maybe make tests use an actual Context object instead of a mock
 def clean_prefix(ctx):
-    user = ctx.me
-    replacement = user.nick if ctx.guild and ctx.me.nick else user.name
-    return ctx.prefix.replace(user.mention, '@' + replacement)
+    return ctx.prefix.replace(ctx.me.mention, '@' + ctx.me.display_name)
 
 
 def format_message(msg):

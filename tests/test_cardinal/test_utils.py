@@ -42,7 +42,7 @@ class TestCleanPrefix:
     def ctx(self, mocker):
         ctx = mocker.Mock()
         ctx.me.mention = '<@123456789>'
-        ctx.me.name = 'Test bot'
+        ctx.me.display_name = 'Test bot'
         ctx.guild = None
         return ctx
 
@@ -54,39 +54,21 @@ class TestCleanPrefix:
 
     def test_mention_dm(self, ctx):
         ctx.prefix = ctx.me.mention
-        expected = '@{}'.format(ctx.me.name)
+        expected = '@{}'.format(ctx.me.display_name)
         got = clean_prefix(ctx)
         assert expected == got
 
-    def test_regular_guild_no_nick(self, ctx):
+    def test_regular_guild(self, ctx):
         ctx.guild = True
-        ctx.me.nick = None
         ctx.prefix = '?'
         expected = '?'
         got = clean_prefix(ctx)
         assert expected == got
 
-    def test_mention_guild_no_nick(self, ctx):
+    def test_mention_guild(self, ctx):
         ctx.guild = True
-        ctx.me.nick = None
         ctx.prefix = ctx.me.mention
-        expected = '@{}'.format(ctx.me.name)
-        got = clean_prefix(ctx)
-        assert expected == got
-
-    def test_regular_guild_nick(self, ctx):
-        ctx.guild = True
-        ctx.me.nick = 'Test nick'
-        ctx.prefix = '?'
-        expected = '?'
-        got = clean_prefix(ctx)
-        assert expected == got
-
-    def test_mention_guild_nick(self, ctx):
-        ctx.guild = True
-        ctx.me.nick = 'Test nick'
-        ctx.prefix = ctx.me.mention
-        expected = '@{}'.format(ctx.me.nick)
+        expected = '@{}'.format(ctx.me.display_name)
         got = clean_prefix(ctx)
         assert expected == got
 
