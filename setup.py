@@ -48,6 +48,7 @@ setup(
         'discord.py>=1.5',
         'SQLAlchemy>=1.3',
         'alembic',
+        'dependency_injector',
         'lazy',
         'markdownify'
     ],
