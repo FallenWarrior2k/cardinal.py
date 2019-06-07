@@ -2,12 +2,11 @@ from calendar import month_name
 
 from aiohttp import ClientSession
 from discord import Embed
-from discord.ext.commands import command
+from discord.ext.commands import Cog, command
 from markdownify import markdownify as md
 
-from .basecog import BaseCog
-
-format_repr = {
+ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
+FORMAT_REPR = {
     'TV': 'TV',
     'TV_SHORT': 'TV Short',
     'MOVIE': 'Movie',
@@ -19,6 +18,59 @@ format_repr = {
     'NOVEL': 'Light Novel',
     'ONE_SHOT': 'One Shot',
 }
+QUERY = """
+query(
+    $isAnime: Boolean!,
+    $format: [MediaFormat],
+    $search: String!
+) {
+    anime: Media(
+        type: ANIME,
+        search: $search,
+        sort: SEARCH_MATCH
+    ) @include(if: $isAnime) {
+        ...baseFields
+        ...animeFields
+    }
+
+    manga: Media(
+        type: MANGA,
+        format_in: $format,
+        search: $search,
+        sort: SEARCH_MATCH
+    ) @skip(if: $isAnime) {
+        ...baseFields
+        ...mangaFields
+    }
+}
+
+fragment baseFields on Media {
+    title { english romaji }
+    coverImage { large }
+    averageScore
+    genres
+    description
+
+    format
+    source
+
+    status
+    startDate { year month day }
+    endDate { year month day }
+
+    idMal
+    siteUrl
+}
+
+fragment animeFields on Media {
+    episodes
+}
+
+fragment mangaFields on Media {
+    chapters
+    volumes
+}
+"""
 
 
 class FuzzyDate:
@@ -108,7 +160,7 @@ def make_embed(item):
     score = f'{item["averageScore"]} %' if item['averageScore'] else '-'
     embed.add_field(name='Average Score', value=score, inline=False)
 
-    embed.add_field(name='Format', value=format_repr[item['format']])
+    embed.add_field(name='Format', value=FORMAT_REPR[item['format']])
     embed.add_field(name='Source', value=normalize_ssc(item['source']))
 
     if 'episodes' in item:
@@ -132,81 +184,22 @@ def make_embed(item):
     return embed
 
 
-class Anilist(BaseCog):
+class Anilist(Cog):
     """
     Anilist lookup commands.
     """
 
-    ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
-    QUERY = """
-    query(
-        $isAnime: Boolean!,
-        $format: [MediaFormat],
-        $search: String!
-    ) {
-        anime: Media(
-            type: ANIME,
-            search: $search,
-            sort: SEARCH_MATCH
-        ) @include(if: $isAnime) {
-            ...baseFields
-            ...animeFields
-        }
-
-        manga: Media(
-            type: MANGA,
-            format_in: $format,
-            search: $search,
-            sort: SEARCH_MATCH
-        ) @skip(if: $isAnime) {
-                ...baseFields
-                ...mangaFields
-        }
-    }
-
-    fragment baseFields on Media {
-        title { english romaji }
-        coverImage { large }
-        averageScore
-        genres
-        description
-
-        format
-        source
-
-        status
-        startDate { year month day }
-        endDate { year month day }
-
-
-        idMal
-        siteUrl
-    }
-
-    fragment animeFields on Media {
-        episodes
-    }
-
-    fragment mangaFields on Media {
-        chapters
-        volumes
-    }
-    """
-
-    def __init__(self, bot):
-        super().__init__(bot)
-        # Init session with bot's loop
-        # Set `raise_for_status` so that commands don't touch data if an error happened
-        self.http = ClientSession(loop=self.bot.loop, raise_for_status=True)
+    def __init__(self, http: ClientSession):
+        self._http = http
 
     async def execute_graphql(self, **variables):
         body = {
-            'query': self.QUERY,
+            'query': QUERY,
             'variables': variables
         }
 
-        async with self.http.post(self.ANILIST_GRAPHQL_URL, json=body) as res:
-            res_body = await res.json()
+        async with self._http.post(ANILIST_GRAPHQL_URL, json=body) as resp:
+            res_body = await resp.json()
 
         return res_body['data']
 
