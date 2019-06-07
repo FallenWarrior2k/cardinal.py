@@ -2,10 +2,9 @@ from asyncio import gather
 from collections import namedtuple
 from logging import getLogger
 
-from discord.ext.commands import bot_has_permissions, group, guild_only, has_permissions
+from discord.ext.commands import Cog, bot_has_permissions, group, guild_only, has_permissions
 
 from ..utils import maybe_send
-from .basecog import BaseCog
 
 logger = getLogger(__name__)
 _perms = namedtuple('perms', ['send_messages', 'add_reactions'])
@@ -25,13 +24,12 @@ def is_public(channel):
     return channel.overwrites_for(role).read_messages is not False
 
 
-class Stop(BaseCog):
+class Stop(Cog):
     """
     Utilities for locking down text channels.
     """
 
-    def __init__(self, bot):
-        super().__init__(bot)
+    def __init__(self):
         self._perm_cache = {}
 
     async def _lock_channel(self, channel):

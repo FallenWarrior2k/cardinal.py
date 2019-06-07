@@ -1,5 +1,6 @@
-import contextlib
-import logging
+import sys
+from contextvars import ContextVar
+from logging import getLogger
 
 from discord import Game, Intents
 from discord.ext.commands import BadArgument
@@ -8,60 +9,47 @@ from discord.ext.commands import (
     CheckFailure, CommandError, CommandInvokeError, CommandOnCooldown,
     MissingRequiredArgument, NoPrivateMessage, TooManyArguments, UserInputError
 )
-from lazy import lazy
-from sqlalchemy.orm import sessionmaker
 
 from .context import Context
 from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
-logger = logging.getLogger(__name__)
+event_context = ContextVar('event_context')
+logger = getLogger(__name__)
 intents = Intents.default()
 intents.members = True
 
 
 # TODO: Implement server-specific prefixes
 class Bot(BaseBot):
-    async def before_invoke_hook(self, ctx: Context):
-        ctx.session_allowed = True
-
-    async def after_invoke_hook(self, ctx: Context):
-        if not ctx.session_used:
-            return
-
-        if ctx.command_failed:
-            ctx.session.rollback()
-        else:
-            ctx.session.commit()
-
-        session = ctx.session  # Local reference to close after it gets deleted from Context object
-        ctx.session_allowed = False
-        lazy.invalidate(ctx, 'session')  # Ensure nothing tries to use the session after closing it
-        session.close()
-
-    def __init__(self, *args, engine, default_game=None, **kwargs):
+    def __init__(
+            self,
+            *args,
+            context_factory,
+            default_game,
+            scoped_session,
+            **kwargs
+    ):
         game = None
         if default_game:
             game = Game(name=default_game)
 
         super().__init__(*args, **kwargs, description='cardinal.py', game=game, intents=intents)
 
-        self.sessionmaker = sessionmaker(bind=engine)
-        self.before_invoke(self.before_invoke_hook)
-        self.after_invoke(self.after_invoke_hook)
+        self._context_factory = context_factory
+        self._session = scoped_session
+        self._event_counter = 0  # Dummy variable to have unique keys for `event_context`
 
-    @contextlib.contextmanager
-    def session_scope(self):
-        session = self.sessionmaker()
+    # Override to hook into event processing to manage event context
+    async def _run_event(self, *args, **kwargs):
+        # No need for copy_context because events run a new task anyway
+        self._event_counter = (self._event_counter + 1) % sys.maxsize  # Cheap af "unique" ID system
+        event_context.set(self._event_counter)
 
         try:
-            yield session
-            session.commit()
-        except BaseException:
-            session.rollback()
-            raise
+            await super()._run_event(*args, **kwargs)
         finally:
-            session.close()
+            self._session.remove()
 
     async def on_ready(self):
         logger.info(f'Logged into Discord as {self.user}')
@@ -70,7 +58,7 @@ class Bot(BaseBot):
         if msg.author.bot:
             return
 
-        ctx = await self.get_context(msg, cls=Context)
+        ctx = await self.get_context(msg, cls=self._context_factory)
         await self.invoke(ctx)
 
     async def on_command(self, ctx: Context):

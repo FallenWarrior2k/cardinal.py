@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 from setuptools.command.test import test as TestCommand
 
 
@@ -35,7 +35,7 @@ setup(
     author_email='simon.engmann@tu-dortmund.de',
     url='https://github.com/FallenWarrior2k/cardinal.py',
     platforms='any',
-    packages=find_packages(where='src'),
+    packages=find_namespace_packages(where='src'),
     package_dir={'': 'src'},
     package_data={
         'cardinal': [
@@ -49,7 +49,6 @@ setup(
         'SQLAlchemy>=1.3',
         'alembic',
         'dependency_injector',
-        'lazy',
         'markdownify'
     ],
     tests_require=['tox'],

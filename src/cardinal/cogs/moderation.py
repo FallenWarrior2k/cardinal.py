@@ -1,15 +1,14 @@
 from logging import getLogger
 
 from discord import Member
-from discord.ext.commands import bot_has_permissions, command, guild_only, has_permissions
+from discord.ext.commands import Cog, bot_has_permissions, command, guild_only, has_permissions
 
 from ..context import Context
-from .basecog import BaseCog
 
 logger = getLogger(__name__)
 
 
-class Moderation(BaseCog):
+class Moderation(Cog):
     """
     A collection of general moderation commands to simplify the daily life of a mod.
     """

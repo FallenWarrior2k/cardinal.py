@@ -1,18 +1,17 @@
 from logging import getLogger
 
 from discord import Embed, TextChannel
-from discord.ext.commands import bot_has_permissions, group, guild_only, has_permissions
+from discord.ext.commands import Cog, bot_has_permissions, group, guild_only, has_permissions
 
 from ..checks import channel_whitelisted
 from ..context import Context
 from ..db import OptinChannel
 from ..utils import clean_prefix
-from .basecog import BaseCog
 
 logger = getLogger(__name__)
 
 
-class Channels(BaseCog):
+class Channels(Cog):
     @group('channel', aliases=['channels'])
     @guild_only()
     @bot_has_permissions(manage_roles=True)

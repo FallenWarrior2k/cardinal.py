@@ -1,10 +1,9 @@
 from urllib.parse import quote_plus
 
 from aiohttp import ClientSession
-from discord.ext.commands import command
+from discord.ext.commands import Cog, command
 
 from ..utils import maybe_send
-from .basecog import BaseCog
 
 JISHO_API_URL = "https://jisho.org/api/v1/search/words"
 JISHO_WEB_BASE = "https://jisho.org/search/{}"
@@ -62,16 +61,14 @@ def _build_text_response(result):
     return text
 
 
-class Jisho(BaseCog):
+class Jisho(Cog):
     """
     Look up terms on Jisho (https://jisho.org),
     a Japanese-English dictionary.
     """
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        # See Anilist cog
-        self.http = ClientSession(loop=self.bot.loop, raise_for_status=True)
+    def __init__(self, http: ClientSession):
+        self._http = http
 
     async def _lookup_term(self, term):
         """
@@ -85,7 +82,7 @@ class Jisho(BaseCog):
         """
         query_params = {'keyword': quote_plus(term)}
 
-        async with self.http.get(JISHO_API_URL, params=query_params) as resp:
+        async with self._http.get(JISHO_API_URL, params=query_params) as resp:
             body = await resp.json()
 
         return body['data']

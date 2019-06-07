@@ -1,20 +1,17 @@
 from aiohttp import ClientSession
 from discord import Activity, ActivityType
-from discord.ext.commands import bot_has_permissions, command, is_owner
+from discord.ext.commands import Cog, bot_has_permissions, command, is_owner
 
 from ..utils import maybe_send
-from .basecog import BaseCog
 
 
-class BotAdmin(BaseCog):
+class BotAdmin(Cog):
     """
     Bot administration commands for the owner.
     """
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        # Ensure no bogus data reaches commands
-        self.http = ClientSession(loop=self.bot.loop, raise_for_status=True)
+    def __init__(self, http: ClientSession):
+        self._http = http
 
     @command(aliases=['makeinvite', 'getinvite', 'invitelink'])
     @is_owner()
@@ -67,7 +64,7 @@ class BotAdmin(BaseCog):
             url = ctx.message.attachments[0].url
 
         if url:
-            async with self.http.get(url) as resp:
+            async with self._http.get(url) as resp:
                 if not resp.content_type.startswith('image/'):
                     await maybe_send(ctx, 'The given file or URL is not an image.')
                     return
@@ -76,7 +73,7 @@ class BotAdmin(BaseCog):
         else:
             data = None
 
-        await self.bot.user.edit(avatar=data)
+        await ctx.bot.user.edit(avatar=data)
 
     @command()
     @is_owner()
@@ -99,7 +96,7 @@ class BotAdmin(BaseCog):
             return
 
         activity = Activity(type=activity_type, name=text)
-        await self.bot.change_presence(activity=activity)
+        await ctx.bot.change_presence(activity=activity)
 
     @command(aliases=['kill'])
     @is_owner()
@@ -111,4 +108,4 @@ class BotAdmin(BaseCog):
             - Bot owner
         """
         await maybe_send(ctx, 'Shutting down.')
-        await self.bot.close()
+        await ctx.bot.close()

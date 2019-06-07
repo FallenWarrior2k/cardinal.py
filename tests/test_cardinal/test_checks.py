@@ -26,8 +26,7 @@ class TestChannelWhitelisted:
     @fixture
     def ctx(self, mocker, session):
         ctx = mocker.Mock()
-        ctx.bot.session_scope.return_value = mocker.MagicMock()
-        ctx.bot.session_scope.return_value.__enter__.return_value = session
+        ctx.session = session
         ctx.channel.id = 123456789
         ctx.channel.mention = '<#123456789>'
 

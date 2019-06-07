@@ -1,16 +1,17 @@
 from asyncio import gather, sleep
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime, timedelta
 from itertools import chain
 from logging import getLogger
 
 from discord import Colour, Forbidden, HTTPException, Member, PermissionOverwrite, Role
-from discord.ext.commands import bot_has_permissions, command, group, guild_only, has_permissions
+from discord.ext.commands import (
+    Cog, bot_has_permissions, command, group, guild_only, has_permissions
+)
 
 from ..db import MuteGuild, MuteUser
 from ..utils import maybe_send
-from .basecog import BaseCog
 
 logger = getLogger(__name__)
 # Overwrite to use for new channels
@@ -191,16 +192,39 @@ def _make_lock_key(member: Member):
     return member_id, guild_id
 
 
-class Mute(BaseCog):
+def _process_guild(bot, db_guild):
+    guild = bot.get_guild(db_guild.guild_id)
+    if not guild:
+        return
+
+    mute_role = guild.get_role(db_guild.role_id)
+    if not mute_role:
+        return
+
+    for db_mute in db_guild.mutes:
+        member = guild.get_member(db_mute.user_id)
+        if not member:
+            continue
+
+        yield _unmute_member(
+            member,
+            mute_role,
+            guild.get_channel(db_mute.channel_id),
+            delay_until=db_mute.muted_until
+        )
+
+
+class Mute(Cog):
     """
     Mute utility commands.
     """
 
-    def __init__(self, bot, check_period=30):
-        super().__init__(bot)
+    def __init__(self, bot, loop, scoped_session, sessionmaker, check_period=30):
+        self._session = scoped_session
+        self._sessionmaker = sessionmaker
         self.check_period = check_period
         self._locks = defaultdict(lambda: 0)
-        self.bot.loop.create_task(self._check_mute_timeouts())
+        loop.create_task(self._check_mute_timeouts(bot))
 
     @contextmanager
     def _lock_member(self, member):
@@ -220,114 +244,97 @@ class Mute(BaseCog):
         key = _make_lock_key(member)
         return self._locks[key] > 0
 
-    def _process_guild(self, db_guild):
-        guild = self.bot.get_guild(db_guild.guild_id)
-        if not guild:
+    def _get_unmutes(self, session):
+        # Query for mutes that run before the next iteration
+        # No need to delete by hand, self.on_guild_member_update() will clean up
+        next_iteration_timestamp = (datetime.utcnow() + timedelta(seconds=self.check_period))
+        q = session.query(MuteGuild) \
+            .join(MuteGuild.mutes) \
+            .filter(MuteUser.muted_until.isnot(None),
+                    next_iteration_timestamp >= MuteUser.muted_until)
+
+        return q
+
+    async def _check_mute_timeouts(self, bot):
+        await bot.wait_until_ready()
+
+        while True:
+            with closing(self._sessionmaker()) as session:
+                db_guilds = self._get_unmutes(session)
+                await gather(
+                    *chain.from_iterable(
+                        _process_guild(bot, db_guild) for db_guild in db_guilds
+                    )
+                )
+
+            await sleep(self.check_period)
+
+    @Cog.listener()
+    async def on_guild_channel_create(self, channel):
+        db_guild = self._session.query(MuteGuild).get(channel.guild.id)
+        if not db_guild:
             return
 
-        mute_role = guild.get_role(db_guild.role_id)
+        mute_role = channel.guild.get_role(db_guild.role_id)
         if not mute_role:
             return
 
-        for db_mute in db_guild.mutes:
-            member = guild.get_member(db_mute.user_id)
-            if not member:
-                continue
+        await channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
 
-            yield _unmute_member(
-                member,
-                mute_role,
-                guild.get_channel(db_mute.channel_id),
-                delay_until=db_mute.muted_until
-            )
-
-    def _get_unmutes(self):
-        with self.bot.session_scope() as session:
-            # Query for mutes that run before the next iteration
-            # No need to delete by hand, self.on_guild_member_update() will clean up
-            next_iteration_timestamp = (datetime.utcnow() + timedelta(seconds=self.check_period))
-            q = session.query(MuteGuild) \
-                .join(MuteGuild.mutes) \
-                .filter(MuteUser.muted_until.isnot(None),
-                        next_iteration_timestamp >= MuteUser.muted_until)
-
-            return chain.from_iterable(self._process_guild(db_guild) for db_guild in q)
-
-    async def _check_mute_timeouts(self):
-        await self.bot.wait_until_ready()
-
-        while True:
-            unmutes = self._get_unmutes()
-            await gather(*unmutes)
-            await sleep(self.check_period)
-
-    @BaseCog.listener()
-    async def on_guild_channel_create(self, channel):
-        with self.bot.session_scope() as session:
-            db_guild = session.query(MuteGuild).get(channel.guild.id)
-            if not db_guild:
-                return
-
-            mute_role = channel.guild.get_role(db_guild.role_id)
-            if not mute_role:
-                return
-
-            await channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
-
-    @BaseCog.listener()
+    @Cog.listener()
     async def on_guild_role_delete(self, role):
-        with self.bot.session_scope() as session:
-            # Delete any bindings if the corresponding role is deleted
-            # Use Query.delete() to prevent redundant SELECT
-            # Role ID is indexed so delete is faster than querying by guild ID and comparing
-            session.query(MuteGuild).filter_by(role_id=role.id).delete(synchronize_session=False)
+        # Delete any bindings if the corresponding role is deleted
+        # Use Query.delete() to prevent redundant SELECT
+        # Role ID is indexed so delete is faster than querying by guild ID and comparing
+        self._session.query(MuteGuild).filter_by(role_id=role.id).delete(synchronize_session=False)
+        self._session.commit()
 
-    @BaseCog.listener()
+    @Cog.listener()
     async def on_member_join(self, member):
-        with self.bot.session_scope() as session:
-            db_mute = session.query(MuteUser).get((member.id, member.guild.id))
+        db_mute = self._session.query(MuteUser).get((member.id, member.guild.id))
 
-            # Do not re-mute if mute should have run out already
-            # Leave cleanup to self.check_mute_timeouts()
-            if not db_mute or db_mute.muted_until <= datetime.utcnow():
-                return
+        # Do not re-mute if mute should have run out already
+        # Leave cleanup to self.check_mute_timeouts()
+        if not db_mute or db_mute.muted_until <= datetime.utcnow():
+            return
 
-            role = member.guild.get_role(db_mute.guild.role_id)
-            if not role:
-                return
+        role = member.guild.get_role(db_mute.guild.role_id)
+        if not role:
+            return
 
-            # Re-mute people who left while muted
-            await member.add_roles(role, reason='Muted member rejoined')
+        # Re-mute people who left while muted
+        await member.add_roles(role, reason='Muted member rejoined')
 
-    @BaseCog.listener()
+    @Cog.listener()
     async def on_member_update(self, before, after):
         if self._member_is_locked(before):
             return  # Don't touch locked members
 
-        with self.bot.session_scope() as session:
-            db_guild = session.query(MuteGuild).get(before.guild.id)
-            if not db_guild:
-                return
+        db_guild = self._session.query(MuteGuild).get(before.guild.id)
+        if not db_guild:
+            return
 
-            mute_role = before.guild.get_role(db_guild.role_id)
-            if not mute_role:
-                return
+        mute_role = before.guild.get_role(db_guild.role_id)
+        if not mute_role:
+            return
 
-            roles_before = set(before.roles)
-            roles_after = set(after.roles)
+        roles_before = set(before.roles)
+        roles_after = set(after.roles)
 
-            mute_removed = mute_role in (roles_before - roles_after)
-            mute_added = mute_role in (roles_after - roles_before)
+        mute_removed = mute_role in (roles_before - roles_after)
+        mute_added = mute_role in (roles_after - roles_before)
 
-            db_mute = session.query(MuteUser).get((before.id, before.guild.id))
+        db_mute = self._session.query(MuteUser).get((before.id, before.guild.id))
 
-            if mute_removed and db_mute:
-                session.delete(db_mute)
+        if mute_removed and db_mute:
+            self._session.delete(db_mute)
 
-            # Check if binding exists already to prevent double create
-            if mute_added and not db_mute:
-                db_mute = MuteUser(user_id=before.id, guild_id=before.guild.id)
-                session.add(db_mute)
+        # Check if binding exists already to prevent double create
+        if mute_added and not db_mute:
+            db_mute = MuteUser(user_id=before.id, guild_id=before.guild.id)
+            self._session.add(db_mute)
+
+        self._session.commit()
 
     # Ensure this is neither parsed nor called for anything but the mute command itself
     @group(invoke_without_command=True, aliases=['gag'])

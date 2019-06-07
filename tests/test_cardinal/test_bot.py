@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 
 from discord import Game
 from discord.ext.commands import (
@@ -7,16 +8,25 @@ from discord.ext.commands import (
     MissingRequiredArgument, NoPrivateMessage, NotOwner, TooManyArguments, UserInputError
 )
 from pytest import fixture, mark, raises
-from sqlalchemy.orm import Session, sessionmaker
 
-from cardinal.bot import Bot
+from cardinal.bot import Bot, intents
 from cardinal.context import Context
 from cardinal.errors import UserBlacklisted
 
 
 @fixture
-def engine(mocker):
+def event_context(mocker):
+    return mocker.patch('cardinal.bot.event_context')
+
+
+@fixture
+def scoped_session(mocker):
     return mocker.Mock()
+
+
+@fixture
+def context_factory(scoped_session):
+    return partial(Context, scoped_session)
 
 
 @fixture
@@ -25,17 +35,20 @@ def baseclass_ctor(mocker):
 
 
 @fixture
-def bot(baseclass_ctor, engine, mocker, request):
-    kwargs = getattr(request, 'param', {})  # Use request param if provided
-    return Bot(engine=engine, **kwargs)
+def bot(baseclass_ctor, context_factory, mocker, request, scoped_session):
+    kwargs = {
+        'context_factory': context_factory,
+        'default_game': None,
+        'scoped_session': scoped_session
+    }
+    kwargs.update(getattr(request, 'param', {}))  # Use request param if provided
+
+    return Bot(**kwargs)
 
 
 class TestCtor:
-    def test_no_game(self, baseclass_ctor, bot, engine):
-        assert bot.sessionmaker.kw['bind'] is engine
-        assert isinstance(bot.sessionmaker, sessionmaker)
-
-        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=None)
+    def test_no_game(self, baseclass_ctor, bot):
+        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=None, intents=intents)
 
     @mark.parametrize(
         ['bot'],
@@ -46,83 +59,47 @@ class TestCtor:
     )
     def test_game(self, baseclass_ctor, bot):
         game = Game('test 123')
-        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=game)
+        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=game, intents=intents)
+
+    def test_attributes(self, bot, context_factory, scoped_session):
+        assert bot._context_factory is context_factory
+        assert bot._event_counter == 0
+        assert bot._session is scoped_session
 
 
 @mark.asyncio
-async def test_before_invoke_hook(bot, mocker):
-    ctx = mocker.Mock()
-    await bot.before_invoke_hook(ctx)
-    assert ctx.session_allowed
-
-
-@mark.asyncio
-class TestAfterInvokeHook:
+class TestRunEvent:
     @fixture
-    def ctx(self, mocker):
-        ctx = mocker.Mock(spec=Context)
-        ctx.session = mocker.Mock(spec=Session)
-        return ctx
+    def run_event(self, mocker, request):
+        kwargs = getattr(request, 'param', {})
+        return mocker.patch(
+            'cardinal.bot.BaseBot._run_event',
+            new_callable=mocker.CoroMock,
+            **kwargs
+        )
 
-    async def test_unused(self, bot, ctx):
-        ctx.session_used = False
-        await bot.after_invoke_hook(ctx)
+    async def test_no_exception(self, bot, event_context, run_event, scoped_session):
+        args = (1, 2, 3)
+        kwargs = {'a': 'b', 'c': 'd'}
 
-        assert ctx.session.mock_calls == []  # Assert mock hasn't been touched
+        await bot._run_event(*args, **kwargs)
 
-    async def test_failed(self, bot, ctx):
-        ctx.session_used = True
-        ctx.command_failed = True
-        await bot.after_invoke_hook(ctx)
+        run_event.assert_called_once_with(*args, **kwargs)
+        event_context.set.assert_called_once_with(bot._event_counter)
+        scoped_session.remove.assert_called_once_with()
 
-        ctx.session.rollback.assert_called_once_with()
+    @mark.parametrize(
+        ['run_event'],
+        [
+            [{'side_effect': Exception()}]
+        ],
+        indirect=True
+    )
+    async def test_exception(self, run_event, bot, scoped_session):
+        with raises(Exception):
+            await bot._run_event()
 
-    async def test_success(self, bot, ctx):
-        ctx.session_used = True
-        ctx.command_failed = False
-        await bot.after_invoke_hook(ctx)
-
-        ctx.session.commit.assert_called_once_with()
-
-    async def test_cleanup(self, bot, ctx, mocker):
-        ctx.session_used = True
-        ctx.command_failed = False  # Irrelevant, tested above
-        invalidate = mocker.patch('lazy.lazy.invalidate')
-        await bot.after_invoke_hook(ctx)
-
-        assert ctx.session_allowed is False
-        invalidate.assert_called_once_with(ctx, 'session')
-        ctx.session.close.assert_called_once_with()
-
-
-class TestSessionScope:
-    @fixture
-    def session(self, mocker):
-        return mocker.Mock(spec=Session)
-
-    @fixture
-    def sessionmaker(self, bot, mocker, session):
-        return mocker.patch.object(bot, 'sessionmaker', return_value=session)
-
-    def test_no_exception(self, bot, session, sessionmaker):
-        with bot.session_scope() as new_session:
-            assert new_session is session
-
-        sessionmaker.assert_called_once_with()
-        session.commit.assert_called_once_with()
-        session.close.assert_called_once_with()
-
-    def test_exception(self, bot, session, sessionmaker):
-        exc_message = 'Test exception message'
-        exc = Exception(exc_message)
-        with raises(Exception, match=exc_message):
-            with bot.session_scope() as new_session:
-                assert new_session is session
-                raise exc
-
-        sessionmaker.assert_called_once_with()
-        session.rollback.assert_called_once_with()
-        session.close.assert_called_once_with()
+        scoped_session.remove.assert_called_once_with()
 
 
 @mark.asyncio
@@ -146,13 +123,13 @@ class TestOnMessage:
         mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
         mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
 
-    async def test_not_bot(self, bot, ctx, mocker):
+    async def test_not_bot(self, bot, context_factory, ctx, mocker):
         msg = mocker.Mock()
         msg.author.bot = False
 
         await bot.on_message(msg)
 
-        bot.get_context.assert_called_once_with(msg, cls=Context)
+        bot.get_context.assert_called_once_with(msg, cls=context_factory)
         bot.invoke.assert_called_once_with(ctx)
 
     async def test_bot(self, bot, mocker):

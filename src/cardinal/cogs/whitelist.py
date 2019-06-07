@@ -1,17 +1,16 @@
 from logging import getLogger
 
 from discord import TextChannel
-from discord.ext.commands import group, guild_only, has_permissions
+from discord.ext.commands import Cog, group, guild_only, has_permissions
 
 from ..context import Context
 from ..db import WhitelistedChannel
 from ..utils import clean_prefix
-from .basecog import BaseCog
 
 logger = getLogger(__name__)
 
 
-class Whitelisting(BaseCog):
+class Whitelisting(Cog):
     @group(aliases=['wl'])
     @guild_only()
     async def whitelist(self, ctx: Context):

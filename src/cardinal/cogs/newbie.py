@@ -1,19 +1,21 @@
 import re
 from asyncio import sleep
+from contextlib import closing
 from datetime import datetime, timedelta
 from functools import partial, wraps
 from logging import getLogger
 
 from discord import Forbidden, HTTPException, Member, Message, Permissions, TextChannel
 from discord.abc import PrivateChannel
-from discord.ext.commands import Command, bot_has_permissions, group, guild_only, has_permissions
+from discord.ext.commands import (
+    Cog, Command, bot_has_permissions, group, guild_only, has_permissions
+)
 from discord.utils import get
 
 from ..context import Context
 from ..db import NewbieChannel, NewbieGuild, NewbieUser
 from ..errors import PromptTimeout
 from ..utils import clean_prefix, prompt
-from .basecog import BaseCog
 
 logger = getLogger(__name__)
 
@@ -49,15 +51,18 @@ def newbie_enabled(func):
         return wrapper
 
 
-class Newbies(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.bot.loop.create_task(self.check_timeouts())
+class Newbies(Cog):
+    def __init__(self, bot, loop, scoped_session, sessionmaker, check_period=60):
+        self.bot = bot
+        self._check_period = check_period
+        self._session = scoped_session
+        self._sessionmaker = sessionmaker
+        loop.create_task(self.check_timeouts())
 
     async def check_timeouts(self):
         await self.bot.wait_until_ready()
         while True:
-            with self.bot.session_scope() as session:
+            with closing(self._sessionmaker()) as session:
                 # Get users who have passed the timeout
                 # !IMPORTANT! Filter inequation must not be changed
                 # Changing it will break SQLite support (and possibly other DBMSs as well)
@@ -89,11 +94,12 @@ class Newbies(BaseCog):
                             f'due to HTTP error {e.response.status}.'
                         )
 
-            await sleep(60)
+                session.commit()
 
-    @staticmethod
-    async def add_member(session, db_guild: NewbieGuild, member: Member):
-        if session.query(NewbieUser).get((member.id, db_guild.guild_id)):
+            await sleep(self._check_period)
+
+    async def add_member(self, db_guild: NewbieGuild, member: Member):
+        if self._session.query(NewbieUser).get((member.id, db_guild.guild_id)):
             return  # Exit if user already in DB
 
         message_content = db_guild.welcome_message
@@ -121,8 +127,8 @@ class Newbies(BaseCog):
                                  user_id=member.id,
                                  message_id=message.id,
                                  joined_at=datetime.utcnow())
-            session.add(db_user)
-            session.commit()
+            self._session.add(db_user)
+            self._session.commit()
             logger.info('Added new user {0} to database for guild {0.guild}.'.format(member))
 
             try:
@@ -136,68 +142,66 @@ class Newbies(BaseCog):
                 # First message went through, no need to further handle this, should it ever occur
                 pass
 
-    @BaseCog.listener()
+    @Cog.listener()
     async def on_ready(self):
-        with self.bot.session_scope() as session:
-            for db_guild in session.query(NewbieGuild):
-                guild = self.bot.get_guild(db_guild.guild_id)
-                if not guild:
-                    continue
+        for db_guild in self._session.query(NewbieGuild):
+            guild = self.bot.get_guild(db_guild.guild_id)
+            if not guild:
+                continue
 
-                member_role = guild.get_role(db_guild.role_id)
-                if not member_role:
-                    continue
+            member_role = guild.get_role(db_guild.role_id)
+            if not member_role:
+                continue
 
-                to_add = (member for member in guild.members if member_role not in member.roles)
-                for member in to_add:
-                    await self.add_member(session, db_guild, member)
+            to_add = (member for member in guild.members if member_role not in member.roles)
+            for member in to_add:
+                await self.add_member(db_guild, member)
 
-    @BaseCog.listener()
+    @Cog.listener()
     async def on_member_join(self, member: Member):
-        with self.bot.session_scope() as session:
-            db_guild = session.query(NewbieGuild).get(member.guild.id)
+        db_guild = self._session.query(NewbieGuild).get(member.guild.id)
 
-            if db_guild is None:
-                return
+        if db_guild is None:
+            return
 
-            # Bots don't need confirmation, since they were manually added by a mod/admin
-            # Not like they could confirm themselves anyways
-            if member.bot:
-                role = member.guild.get_role(db_guild.role_id)
-                if not role:
-                    return
-
-                await member.add_roles(role)
-                return
-
-            await self.add_member(session, db_guild, member)
-
-    @BaseCog.listener()
-    async def on_member_remove(self, member: Member):
-        with self.bot.session_scope() as session:
-            # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
-            # Use query instead of object deletion to prevent redundant SELECT query
-            session.query(NewbieUser)\
-                .filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id)\
-                .delete(synchronize_session=False)
-
-    @BaseCog.listener()
-    async def on_member_update(self, before: Member, after: Member):
-        with self.bot.session_scope() as session:
-            db_user = session.query(NewbieUser).get((before.id, before.guild.id))
-
-            if not db_user:
-                return
-
-            role = before.guild.get_role(db_user.guild.role_id)
-
+        # Bots don't need confirmation, since they were manually added by a mod/admin
+        # Not like they could confirm themselves anyways
+        if member.bot:
+            role = member.guild.get_role(db_guild.role_id)
             if not role:
                 return
 
-            if role not in before.roles and role in after.roles:
-                session.delete(db_user)
+            await member.add_roles(role)
+            return
 
-    @BaseCog.listener()
+        await self.add_member(db_guild, member)
+
+    @Cog.listener()
+    async def on_member_remove(self, member: Member):
+        # Necessary in compliance with Discord's latest ToS changes ¯\_(ツ)_/¯
+        # Use query instead of object deletion to prevent redundant SELECT query
+        self._session.query(NewbieUser)\
+            .filter(NewbieUser.user_id == member.id, NewbieUser.guild_id == member.guild.id)\
+            .delete(synchronize_session=False)
+        self._session.commit()
+
+    @Cog.listener()
+    async def on_member_update(self, before: Member, after: Member):
+        db_user = self._session.query(NewbieUser).get((before.id, before.guild.id))
+
+        if not db_user:
+            return
+
+        role = before.guild.get_role(db_user.guild.role_id)
+
+        if not role:
+            return
+
+        if role not in before.roles and role in after.roles:
+            self._session.delete(db_user)
+            self._session.commit()
+
+    @Cog.listener()
     async def on_message(self, msg: Message):
         if msg.author.id == self.bot.user.id:
             return
@@ -205,66 +209,68 @@ class Newbies(BaseCog):
         if not isinstance(msg.channel, PrivateChannel):
             return
 
-        with self.bot.session_scope() as session:
-            for db_user in session.query(NewbieUser).filter(NewbieUser.user_id == msg.author.id):
-                db_guild = db_user.guild
+        # TODO: Clean up
+        for db_user in self._session.query(NewbieUser).filter(NewbieUser.user_id == msg.author.id):
+            db_guild = db_user.guild
 
-                guild = self.bot.get_guild(db_user.guild_id)
-                if not guild:
+            guild = self.bot.get_guild(db_user.guild_id)
+            if not guild:
+                continue
+
+            member = guild.get_member(msg.author.id)
+            if not member:
+                self._session.delete(db_user)  # Delete row if user already left
+                continue
+
+            if db_guild.timeout:
+                # Use utcnow because discord.py's join timestamps are in UTC
+                joined_interval = datetime.utcnow() - db_user.joined_at
+                if joined_interval >= db_guild.timeout:
+                    try:
+                        await member.kick()
+                    except Forbidden:
+                        logger.exception(
+                            'Lacking permissions to kick user {0} from guild {0.guild}.'
+                            .format(member)
+                        )
+                    except HTTPException as e:
+                        logger.exception(
+                            'Failed to kick user {0} from guild {0.guild} '
+                            'due to HTTP error {1}.'
+                            .format(member, e.response.status)
+                        )
+                    finally:
+                        self._session.delete(db_user)
+
                     continue
 
-                member = guild.get_member(msg.author.id)
-                if not member:
-                    session.delete(db_user)  # Delete row if user already left
-                    continue
+            if not msg.content.lower().strip() == db_guild.response_message.lower():
+                continue
 
-                if db_guild.timeout:
-                    # Use utcnow because discord.py's join timestamps are in UTC
-                    joined_interval = datetime.utcnow() - db_user.joined_at
-                    if joined_interval >= db_guild.timeout:
-                        try:
-                            await member.kick()
-                        except Forbidden:
-                            logger.exception(
-                                'Lacking permissions to kick user {0} from guild {0.guild}.'
-                                .format(member)
-                            )
-                        except HTTPException as e:
-                            logger.exception(
-                                'Failed to kick user {0} from guild {0.guild} '
-                                'due to HTTP error {1}.'
-                                .format(member, e.response.status)
-                            )
-                        finally:
-                            session.delete(db_user)
+            member_role = guild.get_role(db_guild.role_id)
+            if not member_role:
+                continue
 
-                        continue
+            try:
+                await member.add_roles(member_role)
 
-                if not msg.content.lower().strip() == db_guild.response_message.lower():
-                    continue
+                self._session.delete(db_user)
+                logger.info('Verified user {0} on guild {0.guild}.'.format(member))
 
-                member_role = guild.get_role(db_guild.role_id)
-                if not member_role:
-                    continue
+                await msg.author.send(f'Welcome to {guild}')
+            except Forbidden:
+                logger.exception(
+                    'Lacking permissions to manage roles for '
+                    'user {0} on guild {0.guild}.'.format(member)
+                )
+            except HTTPException as e:
+                logger.exception(
+                    'Failed to manage roles for user {0} on guild {0.guild} '
+                    'due to HTTP error {1}.'
+                    .format(member, e.response.status)
+                )
 
-                try:
-                    await member.add_roles(member_role)
-
-                    session.delete(db_user)
-                    logger.info('Verified user {0} on guild {0.guild}.'.format(member))
-
-                    await msg.author.send(f'Welcome to {guild}')
-                except Forbidden:
-                    logger.exception(
-                        'Lacking permissions to manage roles for '
-                        'user {0} on guild {0.guild}.'.format(member)
-                    )
-                except HTTPException as e:
-                    logger.exception(
-                        'Failed to manage roles for user {0} on guild {0.guild} '
-                        'due to HTTP error {1}.'
-                        .format(member, e.response.status)
-                    )
+        self._session.commit()
 
     @group()
     @guild_only()

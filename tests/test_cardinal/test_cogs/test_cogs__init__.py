@@ -1,70 +1,21 @@
-from itertools import islice
-from unittest import mock
+from pytest import fixture
 
-from discord.ext.commands import Bot
-from pytest import fixture, mark, raises
-
-from cardinal import cogs
+from cardinal.cogs import cog_names, load_cogs
 
 
-class TestSetup:
-    @fixture
-    def bot(self, mocker):
-        return mocker.Mock(spec=Bot)
+@fixture
+def container(mocker):
+    return mocker.patch('cardinal.cogs.CogsContainer')
 
-    @fixture
-    def cog_list(self, request, mocker):
-        mocker.patch('cardinal.cogs.cogs', new=request.param)
-        return request.param
 
-    @mark.parametrize(
-        ['cog_list'],
-        [
-            ([],),
-            ([mock.MagicMock(__name__='test mock 1')],),
-            ([
-                mock.MagicMock(__name__='test mock 2'),
-                mock.MagicMock(__name__='test mock 3'),
-                mock.MagicMock(__name__='test mock 4')
-            ],)
-        ],
-        indirect=['cog_list']
-    )
-    def test_no_exception(self, bot, cog_list):
-        cogs.setup(bot)
+def test_load_cogs(container, mocker):
+    root = mocker.Mock()
+    load_cogs(root)
 
-        for i, cog in enumerate(cog_list):
-            cog.assert_called_once_with(bot)
-            assert ((cog.return_value,), {}) == bot.add_cog.call_args_list[i]
+    root.bot.assert_called_with()  # Singleton, doesn't matter how often it was called
+    container.assert_called_once_with(root=root)
 
-    @mark.parametrize(
-        ['cog_list'],
-        [
-            ([mock.MagicMock(__name__='test mock 1', side_effect=Exception('mock exception 1'))],),
-            ([
-                mock.MagicMock(__name__='test mock 2'),
-                mock.MagicMock(__name__='test mock 3', side_effect=Exception('mock exception 2')),
-                mock.MagicMock(__name__='test mock 4')
-            ],)
-        ],
-        indirect=['cog_list']
-    )
-    def test_exception(self, bot, cog_list):
-        # Retrieve the first exception that will be raised, which should also be re-raised
-        first_exc_cog, first_exc_i = next((_c, i) for i, _c in enumerate(cog_list)
-                                          if _c.side_effect)
-
-        with raises(Exception, match=str(first_exc_cog.side_effect)):
-            cogs.setup(bot)
-
-        # Check cogs that came before the one with the exception
-        for i, cog in enumerate(islice(cog_list, first_exc_i)):
-            cog.assert_called_once_with(bot)
-            assert ((cog.return_value,), {}) == bot.add_cog.call_args_list[i]
-
-        first_exc_cog.assert_called_once_with(bot)
-        assert ((first_exc_cog.return_value,), {}) not in bot.add_cog.call_args_list
-
-        for cog in islice(cog_list, first_exc_i + 1, None):
-            cog.assert_not_called()
-            assert ((cog.return_value,), {}) not in bot.add_cog.call_args_list
+    for cog_name in cog_names:
+        cog_provider = getattr(container.return_value, cog_name)
+        cog_provider.assert_called_once_with()
+        root.bot.return_value.add_cog.assert_any_call(cog_provider.return_value)
