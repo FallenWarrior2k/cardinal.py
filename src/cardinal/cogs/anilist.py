@@ -47,7 +47,7 @@ query(
 fragment baseFields on Media {
     title { english romaji }
     coverImage { large }
-    averageScore
+    meanScore
     genres
     description
 
@@ -157,8 +157,8 @@ def make_embed(item):
         icon_url='https://anilist.co/img/icons/favicon-32x32.png'
     )
 
-    score = f'{item["averageScore"]} %' if item['averageScore'] else '-'
-    embed.add_field(name='Average Score', value=score, inline=False)
+    score = f'{item["meanScore"]} %' if item['meanScore'] else '-'
+    embed.add_field(name='Mean Score', value=score, inline=False)
 
     embed.add_field(name='Format', value=FORMAT_REPR[item['format']])
     embed.add_field(name='Source', value=normalize_ssc(item['source']))
