@@ -23,10 +23,10 @@ class TestSetup:
             ([],),
             ([mock.MagicMock(__name__='test mock 1')],),
             ([
-                 mock.MagicMock(__name__='test mock 2'),
-                 mock.MagicMock(__name__='test mock 3'),
-                 mock.MagicMock(__name__='test mock 4')
-             ],)
+                mock.MagicMock(__name__='test mock 2'),
+                mock.MagicMock(__name__='test mock 3'),
+                mock.MagicMock(__name__='test mock 4')
+            ],)
         ],
         indirect=['cog_list']
     )
@@ -42,10 +42,10 @@ class TestSetup:
         [
             ([mock.MagicMock(__name__='test mock 1', side_effect=Exception('mock exception 1'))],),
             ([
-                 mock.MagicMock(__name__='test mock 2'),
-                 mock.MagicMock(__name__='test mock 3', side_effect=Exception('mock exception 2')),
-                 mock.MagicMock(__name__='test mock 4')
-             ],)
+                mock.MagicMock(__name__='test mock 2'),
+                mock.MagicMock(__name__='test mock 3', side_effect=Exception('mock exception 2')),
+                mock.MagicMock(__name__='test mock 4')
+            ],)
         ],
         indirect=['cog_list']
     )
