@@ -19,4 +19,4 @@ fi
 
 curl -H "Content-Type: application/json" \
     --data "{\"source_type\": \"${type}\", \"source_name\": \"${source}\"}" \
-    -X POST "https://registry.hub.docker.com/u/fallenwarrior2k/cardinal.py/trigger/${DOCKERHUB_TOKEN}/"
+    -X POST "$DOCKERHUB_BUILD_ENDPOINT"
