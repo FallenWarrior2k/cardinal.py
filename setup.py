@@ -41,7 +41,7 @@ setup(
         'cardinal': ['db/migrations/*', 'db/migrations/**/*']
     },
     install_requires=[
-        'discord.py>=1.0',
+        'discord.py>=1.2.5',
         'SQLAlchemy>=1.3',
         'alembic'
     ],
