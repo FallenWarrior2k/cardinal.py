@@ -1,6 +1,6 @@
 import logging
 
-from .basecog import BaseCog
+from .anilist import Anilist
 from .channels import Channels
 from .moderation import Moderation
 from .newbie import Newbies
@@ -8,7 +8,7 @@ from .roles import Roles
 from .whitelist import Whitelisting
 
 logger = logging.getLogger(__name__)
-cogs = (Channels, Moderation, Newbies, Roles, Whitelisting)
+cogs = (Anilist, Channels, Moderation, Newbies, Roles, Whitelisting)
 
 
 def setup(bot):

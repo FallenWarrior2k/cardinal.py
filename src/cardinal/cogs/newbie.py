@@ -7,6 +7,7 @@ from functools import partial, wraps
 import discord
 from discord.ext import commands
 
+from ..context import Context
 from ..db import NewbieChannel, NewbieGuild, NewbieUser
 from ..errors import PromptTimeout
 from ..utils import clean_prefix, prompt
@@ -30,7 +31,7 @@ def newbie_enabled(func):
     @wraps(cmd)
     async def wrapper(*args, **kwargs):
         # No try-catch necessary, context is always passed since rewrite
-        ctx = next(i for i in args if isinstance(i, commands.Context))
+        ctx = next(i for i in args if isinstance(i, Context))
 
         if not (ctx.guild and ctx.session.query(NewbieGuild).get(ctx.guild.id)):
             await ctx.send('Newbie roling is not enabled on this server. '
@@ -153,6 +154,16 @@ class Newbies(BaseCog):
             if db_guild is None:
                 return
 
+            # Bots don't need confirmation, since they were manually added by a mod/admin
+            # Not like they could confirm themselves anyways
+            if member.bot:
+                role = discord.utils.get(member.guild.roles, id=db_guild.role_id)
+                if not role:
+                    return
+
+                await member.add_roles(role)
+                return
+
             await self.add_member(session, db_guild, member)
 
     @commands.Cog.listener()
@@ -244,7 +255,7 @@ class Newbies(BaseCog):
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
     @commands.bot_has_permissions(manage_roles=True, manage_channels=True)
-    async def newbie(self, ctx: commands.Context):
+    async def newbie(self, ctx: Context):
         """
         Make new members have restricted permissions until they confirm themselves.
 
@@ -264,7 +275,7 @@ class Newbies(BaseCog):
                 .format(clean_prefix(ctx), ctx.command.qualified_name))
 
     @newbie.command()
-    async def enable(self, ctx: commands.Context):
+    async def enable(self, ctx: Context):
         """
         Enable automatic newbie roling for the current server.
         This will add a role to new members, restricting their permissions to send messages,
@@ -341,7 +352,7 @@ class Newbies(BaseCog):
         await ctx.send('Automatic newbie roling is now enabled for this server.')
 
     @newbie.command()
-    async def disable(self, ctx: commands.Context):
+    async def disable(self, ctx: Context):
         """
         Disable automatic newbie roling for this server.
         New members will instantly have write access, unless verification prevents that.
@@ -350,10 +361,12 @@ class Newbies(BaseCog):
         db_guild = ctx.session.query(NewbieGuild).get(ctx.guild.id)
         if not db_guild:
             await ctx.send('Automatic newbie roling is not enabled for this server.')
+            return
 
         role = discord.utils.get(ctx.guild.roles, id=db_guild.role_id)
         if not role:
             await ctx.send('Role has already been deleted.')
+            return
 
         everyone_role = ctx.guild.default_role
         everyone_perms = everyone_role.permissions
@@ -382,7 +395,7 @@ class Newbies(BaseCog):
 
     @newbie.command()
     @newbie_enabled
-    async def timeout(self, ctx: commands.Context, delay: int = 0):
+    async def timeout(self, ctx: Context, delay: int = 0):
         """
         Set the timeout in hours before new users get kicked.
         Put a non-positive value (zero or less) or nothing to remove it.
@@ -404,7 +417,7 @@ class Newbies(BaseCog):
 
     @newbie.command('welcome-message')
     @newbie_enabled
-    async def _welcome_message(self, ctx: commands.Context):
+    async def _welcome_message(self, ctx: Context):
         """
         Set the welcome message for the server.
         """
@@ -426,7 +439,7 @@ class Newbies(BaseCog):
 
     @newbie.command('response-message')
     @newbie_enabled
-    async def _response_message(self, ctx: commands.Context, *, msg: str = None):
+    async def _response_message(self, ctx: Context, *, msg: str = None):
         """
         Set the response message for the server,
         i.e. the message users have to enter to be granted access to the server.
@@ -459,7 +472,7 @@ class Newbies(BaseCog):
         await ctx.send('Successfully set response message.')
 
     @newbie.group()
-    async def channels(self, ctx: commands.Context):
+    async def channels(self, ctx: Context):
         """
         Modify the channels unconfirmed users can access.
         """
@@ -473,7 +486,7 @@ class Newbies(BaseCog):
 
     @channels.command()
     @newbie_enabled
-    async def add(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def add(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Add a channel to the list of channels unconfirmed users can access.
 
@@ -507,7 +520,7 @@ class Newbies(BaseCog):
 
     @channels.command()
     @newbie_enabled
-    async def remove(self, ctx: commands.Context, *, channel: discord.TextChannel = None):
+    async def remove(self, ctx: Context, *, channel: discord.TextChannel = None):
         """
         Remove a channel from the list of channels unconfirmed users can access.
 
@@ -540,7 +553,7 @@ class Newbies(BaseCog):
 
     @channels.command()
     @newbie_enabled
-    async def list(self, ctx: commands.Context):
+    async def list(self, ctx: Context):
         """
         Lists the channels visible to unconfirmed users of this server.
         """

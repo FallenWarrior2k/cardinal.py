@@ -1,6 +1,7 @@
 from discord.ext import commands
 
-from .db.whitelist import WhitelistedChannel
+from .context import Context
+from .db import WhitelistedChannel
 from .errors import ChannelNotWhitelisted
 
 
@@ -17,7 +18,7 @@ def channel_whitelisted(exception_predicate=None):
         typing.Callable: Decorator to use on discord.py commands.
     """
 
-    def predicate(ctx: commands.Context):
+    def predicate(ctx: Context):
         # Manually create session as ctx.session is not created until after checks have succeeded
         with ctx.bot.session_scope() as session:
             db_channel = session.query(WhitelistedChannel).get(ctx.channel.id)

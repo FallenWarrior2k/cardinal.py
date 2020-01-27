@@ -19,6 +19,7 @@ Dockerfile
 .idea/
 
 # (Meta)files unnecessary for running
+.travis/
 .travis.yml
 LICENSE
 README.md

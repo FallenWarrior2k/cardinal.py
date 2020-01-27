@@ -1,8 +1,8 @@
-from cardinal import cogs
+from cardinal.cogs.basecog import BaseCog
 
 
 def test_basecog_ctor(mocker):
     bot = mocker.Mock()
-    cog = cogs.BaseCog(bot)
+    cog = BaseCog(bot)
 
     assert cog.bot is bot

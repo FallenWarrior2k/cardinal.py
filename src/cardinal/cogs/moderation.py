@@ -3,6 +3,7 @@ import logging
 import discord
 from discord.ext import commands
 
+from ..context import Context
 from .basecog import BaseCog
 
 logger = logging.getLogger(__name__)
@@ -13,14 +14,11 @@ class Moderation(BaseCog):
     A collection of general moderation commands to simplify the daily life of a mod.
     """
 
-    def __init__(self, bot):
-        super().__init__(bot)
-
     @commands.command()
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
-    async def kick(self, ctx: commands.Context, user: discord.Member, *, reason: str = None):
+    async def kick(self, ctx: Context, user: discord.Member, *, reason: str = None):
         """
         Kick a member from the current server.
 
@@ -46,7 +44,7 @@ class Moderation(BaseCog):
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
     async def ban(self,
-                  ctx: commands.Context,
+                  ctx: Context,
                   user: discord.Member,
                   prune_days: int = 1,
                   *,

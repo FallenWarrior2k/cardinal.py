@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from ..checks import channel_whitelisted
+from ..context import Context
 from ..db import JoinRole
 from ..utils import clean_prefix
 from .basecog import BaseCog
@@ -16,7 +17,7 @@ class Roles(BaseCog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
-    async def roles(self, ctx: commands.Context):
+    async def roles(self, ctx: Context):
         """
         Join, leave and manage roles.
 
@@ -36,7 +37,7 @@ class Roles(BaseCog):
             return
 
     @roles.command()
-    async def join(self, ctx: commands.Context, *, role: discord.Role):
+    async def join(self, ctx: Context, *, role: discord.Role):
         """
         Add the user to the specified role.
 
@@ -54,7 +55,7 @@ class Roles(BaseCog):
         await ctx.send('User {} joined role "{}"'.format(ctx.author.mention, role.name))
 
     @roles.command()
-    async def leave(self, ctx: commands.Context, *, role: discord.Role):
+    async def leave(self, ctx: Context, *, role: discord.Role):
         """
         Remove the user from the specified role.
 
@@ -72,7 +73,7 @@ class Roles(BaseCog):
         await ctx.send('User {} left role "{}"'.format(ctx.author.mention, role.name))
 
     @roles.command('list')
-    async def _list(self, ctx: commands.Context):
+    async def _list(self, ctx: Context):
         """
         List the roles that can be joined through the bot,
         i.e. that have been marked as joinable for the current server.
@@ -95,7 +96,7 @@ class Roles(BaseCog):
         await ctx.send(answer)
 
     @roles.command()
-    async def stats(self, ctx: commands.Context):
+    async def stats(self, ctx: Context):
         """
         Display the member count for each role marked as joinable on the current server.
         """
@@ -115,7 +116,7 @@ class Roles(BaseCog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def add(self, ctx: commands.Context, *, role: discord.Role):
+    async def add(self, ctx: Context, *, role: discord.Role):
         """
         Mark a role as joinable through this bot.
 
@@ -136,7 +137,7 @@ class Roles(BaseCog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def remove(self, ctx: commands.Context, *, role: discord.Role):
+    async def remove(self, ctx: Context, *, role: discord.Role):
         """
         Remove a role from the list of roles joinable through this bot.
 
@@ -160,7 +161,7 @@ class Roles(BaseCog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def create(self, ctx: commands.Context, *, rolename: str):
+    async def create(self, ctx: Context, *, rolename: str):
         """
         Create a new role on the current server and mark it as joinable through this bot.
 
@@ -181,7 +182,7 @@ class Roles(BaseCog):
 
     @roles.command()
     @commands.has_permissions(manage_roles=True)
-    async def delete(self, ctx: commands.Context, *, role: discord.Role):
+    async def delete(self, ctx: Context, *, role: discord.Role):
         """
         Delete a role from the current server.
 

@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
 
 
@@ -43,7 +43,9 @@ setup(
     install_requires=[
         'discord.py>=1.2.5',
         'SQLAlchemy>=1.3',
-        'alembic'
+        'alembic',
+        'lazy',
+        'markdownify'
     ],
     tests_require=['tox'],
     extras_require={
