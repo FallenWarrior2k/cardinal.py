@@ -10,7 +10,6 @@ from discord.ext.commands import (
     MissingRequiredArgument, NoPrivateMessage, TooManyArguments, UserInputError
 )
 
-from .context import Context
 from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
@@ -61,10 +60,10 @@ class Bot(BaseBot):
         ctx = await self.get_context(msg, cls=self._context_factory)
         await self.invoke(ctx)
 
-    async def on_command(self, ctx: Context):
+    async def on_command(self, ctx):
         logger.info(format_message(ctx.message))
 
-    async def on_command_error(self, ctx: Context, ex: CommandError):
+    async def on_command_error(self, ctx, ex: CommandError):
         error_msg = ''
 
         if isinstance(ex, NoPrivateMessage):
