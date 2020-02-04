@@ -119,26 +119,52 @@ class TestOnMessage:
         return mocker.Mock()
 
     @fixture
+    def msg(self, mocker):
+        msg = mocker.Mock()
+        # Prevent accidental short-circuits
+        msg.author.bot = False
+
+        return msg
+
+    @fixture
     def patches(self, bot, ctx, mocker):
         mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
         mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
 
-    async def test_not_bot(self, bot, context_factory, ctx, mocker):
-        msg = mocker.Mock()
-        msg.author.bot = False
-
+    async def test_not_bot(self, bot, context_factory, ctx, msg):
         await bot.on_message(msg)
 
         bot.get_context.assert_called_once_with(msg, cls=context_factory)
         bot.invoke.assert_called_once_with(ctx)
 
-    async def test_bot(self, bot, mocker):
-        msg = mocker.Mock()
+    async def test_bot(self, bot, msg):
         msg.author.bot = True
 
         await bot.on_message(msg)
         bot.get_context.assert_not_called()
         bot.invoke.assert_not_called()
+
+    async def test_commit_fail(self, bot, ctx, msg):
+        ctx.command_failed = True
+
+        await bot.on_message(msg)
+        ctx.session.commit.assert_not_called()
+
+    async def test_commit_no_session(self, bot, ctx, msg):
+        ctx.command_failed = False
+        ctx.session.registry.has.return_value = False
+
+        await bot.on_message(msg)
+        ctx.session.registry.has.assert_called_once_with()
+        ctx.session.commit.assert_not_called()
+
+    async def test_commit_session(self, bot, ctx, msg):
+        ctx.command_failed = False
+        ctx.session.registry.has.return_value = True
+
+        await bot.on_message(msg)
+        ctx.session.registry.has.assert_called_once_with()
+        ctx.session.commit.assert_called_once_with()
 
 
 @mark.asyncio

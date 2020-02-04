@@ -60,6 +60,12 @@ class Bot(BaseBot):
         ctx = await self.get_context(msg, cls=self._context_factory)
         await self.invoke(ctx)
 
+        # Instead of calling `commit()` every time something touches the session, call it once here
+        # Needs to happen here instead of e.g. a command_completion handler
+        # due to the latter having their own context, i.e. a different session.
+        if not ctx.command_failed and ctx.session.registry.has():
+            ctx.session.commit()
+
     async def on_command(self, ctx):
         logger.info(format_message(ctx.message))
 
