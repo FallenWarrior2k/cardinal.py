@@ -17,8 +17,7 @@ class BotAdmin(Cog):
     @is_owner()
     async def invite(self, ctx):
         """
-        Generate an invite link that can be used to
-        invite the bot to other servers.
+        Generate an invite link to add the bot to other servers.
 
         Required permissions:
             - Bot owner
@@ -50,8 +49,7 @@ class BotAdmin(Cog):
     @is_owner()
     async def setavatar(self, ctx, url: str = None):
         """
-        Set the bot's avatar to the image pointed to by a given URL
-        or contained in an attachment.
+        Change the bot's avatar. Takes a URL or an attachment.
 
         Required permissions:
             - Bot owner
