@@ -103,15 +103,10 @@ async def _init_role(ctx, db_guild=None):
         # Process channels unaffected by sync
         # Note: Individual channel objects aren't updated with the new overwrites
         # Only the channel lists on the guild object are updated
-
-        def is_synced(channel):
-            current_overwrite = channel.overwrites_for(mute_role)
-            return current_overwrite == new_channel_overwrite
-
         await gather(
             *(channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
               for channel in chain(ctx.guild.text_channels, ctx.guild.voice_channels)
-              if not is_synced(channel))
+              if channel.overwrites_for(mute_role) != new_channel_overwrite)
         )
     except HTTPException as e:
         logger.exception(
@@ -222,7 +217,7 @@ class Mute(Cog):
     def __init__(self, bot, loop, scoped_session, sessionmaker, check_period=30):
         self._session = scoped_session
         self._sessionmaker = sessionmaker
-        self.check_period = check_period
+        self._check_period = check_period
         self._locks = defaultdict(lambda: 0)
         loop.create_task(self._check_mute_timeouts(bot))
 
@@ -247,7 +242,7 @@ class Mute(Cog):
     def _get_unmutes(self, session):
         # Query for mutes that run before the next iteration
         # No need to delete by hand, self.on_guild_member_update() will clean up
-        next_iteration_timestamp = (datetime.utcnow() + timedelta(seconds=self.check_period))
+        next_iteration_timestamp = (datetime.utcnow() + timedelta(seconds=self._check_period))
         q = session.query(MuteGuild) \
             .join(MuteGuild.mutes) \
             .filter(MuteUser.muted_until.isnot(None),
@@ -267,7 +262,7 @@ class Mute(Cog):
                     )
                 )
 
-            await sleep(self.check_period)
+            await sleep(self._check_period)
 
     @Cog.listener()
     async def on_guild_channel_create(self, channel):
@@ -374,7 +369,7 @@ class Mute(Cog):
             return
 
         # Add mute to DB prior to role assigment, member update handler triggers otherwise
-        is_short_mute = duration and duration.total_seconds() <= self.check_period
+        is_short_mute = duration and duration.total_seconds() <= self._check_period
         if not is_short_mute:
             db_mute = MuteUser(user_id=member.id, guild_id=ctx.guild.id)
             if duration:
