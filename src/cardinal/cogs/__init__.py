@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from dependency_injector.containers import DeclarativeContainer
-from dependency_injector.providers import DependenciesContainer, Singleton
+from dependency_injector.providers import Configuration, DependenciesContainer, Singleton
 
 from .anilist import Anilist
 from .botadmin import BotAdmin
@@ -31,6 +31,8 @@ cog_names = (
 
 class CogsContainer(DeclarativeContainer):
     root = DependenciesContainer()
+    # Accessing a Configuration through a DependenciesContainer does not work, so do it manually
+    config = Configuration('config.cogs')
 
     anilist = Singleton(Anilist, http=root.http)
 
@@ -67,7 +69,7 @@ class CogsContainer(DeclarativeContainer):
 
 def load_cogs(root):
     bot = root.bot()
-    cogs = CogsContainer(root=root)
+    cogs = CogsContainer(root=root, config=root.config.cogs())
 
     for cog_name in cog_names:
         cog_provider = getattr(cogs, cog_name)

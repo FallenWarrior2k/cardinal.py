@@ -13,7 +13,7 @@ def test_load_cogs(container, mocker):
     load_cogs(root)
 
     root.bot.assert_called_with()  # Singleton, doesn't matter how often it was called
-    container.assert_called_once_with(root=root)
+    container.assert_called_once_with(root=root, config=root.config.cogs())
 
     for cog_name in cog_names:
         cog_provider = getattr(container.return_value, cog_name)
