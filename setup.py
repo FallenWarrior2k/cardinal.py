@@ -47,6 +47,7 @@ setup(
     install_requires=[
         'discord.py>=1.5',
         'SQLAlchemy>=1.3',
+        'aioitertools>=0.7',
         'alembic',
         'dependency_injector',
         'markdownify'

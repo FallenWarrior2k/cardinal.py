@@ -11,6 +11,7 @@ from .moderation import Moderation
 from .mute import Mute
 from .newbie import Newbies
 from .roles import Roles
+from .saucenao import SauceNAO
 from .stop import Stop
 from .whitelist import Whitelisting
 
@@ -24,6 +25,7 @@ cog_names = (
     'mute',
     'newbie',
     'roles',
+    'saucenao',
     'stop',
     'whitelist'
 )
@@ -61,6 +63,8 @@ class CogsContainer(DeclarativeContainer):
     )
 
     roles = Singleton(Roles)
+
+    saucenao = Singleton(SauceNAO, http=root.http, api_key=config.saucenao.api_key)
 
     stop = Singleton(Stop)
 

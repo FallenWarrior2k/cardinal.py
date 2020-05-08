@@ -27,6 +27,7 @@ A growing, general-purpose, all-round Discord bot.
 ### Utility
 * [AniList](https://anilist.co) lookup of anime, manga, and light novels
 * Lookup of terms in [Jisho](https://jisho.org), a Japanese-English dictionary
+* Lookup of images in the [SauceNAO](https://saucenao.com) reverse image search database
 
 Albeit quite short right now, this list will probably grow in due time.
 
@@ -39,7 +40,7 @@ This is confidential and should never be shared.
 ### Manual setup
 If you choose not to use the Docker image, this is what you need to set up the bot manually.
 
-* a [Python](https://www.python.org/downloads/) version supported by discord.py, currently 3.7+
+* a [Python](https://www.python.org/downloads/) version supported by discord.py, currently 3.8+
 * pip3; on Windows, it is included in Python, on Linux it can _usually_ be acquired from the package `python3-pip`
 
 ### Docker
@@ -107,6 +108,12 @@ Now fill out the config file (located at `config.json.example` in the repository
 * `"log_level"`: Log level of the bot. Essentially dictates how "major" an event must be to get logged.
     The default level is `INFO`, which logs some informative messages like command invocations in addition to just errors.
     Other options are `WARNING`, `ERROR` and `FATAL`, which do what they say, as well as `DEBUG` which prints just about everything.
+* `"cogs"`: This is where cog-specific settings live.
+    Cogs are the modules/units of related code that provide most functionality, primarily commands.
+    - `"saucenao"`: Settings for the SauceNAO cog; permits customizing the way in which it interacts with the API.
+        + `"api_key"`: SauceNAO API key (see [here](https://saucenao.com/user.php?page=search-api)) used to authenticate requests against the API.
+        Can be empty, garbage, or not even present if you don't want to use the SauceNAO functionality,
+        but this will cause all related commands to error out.
 
 After filling out the configuration, you will need to run the `upgrade_db.py` script,
 which creates the database tables needed for operation.
@@ -142,6 +149,7 @@ Finally, after ensuring the correctness of the database structure, you will need
 * [discord.py](https://github.com/Rapptz/discord.py) as the Discord API wrapper
 * [SQLAlchemy](https://www.sqlalchemy.org/) and [Alembic](https://alembic.sqlalchemy.org/en/latest/) for database handling and management
 * [dependency_injector](http://python-dependency-injector.ets-labs.org/) for dependency injection and IoC
+* [aioitertools](https://github.com/omnilib/aioitertools) to make dealing with async iterators and generators more convenient
 * [markdownify](https://github.com/matthewwithanm/python-markdownify) to convert HTML to Markdown so that Discord can understand it
 
 ## Acknowledgments
