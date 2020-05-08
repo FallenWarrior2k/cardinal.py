@@ -25,7 +25,7 @@ A growing, general-purpose, all-round Discord bot.
 * Shut the bot down
 
 ### Utility
-* [Anilist](https://anilist.co) lookup of anime, manga, and light novels
+* [AniList](https://anilist.co) lookup of anime, manga, and light novels
 * Lookup of terms in [Jisho](https://jisho.org), a Japanese-English dictionary
 
 Albeit quite short right now, this list will probably grow in due time.
@@ -39,7 +39,7 @@ This is confidential and should never be shared.
 ### Manual setup
 If you choose not to use the Docker image, this is what you need to set up the bot manually.
 
-* a [Python](https://www.python.org/downloads/) version supported by discord.py, currently 3.5 or 3.6
+* a [Python](https://www.python.org/downloads/) version supported by discord.py, currently 3.7+
 * pip3; on Windows, it is included in Python, on Linux it can _usually_ be acquired from the package `python3-pip`
 
 ### Docker
@@ -104,7 +104,7 @@ Now fill out the config file (located at `config.json.example` in the repository
         the bot does not include any specific drivers in its dependencies.
     - `"options"`: Custom requirements on how to create the database engine used by the bot.
         Essentially passed through to [`create_engine`](https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine) as `**kwargs`.
-* `log_level`: Log level of the bot. Essentially dictates how "major" an event must be to get logged.
+* `"log_level"`: Log level of the bot. Essentially dictates how "major" an event must be to get logged.
     The default level is `INFO`, which logs some informative messages like command invocations in addition to just errors.
     Other options are `WARNING`, `ERROR` and `FATAL`, which do what they say, as well as `DEBUG` which prints just about everything.
 
@@ -139,9 +139,9 @@ Finally, after ensuring the correctness of the database structure, you will need
 * Tests for the commands, as well as any future additions
 
 ## Built with
-* [discord.py](https://github.com/Rapptz/discord.py/tree/rewrite) as the Discord API wrapper
+* [discord.py](https://github.com/Rapptz/discord.py) as the Discord API wrapper
 * [SQLAlchemy](https://www.sqlalchemy.org/) and [Alembic](https://alembic.sqlalchemy.org/en/latest/) for database handling and management
-* [lazy](https://github.com/stefanholek/lazy) to defer the creation of a database session until usage
+* [dependency_injector](http://python-dependency-injector.ets-labs.org/) for dependency injection and IoC
 * [markdownify](https://github.com/matthewwithanm/python-markdownify) to convert HTML to Markdown so that Discord can understand it
 
 ## Acknowledgments
