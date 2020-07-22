@@ -177,7 +177,7 @@ class Channels(BaseCog):
         everyone_role = ctx.guild.default_role
 
         await channel.set_permissions(everyone_role, read_messages=False)
-        await channel.set_permissions(role, read_message=True)
+        await channel.set_permissions(role, read_messages=True)
 
         db_channel = OptinChannel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
