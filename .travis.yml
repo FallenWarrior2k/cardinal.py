@@ -5,9 +5,8 @@ python:
 install:
   - pip install -U pip
   - pip install -e .
-  - pip install pytest pytest-asyncio pytest-cov pytest-mock coveralls
+  - pip install pytest pytest-asyncio pytest-mock
 script:
-  - pytest -v --cov=src/cardinal tests
+  - pytest -v tests
 after_success:
-  - coveralls
   - .travis/dockerhub-trigger.sh
