@@ -29,6 +29,9 @@ def _extract_urls_from_message(msg):
     yield from (attachment.url for attachment in msg.attachments)
 
 
+# TODO: Remove this, it's literally a no-op
+# Reading the JSON standard helps. Something I did before but forgot about.
+# Turns out, '\/' is a perfectly valid escape sequence that just gets flattened to '/'.
 def _unescape_sauce_str(input_str: str) -> str:
     """
     Fix SauceNAO escaping all slashes with backslashes.
@@ -70,7 +73,7 @@ def _handle_danbooru(data: dict) -> _ResultMeta:
     # TODO: Is this really useful? It just 403s for many things.
     # Generally, the URLs on the booru pages are far more useful
     if (source := data.get('source')) is not None:
-        links.append(f'[Source]({_unescape_sauce_str(source)})')
+        links.append(f'[Source]({source})')
 
     artist = data.get('creator')
     return _ResultMeta(links, artist)
@@ -193,7 +196,7 @@ class SauceNAO(Cog):
             result_json = resp_data['results'][0]
             header = result_json['header']
             return _SauceResult(similarity=header['similarity'],
-                                thumbnail=_unescape_sauce_str(header['thumbnail']),
+                                thumbnail=header['thumbnail'],
                                 meta=_extract_meta_from_sauce_result(result_json))
 
     @command(aliases=['sauce', 'source'])
