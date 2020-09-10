@@ -29,22 +29,6 @@ def _extract_urls_from_message(msg):
     yield from (attachment.url for attachment in msg.attachments)
 
 
-# TODO: Remove this, it's literally a no-op
-# Reading the JSON standard helps. Something I did before but forgot about.
-# Turns out, '\/' is a perfectly valid escape sequence that just gets flattened to '/'.
-def _unescape_sauce_str(input_str: str) -> str:
-    """
-    Fix SauceNAO escaping all slashes with backslashes.
-
-    Args:
-        input_str: Escaped string from SauceNAO's API.
-
-    Returns:
-        A string that can actually be used as e.g. a URL if it previously was one.
-    """
-    return input_str.replace('\\/', '/')
-
-
 @dataclass
 class _ResultMeta:
     links: List[str]
