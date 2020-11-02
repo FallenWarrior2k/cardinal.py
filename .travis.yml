@@ -5,7 +5,7 @@ python:
 install:
   - pip install -U pip
   - pip install -e .
-  - pip install pytest pytest-asyncio pytest-mock
+  - pip install pytest>=5 pytest-asyncio pytest-mock
 script:
   - pytest -v tests
 after_success:
