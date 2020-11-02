@@ -10,6 +10,8 @@ from .errors import UserBlacklisted
 from .utils import clean_prefix, format_message
 
 logger = logging.getLogger(__name__)
+intents = discord.Intents.default()
+intents.members = True
 
 
 # TODO: Implement server-specific prefixes
@@ -33,7 +35,7 @@ class Bot(commands.Bot):
         if default_game:
             game = discord.Game(name=default_game)
 
-        super().__init__(*args, **kwargs, description='cardinal.py', game=game)
+        super().__init__(*args, **kwargs, description='cardinal.py', game=game, intents=intents)
 
         self.sessionmaker = sessionmaker(bind=engine)
         self.before_invoke(self.before_invoke_hook)
