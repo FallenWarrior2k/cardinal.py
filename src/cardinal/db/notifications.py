@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+from discord.ext.commands.errors import BadArgument
 from sqlalchemy import BigInteger, Column, Enum as EnumCol, UnicodeText
 
 from .base import Base
@@ -10,6 +11,14 @@ class NotificationKind(Enum):
     LEAVE = auto()
     BAN = auto()
     UNBAN = auto()
+
+    # Helper to be able to use the type as an annotation on commands
+    @classmethod
+    async def convert(cls, ctx, arg):
+        try:
+            return cls[arg.upper()]
+        except KeyError:
+            raise BadArgument
 
 
 class Notification(Base):
