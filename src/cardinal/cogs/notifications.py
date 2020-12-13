@@ -215,6 +215,23 @@ class Notifications(Cog):
             await self._bind_notifications(ctx, channel, kind, template)
 
     @notifications.command()
+    async def disable(self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind)):
+        """
+        Disable one or more notification kinds.
+        Defaults to disabling all of them.
+        """
+        # Dedupe kinds, but keep list type for SQLA in_ operator
+        kinds = list(set(kinds))
+
+        num_deleted = self._session.query(Notification).filter(
+            Notification.guild_id == ctx.guild.id,
+            Notification.kind.in_(kinds)
+        ).delete(synchronize_session=False)
+        self._session.commit()
+
+        await maybe_send(ctx, f"Disabled {num_deleted} notification kind{'' if num_deleted == 1 else 's'}.")
+
+    @notifications.command()
     async def move(self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind), channel: TextChannel = None):
         """
         Move one or more notification kinds to the specified channel.
@@ -227,7 +244,7 @@ class Notifications(Cog):
                 Can be specified without specifying any kinds.
         """
         channel = channel or ctx.channel
-        # Dedupe kinds, but keep list type for SQLA in_ operator
+        # Same as above
         kinds = list(set(kinds))
 
         num_moved = self._session.query(Notification).filter(
