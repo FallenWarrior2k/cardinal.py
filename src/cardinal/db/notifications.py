@@ -20,6 +20,10 @@ class NotificationKind(Enum):
         except KeyError:
             raise BadArgument
 
+    def lower(self):
+        """Get a lowercase representation for use in user-facing text."""
+        return self.name.lower()
+
 
 class Notification(Base):
     __tablename__ = 'notifications'
