@@ -10,6 +10,7 @@ from .jisho import Jisho
 from .moderation import Moderation
 from .mute import Mute
 from .newbie import Newbies
+from .notifications import Notifications
 from .roles import Roles
 from .saucenao import SauceNAO
 from .stop import Stop
@@ -24,6 +25,7 @@ cog_names = (
     'moderation',
     'mute',
     'newbie',
+    'notifications',
     'roles',
     'saucenao',
     'stop',
@@ -60,6 +62,11 @@ class CogsContainer(DeclarativeContainer):
         loop=root.loop,
         scoped_session=root.scoped_session,
         sessionmaker=root.sessionmaker
+    )
+
+    notifications = Singleton(
+        Notifications,
+        scoped_session=root.scoped_session
     )
 
     roles = Singleton(Roles)
