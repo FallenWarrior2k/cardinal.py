@@ -1,9 +1,11 @@
 from string import Template
+from typing import Optional
 
-from discord import Guild, Member, User
-from discord.ext.commands import Cog
+from discord import Guild, Member, TextChannel, User
+from discord.ext.commands import Cog, Greedy, group, guild_only, has_permissions
 
 from ..db import Notification, NotificationKind
+from ..utils import maybe_send
 
 
 class Notifications(Cog):
@@ -48,3 +50,43 @@ class Notifications(Cog):
     @Cog.listener()
     async def on_member_unban(self, guild: Guild, user: User):
         await self._process_event(NotificationKind.UNBAN, guild, user)
+
+    @group(aliases=['greetings', 'joins', 'welcome', 'welcomes'])
+    @guild_only()
+    @has_permissions(manage_guild=True)
+    async def notifications(self, ctx):
+        """
+        Control a server's join/leave/ban notifications.
+
+        Required context: Server
+
+        Required permissions:
+            - Manage Server
+        """
+        if ctx.invoked_subcommand is None:
+            await maybe_send(ctx, 'Invalid subcommand passed. '
+                                  'Possible options are "enable", "move", or "disable".')
+
+    @notifications.command()
+    async def move(self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind), channel: TextChannel = None):
+        """
+        Move one or more notification kinds to the specified channel.
+        Defaults to moving all kinds to the current channel.
+
+        Arguments:
+            - [optional, list] kinds: Notification kinds to move.
+                Not enabled ones are ignored.
+            - [optional] channel: Channel to move notifications to.
+                Can be specified without specifying any kinds.
+        """
+        channel = channel or ctx.channel
+        # Dedupe kinds, but keep list type for SQLA in_ operator
+        kinds = list(set(kinds))
+
+        num_moved = self._session.query(Notification).filter(
+            Notification.guild_id == ctx.guild.id,
+            Notification.kind.in_(kinds)
+        ).update({Notification.channel_id: channel.id}, synchronize_session=False)
+        self._session.commit()
+
+        await maybe_send(ctx, f"Moved {num_moved} notification kind{'' if num_moved == 1 else 's'} to {channel.mention}.")
