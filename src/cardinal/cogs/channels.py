@@ -1,21 +1,20 @@
-import logging
+from logging import getLogger
 
-import discord
-from discord.ext import commands
+from discord import Embed, TextChannel
+from discord.ext.commands import Cog, bot_has_permissions, group, guild_only, has_permissions
 
 from ..checks import channel_whitelisted
 from ..context import Context
 from ..db import OptinChannel
 from ..utils import clean_prefix
-from .basecog import BaseCog
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
-class Channels(BaseCog):
-    @commands.group('channel')
-    @commands.guild_only()
-    @commands.bot_has_permissions(manage_roles=True)
+class Channels(Cog):
+    @group('channel', aliases=['channels'])
+    @guild_only()
+    @bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
     async def channels(self, ctx: Context):
         """
@@ -33,12 +32,12 @@ class Channels(BaseCog):
             await ctx.send(
                 'Invalid command passed. '
                 'Possible choices are "show", "hide", and "opt-in"(mod only).\n'
-                'Please refer to `{}help {}` for further information.'
-                .format(clean_prefix(ctx), ctx.command.qualified_name))
+                f'Please refer to `{clean_prefix(ctx)}help {ctx.command.qualified_name}` '
+                'for further information.')
             return
 
     @channels.command(aliases=['show'])
-    async def join(self, ctx: Context, *, channel: discord.TextChannel):
+    async def join(self, ctx: Context, *, channel: TextChannel):
         """
         Grant a user access to an opt-in enabled channel.
 
@@ -51,19 +50,17 @@ class Channels(BaseCog):
         db_channel = ctx.session.query(OptinChannel).get(channel.id)
 
         if not db_channel:
-            await ctx.send('Channel {} is not specified as an opt-in channel.'
-                           .format(channel.mention))
+            await ctx.send(f'Channel {channel.mention} is not specified as an opt-in channel.')
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+        role = ctx.guild.get_role(db_channel.role_id)
 
         await ctx.author.add_roles(role, reason='User joined opt-in channel.')
 
-        await ctx.send('User {user} joined channel {channel}.'
-                       .format(user=ctx.author.mention, channel=channel.mention))
+        await ctx.send(f'User {ctx.author.mention} joined channel {channel.mention}.')
 
     @channels.command(aliases=['hide'])
-    async def leave(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def leave(self, ctx: Context, *, channel: TextChannel = None):
         """
         Revoke a user's access to an opt-in enabled channel.
 
@@ -78,11 +75,10 @@ class Channels(BaseCog):
         db_channel = ctx.session.query(OptinChannel).get(channel.id)
 
         if not db_channel:
-            await ctx.send('Channel {} is not specified as an opt-in channel.'
-                           .format(channel.mention))
+            await ctx.send(f'Channel {channel.mention} is not specified as an opt-in channel.')
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+        role = ctx.guild.get_role(db_channel.role_id)
 
         if not role:
             ctx.session.delete(db_channel)
@@ -91,8 +87,7 @@ class Channels(BaseCog):
 
         await ctx.author.remove_roles(role, reason='User left opt-in channel.')
 
-        await ctx.send('User {user} left channel {channel}.'
-                       .format(user=ctx.author.mention, channel=channel.mention))
+        await ctx.send(f'User {ctx.author.mention} left channel {channel.mention}.')
 
     @channels.command('list')
     async def _list(self, ctx: Context):
@@ -101,17 +96,16 @@ class Channels(BaseCog):
         """
 
         q = ctx.session.query(OptinChannel).filter_by(guild_id=ctx.guild.id)
-        channel_iter = filter(None,
-                              (discord.utils.get(ctx.guild.text_channels, id=db_channel.channel_id)
-                               for db_channel in q))
+        channel_iter = filter(
+            None,
+            (ctx.guild.get_channel(db_channel.channel_id) for db_channel in q)
+        )
         channel_list = sorted(channel_iter, key=lambda r: r.position, reverse=True)
 
         answer = 'Channels that can be joined through this bot:```\n'
 
         for channel in channel_list:
-            answer += '#'
-            answer += channel.name
-            answer += '\n'
+            answer += f'#{channel.name}\n'
 
         answer += '```'
 
@@ -124,21 +118,20 @@ class Channels(BaseCog):
         """
 
         q = ctx.session.query(OptinChannel).filter_by(guild_id=ctx.guild.id)
-        role_iter = filter(None,
-                           (discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
-                            for db_channel in q))
-        role_dict = dict((role, sum(1 for member in ctx.guild.members if role in member.roles))
-                         for role in role_iter)
+        role_iter = filter(None, (ctx.guild.get_role(db_channel.role_id) for db_channel in q))
+        role_dict = {role: sum(1 for member in ctx.guild.members if role in member.roles)
+                     for role in role_iter}
 
-        em = discord.Embed(title='Channel stats for ' + ctx.guild.name, color=0x38CBF0)
+        em = Embed(title=f'Channel stats for {ctx.guild}', color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
-            em.add_field(name='#' + role.name, value=str(role_dict[role]))
+            # TODO: Look up channel name, in case it changed
+            em.add_field(name=f'#{role.name}', value=str(role_dict[role]))
 
         await ctx.send(embed=em)
 
     @channels.group('opt-in')
-    @commands.has_permissions(manage_channels=True)
-    @commands.bot_has_permissions(manage_channels=True)
+    @has_permissions(manage_channels=True)
+    @bot_has_permissions(manage_channels=True)
     async def _opt_in(self, ctx: Context):
         """
         Allows moderators to toggle a channel's opt-in status.
@@ -154,7 +147,7 @@ class Channels(BaseCog):
             await ctx.send('Invalid command passed: possible options are "enable" and "disable".')
 
     @_opt_in.command()
-    async def enable(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def enable(self, ctx: Context, *, channel: TextChannel = None):
         """
         Make a channel opt-in, revoking access for @\u200beveryone
          and granting it only to a specifically created role.
@@ -168,11 +161,11 @@ class Channels(BaseCog):
             channel = ctx.channel
 
         if ctx.session.query(OptinChannel).get(channel.id):
-            await ctx.send('Channel {} is already opt-in.'.format(channel.mention))
+            await ctx.send(f'Channel {channel.mention} is already opt-in.')
             return
 
-        role = await ctx.guild.create_role(reason='Opt-in role for channel "{}"'
-                                           .format(channel.name), name=channel.name)
+        role = await ctx.guild.create_role(reason=f'Opt-in role for channel "{channel.name}"',
+                                           name=channel.name)
 
         everyone_role = ctx.guild.default_role
 
@@ -182,12 +175,11 @@ class Channels(BaseCog):
         db_channel = OptinChannel(channel_id=channel.id, role_id=role.id, guild_id=channel.guild.id)
         ctx.session.add(db_channel)
 
-        logger.info('Opt-in enabled for channel {} on guild {}.'
-                    .format(channel, ctx.guild))
-        await ctx.send('Opt-in enabled for channel {}.'.format(channel.mention))
+        logger.info(f'Opt-in enabled for channel {channel} on guild {ctx.guild}.')
+        await ctx.send(f'Opt-in enabled for channel {channel.mention}.')
 
     @_opt_in.command()
-    async def disable(self, ctx: Context, *, channel: discord.TextChannel = None):
+    async def disable(self, ctx: Context, *, channel: TextChannel = None):
         """
         Remove the opt-in status from a channel, making it accessible for @\u200beveryone again.
 
@@ -201,10 +193,10 @@ class Channels(BaseCog):
         db_channel = ctx.session.query(OptinChannel).get(channel.id)
 
         if not db_channel:
-            await ctx.send('Channel {} is not opt-in'.format(channel.mention))
+            await ctx.send(f'Channel {channel.mention} is not opt-in')
             return
 
-        role = discord.utils.get(ctx.guild.roles, id=db_channel.role_id)
+        role = ctx.guild.get_role(db_channel.role_id)
 
         if not role:
             await ctx.send('Could not find role. Was it already deleted?')
@@ -217,6 +209,5 @@ class Channels(BaseCog):
 
         ctx.session.delete(db_channel)
 
-        logger.info('Opt-in disabled for channel {} on guild {}.'
-                    .format(channel, ctx.guild))
-        await ctx.send('Opt-in disabled for channel {}.'.format(channel.mention))
+        logger.info(f'Opt-in disabled for channel {channel} on guild {ctx.guild}.')
+        await ctx.send(f'Opt-in disabled for channel {channel.mention}.')

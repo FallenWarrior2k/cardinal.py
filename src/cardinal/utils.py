@@ -1,20 +1,27 @@
+from asyncio import TimeoutError
+from logging import getLogger
+
+from discord import HTTPException
+
 from .errors import PromptTimeout
 
+logger = getLogger(__name__)
 
+
+# TODO: Maybe make tests use an actual Context object instead of a mock
 def clean_prefix(ctx):
-    user = ctx.me
-    replacement = user.nick if ctx.guild and ctx.me.nick else user.name
-    return ctx.prefix.replace(user.mention, '@' + replacement)
+    return ctx.prefix.replace(ctx.me.mention, '@' + ctx.me.display_name)
 
 
 def format_message(msg):
     """
-    Formats a :class:`discord.Message` for convenient output to e.g. loggers.
+    Format a :class:`discord.Message` for convenient output to e.g. loggers.
 
-    :param msg: The message to format.
-    :type msg: discord.Message
-    :return: The formatted message as a string.
-    :rtype: str
+    Args:
+        msg (discord.Message): Message to format.
+
+    Returns:
+        str: Input message formatted as a string.
     """
 
     if msg.guild is None:
@@ -25,12 +32,54 @@ def format_message(msg):
 
 
 async def prompt(msg, ctx, timeout=60.0):
+    """
+    Prompt a user with a given message
+
+    Args:
+        msg (str): Prompt to display to the user.
+        ctx (cardinal.context.Context): Context that holds the channel and the user to listen for.
+        timeout (typing.Union[float, int]): How long (in seconds) to wait for a response.
+        Defaults to 60.
+
+    Returns:
+        discord.Message: Response sent by the user.
+
+    Raises:
+        cardinal.errors.PromptTimeout: No response by the user within the given timeframe.
+    """
     def pred(m):
         return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
 
     await ctx.send(msg)
-    response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
-    if not response:
-        raise PromptTimeout()
+    try:
+        response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
+    except TimeoutError as e:
+        raise PromptTimeout() from e
 
     return response
+
+
+async def maybe_send(target, *args, **kwargs):
+    """
+    Send a message to a given :class:`discord.abc.Messageable`, ignoring potential errors.
+
+    Args:
+        target (discord.abc.Messageable): Target to send to.
+        *args, **kwargs: Passed through to send call.
+
+    Returns:
+        discord.Message: Newly created message object or None if failed.
+    """
+    try:
+        return await target.send(*args, **kwargs)
+    except HTTPException:
+        if hasattr(target, 'id'):  # Target is channel or user
+            channel = target
+        else:  # Target is context instance
+            channel = target.channel
+
+        logger.warning(
+            'Could not send message to {0} ({0.id}).'.format(channel),
+            exc_info=True
+        )
+        return None

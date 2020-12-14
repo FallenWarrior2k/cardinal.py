@@ -1,30 +1,28 @@
-import pytest
+from pytest import fixture, mark
 
 from cardinal.context import Context
-from cardinal.errors import IllegalSessionUse
 
 
-@pytest.fixture
+@fixture
+def scoped_session(mocker):
+    return mocker.Mock()
+
+
+@fixture
 def base_ctor(mocker):
-    return mocker.patch('cardinal.context.commands.Context.__init__')
+    return mocker.patch('cardinal.context.BaseContext.__init__')
 
 
-@pytest.fixture
-def ctx(base_ctor, request):
+@fixture
+def ctx(base_ctor, request, scoped_session):
     kwargs = getattr(request, 'param', {})
 
-    yield Context(**kwargs)
-    if hasattr(request, 'param'):
-        base_ctor.assert_called_once_with(**kwargs)  # Skip unnecessary assertions
+    yield Context(scoped_session, **kwargs)
+    if hasattr(request, 'param'):  # Skip unnecessary assertions
+        base_ctor.assert_called_once_with(**kwargs)
 
 
-@pytest.fixture
-def sessionmaker(ctx, mocker):
-    ctx.bot = mocker.Mock()
-    return ctx.bot.sessionmaker
-
-
-@pytest.mark.parametrize(
+@mark.parametrize(
     ['ctx'],
     [
         ({},),
@@ -32,27 +30,5 @@ def sessionmaker(ctx, mocker):
     ],
     indirect=True
 )
-def test_ctor(ctx):
-    assert not ctx.session_used
-
-
-def test_session_not_allowed(ctx, sessionmaker):
-    with pytest.raises(IllegalSessionUse):
-        _ = ctx.session
-
-    sessionmaker.assert_not_called()
-
-
-def test_session_allowed(ctx, sessionmaker):
-    ctx.session_allowed = True
-
-    sess1 = ctx.session
-
-    sessionmaker.assert_called_once_with()
-    assert ctx.session_used is True
-
-    sessionmaker.reset_mock()
-    sess2 = ctx.session
-    sessionmaker.assert_not_called()
-
-    assert sess1 is sess2
+def test_ctor(ctx, scoped_session):
+    assert ctx.session is scoped_session

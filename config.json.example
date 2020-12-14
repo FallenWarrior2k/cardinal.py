@@ -6,5 +6,10 @@
     "options": {}
   },
   "default_game": "type %help",
-  "logging_level": "INFO"
+  "log_level": "INFO",
+  "cogs": {
+    "saucenao": {
+      "api_key": "FILLME (optionally)"
+    }
+  }
 }

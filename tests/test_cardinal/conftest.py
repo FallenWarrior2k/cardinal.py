@@ -1,9 +1,9 @@
 from asyncio import coroutine
 
-import pytest
+from pytest import fixture
 
 
-@pytest.fixture
+@fixture
 def mocker(mocker):
     """
     Extend the global mocker fixture with a coroutine mock and non-callable mocks.
@@ -15,7 +15,7 @@ def mocker(mocker):
         Modified mocker fixture that additionally supports `CoroMock`,
         :class:`unittest.mock.NonCallableMock` and :class:`unittest.mock.NonCallableMagicMock`.
     """
-    def CoroMock(*args, **kwargs):
+    def CoroMock(*args, **kwargs):  # noqa
         coro = mocker.Mock(name="CoroutineResult", *args, **kwargs)
         corofunc = mocker.Mock(name="CoroutineFunction", side_effect=coroutine(coro))
         corofunc.coro = coro
