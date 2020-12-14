@@ -1,4 +1,4 @@
-from discord.ext import commands
+from discord.ext.commands import check
 
 from .context import Context
 from .db import WhitelistedChannel
@@ -19,13 +19,11 @@ def channel_whitelisted(exception_predicate=None):
     """
 
     def predicate(ctx: Context):
-        # Manually create session as ctx.session is not created until after checks have succeeded
-        with ctx.bot.session_scope() as session:
-            db_channel = session.query(WhitelistedChannel).get(ctx.channel.id)
+        db_channel = ctx.session.query(WhitelistedChannel).get(ctx.channel.id)
 
         if not (db_channel or (callable(exception_predicate) and exception_predicate(ctx))):
             raise ChannelNotWhitelisted(ctx)
 
         return True
 
-    return commands.check(predicate)
+    return check(predicate)

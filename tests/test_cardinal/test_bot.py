@@ -1,100 +1,108 @@
 import logging
+from functools import partial
 
-import pytest
-from discord.ext import commands
-from sqlalchemy.orm import Session, sessionmaker
+from discord import Game
+from discord.ext.commands import (
+    BadArgument, BotMissingPermissions, CheckFailure, CommandError, CommandInvokeError,
+    CommandNotFound, CommandOnCooldown, DisabledCommand, MissingPermissions,
+    MissingRequiredArgument, NoPrivateMessage, NotOwner, TooManyArguments, UserInputError
+)
+from pytest import fixture, mark, raises
 
-from cardinal.bot import Bot
+from cardinal.bot import Bot, intents
 from cardinal.context import Context
 from cardinal.errors import UserBlacklisted
 
 
-@pytest.fixture
-def engine(mocker):
+@fixture
+def event_context(mocker):
+    return mocker.patch('cardinal.bot.event_context')
+
+
+@fixture
+def scoped_session(mocker):
     return mocker.Mock()
 
 
-@pytest.fixture
-def bot(engine, mocker, request):
-    mocker.patch('cardinal.bot.commands.Bot.__init__')
-    kwargs = getattr(request, 'param', {})  # Use request param if provided
-    return Bot(engine=engine, **kwargs)
+@fixture
+def context_factory(scoped_session):
+    return partial(Context, scoped_session)
 
 
-def test_ctor(bot, engine):
-    assert bot.sessionmaker.kw['bind'] is engine
-    assert isinstance(bot.sessionmaker, sessionmaker)
+@fixture
+def baseclass_ctor(mocker):
+    return mocker.patch('cardinal.bot.BaseBot.__init__')
 
 
-@pytest.mark.asyncio
-async def test_before_invoke_hook(bot, mocker):
-    ctx = mocker.Mock()
-    await bot.before_invoke_hook(ctx)
-    assert ctx.session_allowed
+@fixture
+def bot(baseclass_ctor, context_factory, mocker, request, scoped_session):
+    kwargs = {
+        'context_factory': context_factory,
+        'default_game': None,
+        'scoped_session': scoped_session
+    }
+    kwargs.update(getattr(request, 'param', {}))  # Use request param if provided
+
+    return Bot(**kwargs)
 
 
-@pytest.mark.asyncio
-class TestAfterInvokeHook:
-    @pytest.fixture
-    def ctx(self, mocker):
-        ctx = mocker.Mock()
-        ctx.session = mocker.Mock(spec=Session)
-        return ctx
+class TestCtor:
+    def test_no_game(self, baseclass_ctor, bot):
+        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=None, intents=intents)
 
-    async def test_unused(self, bot, ctx):
-        ctx.session_used = False
-        await bot.after_invoke_hook(ctx)
+    @mark.parametrize(
+        ['bot'],
+        [
+            [{'default_game': 'test 123'}]
+        ],
+        indirect=True
+    )
+    def test_game(self, baseclass_ctor, bot):
+        game = Game('test 123')
+        baseclass_ctor.assert_called_once_with(description='cardinal.py', game=game, intents=intents)
 
-        assert ctx.session.mock_calls == []  # Assert mock hasn't been touched
-
-    async def test_failed(self, bot, ctx):
-        ctx.session_used = True
-        ctx.command_failed = True
-        await bot.after_invoke_hook(ctx)
-
-        ctx.session.rollback.assert_called_once_with()
-        ctx.session.close.assert_called_once_with()
-
-    async def test_success(self, bot, ctx):
-        ctx.session_used = True
-        ctx.command_failed = False
-        await bot.after_invoke_hook(ctx)
-
-        ctx.session.commit.assert_called_once_with()
-        ctx.session.close.assert_called_once_with()
+    def test_attributes(self, bot, context_factory, scoped_session):
+        assert bot._context_factory is context_factory
+        assert bot._event_counter == 0
+        assert bot._session is scoped_session
 
 
-class TestSessionScope:
-    @pytest.fixture
-    def session(self, mocker):
-        return mocker.Mock(spec=Session)
+@mark.asyncio
+class TestRunEvent:
+    @fixture
+    def run_event(self, mocker, request):
+        kwargs = getattr(request, 'param', {})
+        return mocker.patch(
+            'cardinal.bot.BaseBot._run_event',
+            new_callable=mocker.CoroMock,
+            **kwargs
+        )
 
-    @pytest.fixture
-    def sessionmaker(self, bot, mocker, session):
-        return mocker.patch.object(bot, 'sessionmaker', return_value=session)
+    async def test_no_exception(self, bot, event_context, run_event, scoped_session):
+        args = (1, 2, 3)
+        kwargs = {'a': 'b', 'c': 'd'}
 
-    def test_no_exception(self, bot, session, sessionmaker):
-        with bot.session_scope() as new_session:
-            assert new_session is session
+        await bot._run_event(*args, **kwargs)
 
-        sessionmaker.assert_called_once_with()
-        session.commit.assert_called_once_with()
-        session.close.assert_called_once_with()
+        run_event.assert_called_once_with(*args, **kwargs)
+        event_context.set.assert_called_once_with(bot._event_counter)
+        scoped_session.remove.assert_called_once_with()
 
-    def test_exception(self, bot, session, sessionmaker):
-        exc_message = 'Test exception message'
-        exc = Exception(exc_message)
-        with pytest.raises(Exception, message=exc_message):
-            with bot.session_scope() as new_session:
-                assert new_session is session
-                raise exc
+    @mark.parametrize(
+        ['run_event'],
+        [
+            [{'side_effect': Exception()}]
+        ],
+        indirect=True
+    )
+    async def test_exception(self, run_event, bot, scoped_session):
+        with raises(Exception):
+            await bot._run_event()
 
-        sessionmaker.assert_called_once_with()
-        session.rollback.assert_called_once_with()
-        session.close.assert_called_once_with()
+        scoped_session.remove.assert_called_once_with()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_on_ready(bot, caplog, mocker):
     mocker.patch('cardinal.bot.Bot.user', new_callable=mocker.PropertyMock, return_value='test123')
     with caplog.at_level(logging.INFO, logger='cardinal.bot'):
@@ -103,20 +111,63 @@ async def test_on_ready(bot, caplog, mocker):
     assert caplog.records != []
 
 
-@pytest.mark.asyncio
-async def test_on_message(bot, mocker):
-    ctx = mocker.Mock()
-    mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
-    mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
+@mark.usefixtures("patches")
+@mark.asyncio
+class TestOnMessage:
+    @fixture
+    def ctx(self, mocker):
+        return mocker.Mock()
 
-    msg = mocker.Mock()
-    await bot.on_message(msg)
+    @fixture
+    def msg(self, mocker):
+        msg = mocker.Mock()
+        # Prevent accidental short-circuits
+        msg.author.bot = False
 
-    bot.get_context.assert_called_once_with(msg, cls=Context)
-    bot.invoke.assert_called_once_with(ctx)
+        return msg
+
+    @fixture
+    def patches(self, bot, ctx, mocker):
+        mocker.patch.object(bot, 'get_context', new_callable=mocker.CoroMock, return_value=ctx)
+        mocker.patch.object(bot, 'invoke', new_callable=mocker.CoroMock)
+
+    async def test_not_bot(self, bot, context_factory, ctx, msg):
+        await bot.on_message(msg)
+
+        bot.get_context.assert_called_once_with(msg, cls=context_factory)
+        bot.invoke.assert_called_once_with(ctx)
+
+    async def test_bot(self, bot, msg):
+        msg.author.bot = True
+
+        await bot.on_message(msg)
+        bot.get_context.assert_not_called()
+        bot.invoke.assert_not_called()
+
+    async def test_commit_fail(self, bot, ctx, msg):
+        ctx.command_failed = True
+
+        await bot.on_message(msg)
+        ctx.session.commit.assert_not_called()
+
+    async def test_commit_no_session(self, bot, ctx, msg):
+        ctx.command_failed = False
+        ctx.session.registry.has.return_value = False
+
+        await bot.on_message(msg)
+        ctx.session.registry.has.assert_called_once_with()
+        ctx.session.commit.assert_not_called()
+
+    async def test_commit_session(self, bot, ctx, msg):
+        ctx.command_failed = False
+        ctx.session.registry.has.return_value = True
+
+        await bot.on_message(msg)
+        ctx.session.registry.has.assert_called_once_with()
+        ctx.session.commit.assert_called_once_with()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_on_command(bot, caplog, mocker):
     mock_msg = 'Test message'
     format_message = mocker.patch('cardinal.bot.format_message', return_value=mock_msg)
@@ -129,13 +180,13 @@ async def test_on_command(bot, caplog, mocker):
     format_message.assert_called_once_with(ctx.message)
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 class TestOnCommandError:
-    @pytest.fixture
+    @fixture
     def clean_prefix(self, mocker):
         return mocker.patch('cardinal.bot.clean_prefix', return_value='Test prefix')
 
-    @pytest.fixture
+    @fixture
     def ctx(self, mocker):
         ctx = mocker.Mock()
         ctx.command.qualified_name = 'Test command name'
@@ -145,66 +196,65 @@ class TestOnCommandError:
         return ctx
 
     async def test_command_error(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.CommandError)
+        error = mocker.Mock(spec=CommandError)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
     async def test_missing_required_argument(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.MissingRequiredArgument)
+        error = mocker.Mock(spec=MissingRequiredArgument)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
         error_msg = 'Too few arguments. Did you forget anything?\n' \
-                    'See `{}help {}` for information on the command.'\
-                    .format(clean_prefix.return_value, ctx.command.qualified_name)
+                    f'See `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+                    'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_bad_argument(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.BadArgument)
+        error = mocker.Mock(spec=BadArgument)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
         error_msg = 'Argument parsing failed. Did you mistype anything?\n' \
-                    'See `{}help {}` for information on the command.'\
-                    .format(clean_prefix.return_value, ctx.command.qualified_name)
+                    f'See `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+                    'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_no_private_message(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.NoPrivateMessage)
+        error = mocker.Mock(spec=NoPrivateMessage)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'Command cannot be used in private message channels.'\
-            .format(clean_prefix.return_value, ctx.command.qualified_name)
+        error_msg = 'Command cannot be used in private message channels.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_check_failure(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.CheckFailure)
+        error = mocker.MagicMock(spec=CheckFailure)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         error_msg = 'This command cannot be used in this context.\n' \
-                    '{}'.format(error.__str__.return_value)
+                    f'{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_command_not_found(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.CommandNotFound)
+        error = mocker.Mock(spec=CommandNotFound)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
     async def test_disabled_command(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.DisabledCommand)
+        error = mocker.Mock(spec=DisabledCommand)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
         ctx.send.assert_not_called()
 
     async def test_command_invoke_error(self, bot, caplog, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.CommandInvokeError)
+        error = mocker.Mock(spec=CommandInvokeError)
         error.original = mocker.MagicMock()
 
         with caplog.at_level(logging.ERROR, logger='cardinal.bot'):
@@ -216,26 +266,26 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_too_many_arguments(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.TooManyArguments)
+        error = mocker.Mock(spec=TooManyArguments)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
         error_msg = 'Too many arguments. Did you miss any quotes?\n' \
-                    'See `{}help {}` for information on the command.'\
-                    .format(clean_prefix.return_value, ctx.command.qualified_name)
+                    f'See `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+                    'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_user_input_error(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.Mock(spec=commands.UserInputError)
+        error = mocker.Mock(spec=UserInputError)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_called_once_with(ctx)
-        error_msg = '\nSee `{}help {}` for information on the command.' \
-            .format(clean_prefix.return_value, ctx.command.qualified_name)
+        error_msg = f'\nSee `{clean_prefix.return_value}help {ctx.command.qualified_name}` ' \
+            f'for information on the command.'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_command_on_cooldown(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.CommandOnCooldown)
+        error = mocker.MagicMock(spec=CommandOnCooldown)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
@@ -243,30 +293,27 @@ class TestOnCommandError:
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_not_owner(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.NotOwner)
+        error = mocker.MagicMock(spec=NotOwner)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'\
-                    .format(error.__str__.return_value)
+        error_msg = f'This command cannot be used in this context.\n{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_missing_permissions(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.MissingPermissions)
+        error = mocker.MagicMock(spec=MissingPermissions)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'\
-                    .format(error.__str__.return_value)
+        error_msg = f'This command cannot be used in this context.\n{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_bot_missing_permissions(self, bot, clean_prefix, ctx, mocker):
-        error = mocker.MagicMock(spec=commands.BotMissingPermissions)
+        error = mocker.MagicMock(spec=BotMissingPermissions)
         await bot.on_command_error(ctx, error)
 
         clean_prefix.assert_not_called()
-        error_msg = 'This command cannot be used in this context.\n{}'\
-                    .format(error.__str__.return_value)
+        error_msg = f'This command cannot be used in this context.\n{error.__str__.return_value}'
         ctx.send.assert_called_once_with(error_msg)
 
     async def test_user_blacklisted(self, bot, clean_prefix, ctx, mocker):
@@ -277,7 +324,7 @@ class TestOnCommandError:
         ctx.send.assert_not_called()
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_on_error(bot, caplog):
     with caplog.at_level(logging.ERROR, logger='cardinal.bot'):
         await bot.on_error('Test name')

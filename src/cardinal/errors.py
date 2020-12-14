@@ -1,14 +1,14 @@
-from discord.ext import commands
+from discord.ext.commands import CheckFailure
 
 
-class ChannelNotWhitelisted(commands.CheckFailure):
+class ChannelNotWhitelisted(CheckFailure):
     def __init__(self, ctx):
         self.channel = ctx.channel
-        m = 'Channel {} is not whitelisted.'.format(ctx.channel.mention)
+        m = f'Channel {ctx.channel.mention} is not whitelisted.'
         super().__init__(m)
 
 
-class UserBlacklisted(commands.CheckFailure):
+class UserBlacklisted(CheckFailure):
     def __init__(self, ctx):
         self.user = ctx.author
 

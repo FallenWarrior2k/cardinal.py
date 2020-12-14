@@ -5,9 +5,8 @@ import logging
 import sys
 from os import path
 
-from sqlalchemy import create_engine
-
-from cardinal import Bot
+from cardinal.container import RootContainer
+from cardinal.cogs import load_cogs
 
 if __name__ == '__main__':
     config_file_path = sys.argv[1] if len(sys.argv) >= 2 else 'config.json'
@@ -18,22 +17,19 @@ if __name__ == '__main__':
 
     with open(config_file_path) as config_file:
         config = json.load(config_file)
+
+    log_level = config.get('log_level') or config.get('logging_level') or 'INFO'
     try:
-        logging.basicConfig(level=config['logging_level'].upper())
+        logging.basicConfig(level=log_level.upper())
     except ValueError:
         logging.basicConfig(level=logging.INFO)
-        logging.warning('"{}" is not a valid logging level. Defauted to "INFO".'
-                        .format(config['logging_level']))
+        logging.warning('"{}" is not a valid logging level. Defauted to "INFO".'.format(log_level))
 
     logger = logging.getLogger(__name__)
-
-    engine = create_engine(config['db']['connect_string'], **config['db']['options'])
-    bot = Bot(command_prefix=config['cmd_prefix'],
-              engine=engine,
-              default_game=config['default_game'])
+    root = RootContainer(config=config)
 
     logger.info('Loading cogs.')
-    bot.load_extension('cardinal.cogs')
+    load_cogs(root)
     logger.info('Finished loading cogs.')
 
-    bot.run(config['token'])
+    root.run_bot()
