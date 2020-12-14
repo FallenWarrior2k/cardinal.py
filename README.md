@@ -11,7 +11,7 @@ A growing, general-purpose, all-round Discord bot.
 * Selfroling
 * Opt-in channels, i.e. hidden channels that only appear to users after issuing a command
 * Restricting bot commands to certain channels (due to be replaced/reworked in a future version)
-* Restricting new members' privileges until they confirm themselves
+* Restricting new members' privileges until they confirm themselves (due for removal because of the Welcome Screen feature for community servers)
 
 ### Moderation
 * Kicking and banning
