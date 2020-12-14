@@ -40,7 +40,7 @@ This is confidential and should never be shared.
 ### Manual setup
 If you choose not to use the Docker image, this is what you need to set up the bot manually.
 
-* a [Python](https://www.python.org/downloads/) version supported by discord.py, currently 3.8+
+* a [Python](https://www.python.org/downloads/) version supported by the bot, currently 3.8+
 * pip3; on Windows, it is included in Python, on Linux it can _usually_ be acquired from the package `python3-pip`
 
 ### Docker
