@@ -87,9 +87,7 @@ class Notifications(Cog):
         kind_str = kind.lower()
         channel_str = "this channel" if channel == ctx.channel else channel.mention
 
-        # TODO: Replace this with an assignment expression after switching to Python 3.8
-        db_notif = self._session.query(Notification).get((ctx.guild.id, kind))
-        if db_notif:
+        if (db_notif := self._session.query(Notification).get((ctx.guild.id, kind))):
             old_channel = ctx.guild.get_channel(db_notif.channel_id)
             move = False
             try:
