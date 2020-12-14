@@ -8,6 +8,7 @@ A growing, general-purpose, all-round Discord bot.
 ## Features
 
 ### Management and server structure
+* Join/leave/ban/unban notifications
 * Selfroling
 * Opt-in channels, i.e. hidden channels that only appear to users after issuing a command
 * Restricting bot commands to certain channels (due to be replaced/reworked in a future version)
@@ -16,6 +17,7 @@ A growing, general-purpose, all-round Discord bot.
 ### Moderation
 * Kicking and banning
 * Muting (restricts Send Messages and Add Reactions in all channels)
+* Stopping: restricts message sending in channel until a corresponding `stop off` command is issued
 
 ### Owner commands
 * Generate an invite link for the bot
