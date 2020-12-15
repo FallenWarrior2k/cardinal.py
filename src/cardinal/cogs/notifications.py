@@ -182,7 +182,11 @@ class Notifications(Cog):
 
         # Exclude alr bound kinds from further setup
         for db_notif in db_notifs:
-            kinds.remove(db_notif.kind)
+            try:
+                kinds.remove(db_notif.kind)
+            except ValueError:
+                # We don't want to deal with this kind, so skip
+                continue
 
             # Avoid no-op moves
             if db_notif.channel_id != channel.id:
