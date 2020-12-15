@@ -206,7 +206,7 @@ class Notifications(Cog):
                     ctx
                 )
             except PromptTimeout:
-                await maybe_send("Aborting due to timeout.")
+                await maybe_send(ctx, "Aborting due to timeout.")
                 return
 
             template = resp_msg.content
