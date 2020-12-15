@@ -84,7 +84,6 @@ class Notifications(Cog):
         template: Optional[str]
     ):
         template = template or _DEFAULT_TEMPLATES[kind]
-        kind_str = kind.lower()
         channel_str = "this channel" if channel == ctx.channel else channel.mention
 
         if (db_notif := self._session.query(Notification).get((ctx.guild.id, kind))):
@@ -92,7 +91,7 @@ class Notifications(Cog):
             move = False
             try:
                 resp_msg = await prompt(
-                    f"Notifications for the {kind_str} event are currently bound to {old_channel.mention}. "
+                    f"Notifications for the {kind} event are currently bound to {old_channel.mention}. "
                     f"Move to {channel_str}? [y/n]",
                     ctx
                 )
@@ -120,7 +119,7 @@ class Notifications(Cog):
         # I know committing in a loop is bad, but we have at most 4 iterations with 1 insert/update max. each
         # One commit at the end (begin_nested() or not) would've been annoying af wrt error handling
         self._session.commit()
-        await maybe_send(ctx, f"Bound notifications for the {kind_str} event to {channel_str}.")
+        await maybe_send(ctx, f"Bound notifications for the {kind} event to {channel_str}.")
 
     @notifications.command()
     async def enable(
@@ -198,7 +197,7 @@ class Notifications(Cog):
         for kind in kinds:
             try:
                 resp_msg = await prompt(
-                    f"Enter the desired template for the {kind.lower()} event, "
+                    f"Enter the desired template for the {kind} event, "
                     f'or "default" to use the default of "{_DEFAULT_TEMPLATES[kind]}".',
                     ctx
                 )
