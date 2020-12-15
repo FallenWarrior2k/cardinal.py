@@ -53,8 +53,8 @@ async def prompt(msg, ctx, timeout=60.0):
     await ctx.send(msg)
     try:
         response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
-    except TimeoutError as e:
-        raise PromptTimeout() from e
+    except TimeoutError:
+        raise PromptTimeout()
 
     return response
 

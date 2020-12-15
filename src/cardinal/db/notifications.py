@@ -20,9 +20,13 @@ class NotificationKind(Enum):
         except KeyError:
             raise BadArgument
 
-    def lower(self):
+    def __str__(self):
         """Get a lowercase representation for use in user-facing text."""
         return self.name.lower()
+
+    def __repr__(self):
+        # Not technically correct, but required to support the auto-generated help
+        return str(self)
 
 
 class Notification(Base):
