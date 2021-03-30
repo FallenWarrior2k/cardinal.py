@@ -27,8 +27,8 @@ def _build_web_link(term):
 
 
 def _format_word(word):
-    kanji = word['word']
-    reading = word['reading']
+    kanji = word.get('word')
+    reading = word.get('reading')
 
     if kanji and reading:
         return f'**{kanji}** - {reading}'  # Both defined => output both
