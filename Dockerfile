@@ -1,13 +1,28 @@
+FROM python:3.8-alpine as builder
+
+RUN apk add --progress \
+    build-base \
+    git \
+    linux-headers \
+    postgresql-dev
+
+WORKDIR /wheels
+RUN pip wheel psycopg2
+
+WORKDIR /app
+COPY . .
+RUN pip wheel -w /wheels .
+
 FROM python:3.8-alpine
 
+RUN apk add --no-cache --progress libpq
+
 WORKDIR /cardinal
-COPY . .
+COPY docker-entrypoint.sh /entrypoint.sh
+COPY ./run_cardinal.py ./upgrade_db.py ./
+COPY ./src/cardinal/db/migrations ./src/cardinal/db/migrations
 
-RUN apk update \
-    && xargs -a docker/apk-rt.txt apk add --no-cache \
-    && xargs -a docker/apk-build.txt apk add --no-cache --virtual .build-deps \
-    && pip install --no-cache-dir . \
-    && pip install --no-cache-dir --upgrade --requirement docker/requirements.txt \
-    && apk del .build-deps
+COPY --from=builder /wheels /wheels
+RUN pip --no-cache-dir install /wheels/*.whl
 
-ENTRYPOINT ["docker/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
