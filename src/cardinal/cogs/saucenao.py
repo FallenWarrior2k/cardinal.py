@@ -59,7 +59,8 @@ def _handle_danbooru(data: dict) -> _ResultMeta:
         links.append(_GELBOORU_POST_TEMPLATE.format(gelbooru_id=gelbooru_id))
     # TODO: Is this really useful? It just 403s for many things.
     # Generally, the URLs on the booru pages are far more useful
-    if (source := data.get('source')) is not None:
+    # This can actually be an empty string in some cases, so exclude all falsy values
+    if source := data.get('source'):
         links.append(f'[Source]({source})')
 
     artist = data.get('creator')
