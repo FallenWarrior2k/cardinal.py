@@ -18,7 +18,7 @@ FROM python:3.8-alpine
 RUN apk add --no-cache --progress libpq
 
 WORKDIR /cardinal
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY docker-entrypoint.sh /entrypoint.sh
 COPY ./run_cardinal.py ./upgrade_db.py ./
 COPY ./src/cardinal/db/migrations ./src/cardinal/db/migrations
 
