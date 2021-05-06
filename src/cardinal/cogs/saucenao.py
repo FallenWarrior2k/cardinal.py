@@ -18,7 +18,10 @@ _SAUCENAO_PARAMS_BASE = {
     'numres': 1  # Return exactly one result
 }
 # Dumbed-down URL RE
-_URL_RE = re.compile(r'https?://\S+')
+# Cheapo trimming of <> embed prevention or bars from spoiler tags
+# Doing it "correctly" would require copy-pasting the pattern multiple times
+# or building a full-on CFG, which seemed a tad overkill
+_URL_RE = re.compile(r'https?://[^\s>|]+')
 
 _logger = getLogger(__name__)
 
