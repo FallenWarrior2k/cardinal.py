@@ -1,5 +1,0 @@
-gcc
-git
-musl-dev
-linux-headers
-postgresql-dev
