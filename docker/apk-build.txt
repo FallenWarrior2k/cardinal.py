@@ -1,5 +1,4 @@
-gcc
+build-base
 git
-musl-dev
 linux-headers
 postgresql-dev
