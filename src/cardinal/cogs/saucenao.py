@@ -90,11 +90,10 @@ class _SauceResult:
     meta: _ResultMeta
 
     def as_embed(self) -> Embed:
-        int_similarity = int(self.similarity.split('.')[0])
         # Visually indicate match likelihood by changing the color based on similarity percentage
         # 85% is arbitrarily chosen and I might adjust this in future if I think it's too low or too
         # high
-        color = Colour.green() if int_similarity >= 85 else Colour.light_grey()
+        color = Colour.green() if float(self.similarity) >= 85 else Colour.light_grey()
 
         # TODO: Set proper title from meta object
         embed = Embed(title='Found potential source.', colour=color)
