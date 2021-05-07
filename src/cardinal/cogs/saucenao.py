@@ -195,13 +195,12 @@ class SauceNAO(Cog):
         and then up to five messages before the current one are each
         checked for URLs and then attachments.
         """
-        msg = await ctx.send('Searching...')
         result: Optional[_SauceResult] = None
 
         async with ctx.typing():
             if url is not None:
                 if not await self._is_image(url):
-                    await msg.edit(content=f'"{url}" does not point to a valid image.')
+                    await ctx.send(f'"{url}" does not point to a valid image.')
                     return
 
                 result = await self._lookup_url(url)
@@ -215,10 +214,10 @@ class SauceNAO(Cog):
                         break
 
                 if url is _sentinel:
-                    await msg.edit(content='No suitable URLs found.')
+                    await ctx.send('No suitable URLs found.')
                     return
 
-            if result:
-                await msg.edit(content=None, embed=result.as_embed())
-            else:
-                await msg.edit(content='No results found.')
+        if result:
+            await ctx.send(embed=result.as_embed())
+        else:
+            await ctx.send('No results found.')
