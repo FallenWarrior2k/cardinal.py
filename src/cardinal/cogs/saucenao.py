@@ -188,7 +188,7 @@ class SauceNAO(Cog):
                                 meta=_extract_meta_from_sauce_result(result_json))
 
     @command(aliases=['sauce', 'source'])
-    async def saucenao(self, ctx: Context, *, url: str = None):
+    async def saucenao(self, ctx: Context, url: str = None):
         """
         Look up an URL using SauceNAO.
         If no URL is provided, attachments are checked,
