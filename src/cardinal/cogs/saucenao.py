@@ -199,6 +199,12 @@ class SauceNAO(Cog):
 
         async with ctx.typing():
             if url is not None:
+                # Run URLs passed as arguments directly through the regex as well to strip potential markup
+                if (url_match := _URL_RE.search(url)) is None:
+                    await ctx.send('Not a valid URL.')
+                    return
+
+                url = url_match.group(0)
                 if not await self._is_image(url):
                     await ctx.send(f'"{url}" does not point to a valid image.')
                     return
