@@ -438,6 +438,9 @@ class Mute(Cog):
             MuteUser(user_id=member_id, guild_id=ctx.guild.id) for member_id in new_mute_member_ids
         )
 
+        await maybe_send(f"Set mute role for {ctx.guild} to {role}. "
+                         "It is your responsibility to ensure permissions are correct for existing channels.")
+
     @command()
     @guild_only()
     @has_permissions(manage_roles=True)
