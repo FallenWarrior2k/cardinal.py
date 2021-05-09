@@ -1,4 +1,5 @@
 from calendar import month_name
+from datetime import datetime
 
 from aiohttp import ClientResponseError, ClientSession
 from discord import Embed
@@ -58,6 +59,7 @@ fragment baseFields on Media {
 
     status
     startDate { year month day }
+    nextAiringEpisode { airingAt }
     endDate { year month day }
 
     idMal
@@ -178,7 +180,12 @@ def make_embed(item):
                     value=normalize_ssc(item['status']) or 'unknown')
 
     embed.add_field(name='Start', value=str(FuzzyDate(**item['startDate'])))
-    embed.add_field(name='End', value=str(FuzzyDate(**item['endDate'])))
+    if item['status'] == 'RELEASING' and (next_ep := item['nextAiringEpisode']):
+        embed.add_field(name='Next Episode',
+                        value=datetime.utcfromtimestamp(int(next_ep['airingAt']))
+                                      .strftime('%c'))
+    else:
+        embed.add_field(name='End', value=str(FuzzyDate(**item['endDate'])))
 
     embed.add_field(name='Genres', value=', '.join(item['genres']), inline=False)
     embed.add_field(name='Description', value=truncate_field(md(item['description'])), inline=False)
