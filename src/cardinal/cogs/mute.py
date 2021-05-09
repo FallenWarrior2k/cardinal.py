@@ -412,13 +412,13 @@ class Mute(Cog):
         """
 
         db_guild = ctx.session.query(MuteGuild).get(ctx.guild.id)
-        if not db_guild:
+        if db_guild and db_guild.role_id == role.id:
+            return
+        elif db_guild:
+            db_guild.role_id = role.id
+        else:
             db_guild = MuteGuild(guild_id=ctx.guild.id, role_id=role.id)
             ctx.session.add(db_guild)
-            return
-
-        if db_guild.role_id == role.id:
-            return
 
         # Remove usages of old role from DB
         role_member_ids = {member.id for member in role.members}  # Set for later use
