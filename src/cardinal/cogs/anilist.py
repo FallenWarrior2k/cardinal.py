@@ -223,7 +223,7 @@ class Anilist(Cog):
         Look up a manga on Anilist.
 
         Arguments:
-             - search: Term to search for.
+            - search: Term to search for.
         """
 
         async with ctx.typing():
