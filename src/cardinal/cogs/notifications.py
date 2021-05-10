@@ -91,7 +91,6 @@ class Notifications(Cog):
 
         if db_notif := self._session.query(Notification).get((ctx.guild.id, kind)):
             old_channel = ctx.guild.get_channel(db_notif.channel_id)
-            move = False
             try:
                 resp_msg = await prompt(
                     f"Notifications for the {kind} event are currently bound to {old_channel.mention}. "
