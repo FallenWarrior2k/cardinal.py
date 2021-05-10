@@ -18,6 +18,7 @@ aioitertools = "^0.7"
 markdownify = "^0.7.2"
 
 [tool.poetry.dev-dependencies]
+black = {version = "^21.5b1", allow-prereleases = true, extras = ["d"]}
 flakehell = "^0.8"
 flake8-bugbear = "^21.4.3"
 flake8-isort = "^4"
