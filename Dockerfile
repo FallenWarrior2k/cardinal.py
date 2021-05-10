@@ -1,6 +1,6 @@
 FROM python:3.8-alpine as builder
 
-RUN apk add --progress \
+RUN apk add \
     build-base \
     git \
     linux-headers \
@@ -15,7 +15,7 @@ RUN pip wheel -w /wheels .
 
 FROM python:3.8-alpine
 
-RUN apk add --no-cache --progress libpq
+RUN apk add --no-cache libpq
 
 WORKDIR /cardinal
 COPY docker-entrypoint.sh /entrypoint.sh
