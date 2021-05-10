@@ -1,7 +1,7 @@
 from string import Template
 from typing import Optional
 
-from discord import Guild, Member, TextChannel, User
+from discord import Guild, Member, TextChannel, User, abc
 from discord.ext.commands import Cog, Greedy, group, guild_only, has_permissions
 
 from ..db import Notification, NotificationKind
@@ -20,7 +20,9 @@ class Notifications(Cog):
     def __init__(self, scoped_session):
         self._session = scoped_session
 
-    async def _process_event(self, kind: NotificationKind, guild: Guild, user: User):
+    async def _process_event(
+        self, kind: NotificationKind, guild: Guild, user: abc.User
+    ):
         db_notif = self._session.query(Notification).get((guild.id, kind))
         if not db_notif:
             return
