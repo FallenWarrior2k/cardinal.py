@@ -2,7 +2,7 @@ import sys
 from contextvars import ContextVar
 from logging import getLogger
 
-from discord import Game, Intents
+from discord import Forbidden, Game, Intents
 from discord.ext.commands import BadArgument
 from discord.ext.commands import Bot as BaseBot
 from discord.ext.commands import (
@@ -90,10 +90,16 @@ class Bot(BaseBot):
                 'for information on the command.'
 
         if isinstance(ex, CommandInvokeError):
-            logger.error(
-                f'An exception was raised while executing the command for "{ctx.message.content}".',
-                exc_info=ex.original)
-            error_msg += 'An error occurred while executing the command.'
+            orig = ex.original
+
+            # Generic handler for 403 errors
+            if isinstance(orig, Forbidden):
+                error_msg += 'I do not have permission to do that.'
+            else:
+                logger.error(
+                    f'An exception was raised while executing the command for "{ctx.message.content}".',
+                    exc_info=orig)
+                error_msg += 'An error occurred while executing the command.'
 
         if error_msg != '':
             await ctx.send(error_msg)

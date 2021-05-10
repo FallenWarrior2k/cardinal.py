@@ -1,9 +1,12 @@
 from calendar import month_name
+from datetime import datetime
 
-from aiohttp import ClientSession
+from aiohttp import ClientResponseError, ClientSession
 from discord import Embed
 from discord.ext.commands import Cog, command
 from markdownify import markdownify as md
+
+from ..utils import maybe_send
 
 ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co'
 FORMAT_REPR = {
@@ -56,6 +59,7 @@ fragment baseFields on Media {
 
     status
     startDate { year month day }
+    nextAiringEpisode { airingAt }
     endDate { year month day }
 
     idMal
@@ -176,7 +180,12 @@ def make_embed(item):
                     value=normalize_ssc(item['status']) or 'unknown')
 
     embed.add_field(name='Start', value=str(FuzzyDate(**item['startDate'])))
-    embed.add_field(name='End', value=str(FuzzyDate(**item['endDate'])))
+    if item['status'] == 'RELEASING' and (next_ep := item['nextAiringEpisode']):
+        embed.add_field(name='Next Episode',
+                        value=datetime.utcfromtimestamp(int(next_ep['airingAt']))
+                                      .strftime('%c'))
+    else:
+        embed.add_field(name='End', value=str(FuzzyDate(**item['endDate'])))
 
     embed.add_field(name='Genres', value=', '.join(item['genres']), inline=False)
     embed.add_field(name='Description', value=truncate_field(md(item['description'])), inline=False)
@@ -192,7 +201,7 @@ class Anilist(Cog):
     def __init__(self, http: ClientSession):
         self._http = http
 
-    async def execute_graphql(self, **variables):
+    async def _execute_graphql(self, **variables):
         body = {
             'query': QUERY,
             'variables': variables
@@ -203,6 +212,23 @@ class Anilist(Cog):
 
         return res_body['data']
 
+    async def _lookup_series(self, ctx, search: str, is_anime: bool, *formats: str):
+        async with ctx.typing():
+            try:
+                data = await self._execute_graphql(isAnime=is_anime, format=list(formats), search=search)
+            except ClientResponseError as e:
+                if e.status == 404:
+                    await maybe_send(ctx, 'No results found.')
+                elif e.status >= 500:
+                    await maybe_send(ctx, 'Got an error from AniList. '
+                                     'Try again in a bit or with a different term.')
+                else:
+                    raise
+
+                return
+
+        await ctx.send(embed=make_embed(data['anime' if is_anime else 'manga']))
+
     @command(aliases=['ani', 'al', 'anilist'])
     async def anime(self, ctx, *, search: str):
         """
@@ -212,10 +238,7 @@ class Anilist(Cog):
              - search: Term to search for.
         """
 
-        async with ctx.typing():
-            data = await self.execute_graphql(isAnime=True, search=search)
-
-        await ctx.send(embed=make_embed(data['anime']))
+        await self._lookup_series(ctx, search, True)
 
     @command()
     async def manga(self, ctx, *, search: str):
@@ -223,15 +246,10 @@ class Anilist(Cog):
         Look up a manga on Anilist.
 
         Arguments:
-             - search: Term to search for.
+            - search: Term to search for.
         """
 
-        async with ctx.typing():
-            data = await self.execute_graphql(isAnime=False,
-                                              format=['MANGA', 'ONE_SHOT'],
-                                              search=search)
-
-        await ctx.send(embed=make_embed(data['manga']))
+        await self._lookup_series(ctx, search, False, 'MANGA', 'ONE_SHOT')
 
     @command(aliases=['lightnovel', 'novel'])
     async def ln(self, ctx, *, search: str):
@@ -242,9 +260,4 @@ class Anilist(Cog):
             - search: Term to search for.
         """
 
-        async with ctx.typing():
-            data = await self.execute_graphql(isAnime=False,
-                                              format=['NOVEL'],
-                                              search=search)
-
-        await ctx.send(embed=make_embed(data['manga']))
+        await self._lookup_series(ctx, search, False, 'NOVEL')

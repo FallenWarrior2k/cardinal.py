@@ -1,6 +1,8 @@
 from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
 
+# Taken from
+# https://docs.sqlalchemy.org/en/13/core/constraints.html#configuring-constraint-naming-conventions
 meta = MetaData(naming_convention={
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",

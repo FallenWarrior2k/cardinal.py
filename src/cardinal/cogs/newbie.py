@@ -99,6 +99,12 @@ class Newbies(Cog):
             await sleep(self._check_period)
 
     async def add_member(self, db_guild: NewbieGuild, member: Member):
+        # Bots are exempt from confirmation
+        # This should also avoid the bot trying and failing to send messages to itself
+        if member.bot and (member_role := member.guild.get_role(db_guild.role_id)):
+            await member.add_roles(member_role)
+            return
+
         if self._session.query(NewbieUser).get((member.id, db_guild.guild_id)):
             return  # Exit if user already in DB
 
@@ -162,16 +168,6 @@ class Newbies(Cog):
         db_guild = self._session.query(NewbieGuild).get(member.guild.id)
 
         if db_guild is None:
-            return
-
-        # Bots don't need confirmation, since they were manually added by a mod/admin
-        # Not like they could confirm themselves anyways
-        if member.bot:
-            role = member.guild.get_role(db_guild.role_id)
-            if not role:
-                return
-
-            await member.add_roles(role)
             return
 
         await self.add_member(db_guild, member)

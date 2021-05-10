@@ -90,11 +90,10 @@ class _SauceResult:
     meta: _ResultMeta
 
     def as_embed(self) -> Embed:
-        int_similarity = int(self.similarity.split('.')[0])
         # Visually indicate match likelihood by changing the color based on similarity percentage
         # 85% is arbitrarily chosen and I might adjust this in future if I think it's too low or too
         # high
-        color = Colour.green() if int_similarity >= 85 else Colour.light_grey()
+        color = Colour.green() if float(self.similarity) >= 85 else Colour.light_grey()
 
         # TODO: Set proper title from meta object
         embed = Embed(title='Found potential source.', colour=color)
@@ -188,20 +187,25 @@ class SauceNAO(Cog):
                                 meta=_extract_meta_from_sauce_result(result_json))
 
     @command(aliases=['sauce', 'source'])
-    async def saucenao(self, ctx: Context, *, url: str = None):
+    async def saucenao(self, ctx: Context, url: str = None):
         """
         Look up an URL using SauceNAO.
         If no URL is provided, attachments are checked,
         and then up to five messages before the current one are each
         checked for URLs and then attachments.
         """
-        msg = await ctx.send('Searching...')
         result: Optional[_SauceResult] = None
 
         async with ctx.typing():
             if url is not None:
+                # Run URLs passed as arguments directly through the regex as well to strip potential markup
+                if (url_match := _URL_RE.search(url)) is None:
+                    await ctx.send('Not a valid URL.')
+                    return
+
+                url = url_match.group(0)
                 if not await self._is_image(url):
-                    await msg.edit(content=f'"{url}" does not point to a valid image.')
+                    await ctx.send(f'"{url}" does not point to a valid image.')
                     return
 
                 result = await self._lookup_url(url)
@@ -215,10 +219,10 @@ class SauceNAO(Cog):
                         break
 
                 if url is _sentinel:
-                    await msg.edit(content='No suitable URLs found.')
+                    await ctx.send('No suitable URLs found.')
                     return
 
-            if result:
-                await msg.edit(content=None, embed=result.as_embed())
-            else:
-                await msg.edit(content='No results found.')
+        if result:
+            await ctx.send(embed=result.as_embed())
+        else:
+            await ctx.send('No results found.')

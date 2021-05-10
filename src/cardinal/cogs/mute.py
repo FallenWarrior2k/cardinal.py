@@ -32,7 +32,15 @@ units = {
     'hours': 1 * 60 * 60,
     'd': 1 * 60 * 60 * 24,
     'day': 1 * 60 * 60 * 24,
-    'days': 1 * 60 * 60 * 24
+    'days': 1 * 60 * 60 * 24,
+    'w': 1 * 60 * 60 * 24 * 7,
+    'week': 1 * 60 * 60 * 24 * 7,
+    'weeks': 1 * 60 * 60 * 24 * 7,
+    'month': 1 * 60 * 60 * 24 * 30,
+    'months': 1 * 60 * 60 * 24 * 30,
+    'y': 1 * 60 * 60 * 24 * 365,
+    'year': 1 * 60 * 60 * 24 * 365,
+    'years': 1 * 60 * 60 * 24 * 365,
 }
 
 
@@ -412,13 +420,13 @@ class Mute(Cog):
         """
 
         db_guild = ctx.session.query(MuteGuild).get(ctx.guild.id)
-        if not db_guild:
+        if db_guild and db_guild.role_id == role.id:
+            return
+        elif db_guild:
+            db_guild.role_id = role.id
+        else:
             db_guild = MuteGuild(guild_id=ctx.guild.id, role_id=role.id)
             ctx.session.add(db_guild)
-            return
-
-        if db_guild.role_id == role.id:
-            return
 
         # Remove usages of old role from DB
         role_member_ids = {member.id for member in role.members}  # Set for later use
@@ -437,6 +445,9 @@ class Mute(Cog):
         ctx.session.add_all(
             MuteUser(user_id=member_id, guild_id=ctx.guild.id) for member_id in new_mute_member_ids
         )
+
+        await maybe_send(f"Set mute role for {ctx.guild} to {role}. "
+                         "It is your responsibility to ensure permissions are correct for existing channels.")
 
     @command()
     @guild_only()
