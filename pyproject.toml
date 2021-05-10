@@ -21,6 +21,7 @@ markdownify = "^0.7.2"
 tox = "^3.23.1"
 flakehell = "^0.8"
 flake8-bugbear = "^21.4.3"
+flake8-isort = "^4"
 flake8-mutable = "^1.2.0"
 flake8-pep3101 = "^1.3.0"
 pep8-naming = "^0.11.1"
@@ -45,6 +46,7 @@ pyflakes = ["+*"]
 mccabe = ["+*"]
 # B901: Forbid return in generators (disagree)
 flake8-bugbear = ["+*", "-B901"]
+flake8-isort = ["+*"]
 flake8-mutable = ["+*"]
 flake8-pep3101 = ["+*"]
 pep8-naming = ["+*"]
