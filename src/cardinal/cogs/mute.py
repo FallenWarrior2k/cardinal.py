@@ -7,7 +7,12 @@ from logging import getLogger
 
 from discord import Colour, Forbidden, HTTPException, Member, PermissionOverwrite, Role
 from discord.ext.commands import (
-    Cog, bot_has_permissions, command, group, guild_only, has_permissions
+    Cog,
+    bot_has_permissions,
+    command,
+    group,
+    guild_only,
+    has_permissions,
 )
 
 from ..db import MuteGuild, MuteUser
@@ -15,32 +20,34 @@ from ..utils import maybe_send
 
 logger = getLogger(__name__)
 # Overwrite to use for new channels
-new_channel_overwrite = PermissionOverwrite(add_reactions=False, send_messages=False, speak=False)
+new_channel_overwrite = PermissionOverwrite(
+    add_reactions=False, send_messages=False, speak=False
+)
 units = {
-    's': 1,
-    'sec': 1,
-    'secs': 1,
-    'second': 1,
-    'seconds': 1,
-    'm': 1 * 60,
-    'min': 1 * 60,
-    'mins': 1 * 60,
-    'minute': 1 * 60,
-    'minutes': 1 * 60,
-    'h': 1 * 60 * 60,
-    'hour': 1 * 60 * 60,
-    'hours': 1 * 60 * 60,
-    'd': 1 * 60 * 60 * 24,
-    'day': 1 * 60 * 60 * 24,
-    'days': 1 * 60 * 60 * 24,
-    'w': 1 * 60 * 60 * 24 * 7,
-    'week': 1 * 60 * 60 * 24 * 7,
-    'weeks': 1 * 60 * 60 * 24 * 7,
-    'month': 1 * 60 * 60 * 24 * 30,
-    'months': 1 * 60 * 60 * 24 * 30,
-    'y': 1 * 60 * 60 * 24 * 365,
-    'year': 1 * 60 * 60 * 24 * 365,
-    'years': 1 * 60 * 60 * 24 * 365,
+    "s": 1,
+    "sec": 1,
+    "secs": 1,
+    "second": 1,
+    "seconds": 1,
+    "m": 1 * 60,
+    "min": 1 * 60,
+    "mins": 1 * 60,
+    "minute": 1 * 60,
+    "minutes": 1 * 60,
+    "h": 1 * 60 * 60,
+    "hour": 1 * 60 * 60,
+    "hours": 1 * 60 * 60,
+    "d": 1 * 60 * 60 * 24,
+    "day": 1 * 60 * 60 * 24,
+    "days": 1 * 60 * 60 * 24,
+    "w": 1 * 60 * 60 * 24 * 7,
+    "week": 1 * 60 * 60 * 24 * 7,
+    "weeks": 1 * 60 * 60 * 24 * 7,
+    "month": 1 * 60 * 60 * 24 * 30,
+    "months": 1 * 60 * 60 * 24 * 30,
+    "y": 1 * 60 * 60 * 24 * 365,
+    "year": 1 * 60 * 60 * 24 * 365,
+    "years": 1 * 60 * 60 * 24 * 365,
 }
 
 
@@ -67,7 +74,7 @@ def _to_timedelta(arg):
         if not arg.endswith(unit):
             continue
 
-        value = arg[:-len(unit)].strip()  # Remove unit and any potential whitespace
+        value = arg[: -len(unit)].strip()  # Remove unit and any potential whitespace
         value = float(value) * multiplier
         break
 
@@ -91,10 +98,9 @@ async def _init_role(ctx, db_guild=None):
     Returns:
         discord.Role: Newly created role with permissions already set.
     """
-    mute_role = await ctx.guild.create_role(name='Muted',
-                                            colour=Colour.red(),
-                                            hoist=True,
-                                            reason='Initialising mute role.')
+    mute_role = await ctx.guild.create_role(
+        name="Muted", colour=Colour.red(), hoist=True, reason="Initialising mute role."
+    )
 
     try:
         # Position mute role directly below own top role
@@ -104,26 +110,31 @@ async def _init_role(ctx, db_guild=None):
         # Process all categories before touching specific channels
         # Makes use of permission sync
         await gather(
-            *(category.set_permissions(mute_role, overwrite=new_channel_overwrite)
-              for category in ctx.guild.categories)
+            *(
+                category.set_permissions(mute_role, overwrite=new_channel_overwrite)
+                for category in ctx.guild.categories
+            )
         )
 
         # Process channels unaffected by sync
         # Note: Individual channel objects aren't updated with the new overwrites
         # Only the channel lists on the guild object are updated
         await gather(
-            *(channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
-              for channel in chain(ctx.guild.text_channels, ctx.guild.voice_channels)
-              if channel.overwrites_for(mute_role) != new_channel_overwrite)
+            *(
+                channel.set_permissions(mute_role, overwrite=new_channel_overwrite)
+                for channel in chain(ctx.guild.text_channels, ctx.guild.voice_channels)
+                if channel.overwrites_for(mute_role) != new_channel_overwrite
+            )
         )
     except HTTPException as e:
         logger.exception(
-            'Setting up mute role for guild {} failed due to HTTP error {}.'
-            .format(ctx.guild, e.response.status)
+            "Setting up mute role for guild {} failed due to HTTP error {}.".format(
+                ctx.guild, e.response.status
+            )
         )
 
         # Something went wrong, clean up role before re-raising
-        await mute_role.delete(reason='Internal error initialising mute role.')
+        await mute_role.delete(reason="Internal error initialising mute role.")
         raise
 
     if db_guild:
@@ -136,7 +147,9 @@ async def _init_role(ctx, db_guild=None):
     return mute_role
 
 
-async def _unmute_member(member, mute_role, channel=None, *, delay_until=None, delay_delta=None):
+async def _unmute_member(
+    member, mute_role, channel=None, *, delay_until=None, delay_delta=None
+):
     """
     Unmute a given member, optionally after a given delay.
 
@@ -159,25 +172,25 @@ async def _unmute_member(member, mute_role, channel=None, *, delay_until=None, d
         await sleep(delay_seconds)
 
     try:
-        await member.remove_roles(mute_role, reason='Mute duration ran out.')
+        await member.remove_roles(mute_role, reason="Mute duration ran out.")
     except Forbidden:
         logger.warning(
-            'No permission to unmute user {0} ({0.id}) on guild {0.guild} ({0.guild.id}).'
-            .format(member)
+            "No permission to unmute user {0} ({0.id}) on guild {0.guild} ({0.guild.id}).".format(
+                member
+            )
         )
         return
     except HTTPException as e:
         logger.exception(
-            'Failed to unmute user {0} ({0.id}) on guild {0.guild} ({0.guild.id}) '
-            'due to HTTP error {1}.'
-            .format(member, e.response.status)
+            "Failed to unmute user {0} ({0.id}) on guild {0.guild} ({0.guild.id}) "
+            "due to HTTP error {1}.".format(member, e.response.status)
         )
         return
 
     if not channel:
         return
 
-    await maybe_send(channel, f'User {member.mention} was unmuted automatically.')
+    await maybe_send(channel, f"User {member.mention} was unmuted automatically.")
 
 
 def _make_lock_key(member: Member):
@@ -213,7 +226,7 @@ def _process_guild(bot, db_guild):
             member,
             mute_role,
             guild.get_channel(db_mute.channel_id),
-            delay_until=db_mute.muted_until
+            delay_until=db_mute.muted_until,
         )
 
 
@@ -250,11 +263,17 @@ class Mute(Cog):
     def _get_unmutes(self, session):
         # Query for mutes that run before the next iteration
         # No need to delete by hand, self.on_guild_member_update() will clean up
-        next_iteration_timestamp = (datetime.utcnow() + timedelta(seconds=self._check_period))
-        q = session.query(MuteGuild) \
-            .join(MuteGuild.mutes) \
-            .filter(MuteUser.muted_until.isnot(None),
-                    next_iteration_timestamp >= MuteUser.muted_until)
+        next_iteration_timestamp = datetime.utcnow() + timedelta(
+            seconds=self._check_period
+        )
+        q = (
+            session.query(MuteGuild)
+            .join(MuteGuild.mutes)
+            .filter(
+                MuteUser.muted_until.isnot(None),
+                next_iteration_timestamp >= MuteUser.muted_until,
+            )
+        )
 
         return q
 
@@ -289,7 +308,9 @@ class Mute(Cog):
         # Delete any bindings if the corresponding role is deleted
         # Use Query.delete() to prevent redundant SELECT
         # Role ID is indexed so delete is faster than querying by guild ID and comparing
-        self._session.query(MuteGuild).filter_by(role_id=role.id).delete(synchronize_session=False)
+        self._session.query(MuteGuild).filter_by(role_id=role.id).delete(
+            synchronize_session=False
+        )
         self._session.commit()
 
     @Cog.listener()
@@ -306,7 +327,7 @@ class Mute(Cog):
             return
 
         # Re-mute people who left while muted
-        await member.add_roles(role, reason='Muted member rejoined')
+        await member.add_roles(role, reason="Muted member rejoined")
 
     @Cog.listener()
     async def on_member_update(self, before, after):
@@ -340,7 +361,7 @@ class Mute(Cog):
         self._session.commit()
 
     # Ensure this is neither parsed nor called for anything but the mute command itself
-    @group(invoke_without_command=True, aliases=['gag'])
+    @group(invoke_without_command=True, aliases=["gag"])
     @guild_only()
     @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_roles=True)
@@ -387,15 +408,19 @@ class Mute(Cog):
             ctx.session.add(db_mute)
 
         with self._lock_member(member):  # Lock member until command terminates
-            await member.add_roles(mute_role, reason=f'Muted by {ctx.author}.')
+            await member.add_roles(mute_role, reason=f"Muted by {ctx.author}.")
 
             # TODO: Include duration in message
-            await maybe_send(ctx, f'User {member.mention} was muted by {ctx.author.mention}.')
+            await maybe_send(
+                ctx, f"User {member.mention} was muted by {ctx.author.mention}."
+            )
 
             # User should be muted for less than one check period
             # => queue unmute directly and don't touch DB from here
             if is_short_mute:
-                await _unmute_member(member, mute_role, ctx.channel, delay_delta=duration)
+                await _unmute_member(
+                    member, mute_role, ctx.channel, delay_delta=duration
+                )
 
     @mute.command()
     @guild_only()
@@ -432,7 +457,9 @@ class Mute(Cog):
         role_member_ids = {member.id for member in role.members}  # Set for later use
         ctx.session.query(MuteUser).filter(
             MuteUser.guild_id == ctx.guild.id,
-            MuteUser.user_id.notin_(list(role_member_ids))  # Make list because SQLAlchemy wants one
+            MuteUser.user_id.notin_(
+                list(role_member_ids)
+            ),  # Make list because SQLAlchemy wants one
         ).delete(synchronize_session=False)
 
         # Query remaining mutes
@@ -443,11 +470,14 @@ class Mute(Cog):
         # Make set with members that need to be added to DB
         new_mute_member_ids = role_member_ids - existing_db_mute_ids
         ctx.session.add_all(
-            MuteUser(user_id=member_id, guild_id=ctx.guild.id) for member_id in new_mute_member_ids
+            MuteUser(user_id=member_id, guild_id=ctx.guild.id)
+            for member_id in new_mute_member_ids
         )
 
-        await maybe_send(f"Set mute role for {ctx.guild} to {role}. "
-                         "It is your responsibility to ensure permissions are correct for existing channels.")
+        await maybe_send(
+            f"Set mute role for {ctx.guild} to {role}. "
+            "It is your responsibility to ensure permissions are correct for existing channels."
+        )
 
     @command()
     @guild_only()
@@ -476,5 +506,7 @@ class Mute(Cog):
             return
 
         # No need to manually delete DB row, member update handler will
-        await member.remove_roles(mute_role, reason=f'Explicit unmute by {ctx.author}.')
-        await maybe_send(ctx, f'User {member.mention} was unmuted by {ctx.author.mention}.')
+        await member.remove_roles(mute_role, reason=f"Explicit unmute by {ctx.author}.")
+        await maybe_send(
+            ctx, f"User {member.mention} was unmuted by {ctx.author.mention}."
+        )

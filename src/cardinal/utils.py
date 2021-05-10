@@ -10,7 +10,7 @@ logger = getLogger(__name__)
 
 # TODO: Maybe make tests use an actual Context object instead of a mock
 def clean_prefix(ctx):
-    return ctx.prefix.replace(ctx.me.mention, '@' + ctx.me.display_name)
+    return ctx.prefix.replace(ctx.me.mention, "@" + ctx.me.display_name)
 
 
 def format_message(msg):
@@ -25,10 +25,12 @@ def format_message(msg):
     """
 
     if msg.guild is None:
-        return '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return "[DM] {0.author.name} ({0.author.id}): {0.content}".format(msg)
     else:
-        return '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
-               '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        return (
+            "[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] "
+            "{0.author.name} ({0.author.id}): {0.content}".format(msg)
+        )
 
 
 async def prompt(msg, ctx, timeout=60.0):
@@ -47,12 +49,13 @@ async def prompt(msg, ctx, timeout=60.0):
     Raises:
         cardinal.errors.PromptTimeout: No response by the user within the given timeframe.
     """
+
     def pred(m):
         return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
 
     await ctx.send(msg)
     try:
-        response = await ctx.bot.wait_for('message', check=pred, timeout=timeout)
+        response = await ctx.bot.wait_for("message", check=pred, timeout=timeout)
     except TimeoutError as e:
         raise PromptTimeout() from e
 
@@ -73,13 +76,12 @@ async def maybe_send(target, *args, **kwargs):
     try:
         return await target.send(*args, **kwargs)
     except HTTPException:
-        if hasattr(target, 'id'):  # Target is channel or user
+        if hasattr(target, "id"):  # Target is channel or user
             channel = target
         else:  # Target is context instance
             channel = target.channel
 
         logger.warning(
-            'Could not send message to {0} ({0.id}).'.format(channel),
-            exc_info=True
+            "Could not send message to {0} ({0.id}).".format(channel), exc_info=True
         )
         return None

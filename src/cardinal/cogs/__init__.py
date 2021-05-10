@@ -1,7 +1,11 @@
 from logging import getLogger
 
 from dependency_injector.containers import DeclarativeContainer
-from dependency_injector.providers import Configuration, DependenciesContainer, Singleton
+from dependency_injector.providers import (
+    Configuration,
+    DependenciesContainer,
+    Singleton,
+)
 
 from .anilist import Anilist
 from .botadmin import BotAdmin
@@ -18,25 +22,25 @@ from .whitelist import Whitelisting
 
 logger = getLogger(__name__)
 cog_names = (
-    'anilist',
-    'botadmin',
-    'channels',
-    'jisho',
-    'moderation',
-    'mute',
-    'newbie',
-    'notifications',
-    'roles',
-    'saucenao',
-    'stop',
-    'whitelist'
+    "anilist",
+    "botadmin",
+    "channels",
+    "jisho",
+    "moderation",
+    "mute",
+    "newbie",
+    "notifications",
+    "roles",
+    "saucenao",
+    "stop",
+    "whitelist",
 )
 
 
 class CogsContainer(DeclarativeContainer):
     root = DependenciesContainer()
     # Accessing a Configuration through a DependenciesContainer does not work, so do it manually
-    config = Configuration('config.cogs')
+    config = Configuration("config.cogs")
 
     anilist = Singleton(Anilist, http=root.http)
 
@@ -53,7 +57,7 @@ class CogsContainer(DeclarativeContainer):
         bot=root.bot,
         loop=root.loop,
         scoped_session=root.scoped_session,
-        sessionmaker=root.sessionmaker
+        sessionmaker=root.sessionmaker,
     )
 
     newbie = Singleton(
@@ -61,13 +65,10 @@ class CogsContainer(DeclarativeContainer):
         bot=root.bot,
         loop=root.loop,
         scoped_session=root.scoped_session,
-        sessionmaker=root.sessionmaker
+        sessionmaker=root.sessionmaker,
     )
 
-    notifications = Singleton(
-        Notifications,
-        scoped_session=root.scoped_session
-    )
+    notifications = Singleton(Notifications, scoped_session=root.scoped_session)
 
     roles = Singleton(Roles)
 

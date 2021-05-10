@@ -13,26 +13,28 @@ class TestFormatMessage:
     @fixture
     def msg(self, mocker):
         msg = mocker.Mock()
-        msg.content = 'Test message'
-        msg.author.name = 'Test author name'
+        msg.content = "Test message"
+        msg.author.name = "Test author name"
         msg.author.id = 123456789
         msg.guild = None
         return msg
 
     def test_dm(self, msg):
-        expected = '[DM] {0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        expected = "[DM] {0.author.name} ({0.author.id}): {0.content}".format(msg)
         got = format_message(msg)
         assert expected == got
 
     def test_guild(self, mocker, msg):
         msg.guild = mocker.Mock()
-        msg.guild.name = 'Test guild'
+        msg.guild.name = "Test guild"
         msg.guild.id = 987654321
-        msg.channel.name = 'Test channel'
+        msg.channel.name = "Test channel"
         msg.channel.id = 123459876
 
-        expected = '[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] ' \
-                   '{0.author.name} ({0.author.id}): {0.content}'.format(msg)
+        expected = (
+            "[{0.guild.name} ({0.guild.id}) -> #{0.channel.name} ({0.channel.id})] "
+            "{0.author.name} ({0.author.id}): {0.content}".format(msg)
+        )
         got = format_message(msg)
         assert expected == got
 
@@ -41,34 +43,34 @@ class TestCleanPrefix:
     @fixture
     def ctx(self, mocker):
         ctx = mocker.Mock()
-        ctx.me.mention = '<@123456789>'
-        ctx.me.display_name = 'Test bot'
+        ctx.me.mention = "<@123456789>"
+        ctx.me.display_name = "Test bot"
         ctx.guild = None
         return ctx
 
     def test_regular_dm(self, ctx):
-        ctx.prefix = '?'
-        expected = '?'
+        ctx.prefix = "?"
+        expected = "?"
         got = clean_prefix(ctx)
         assert expected == got
 
     def test_mention_dm(self, ctx):
         ctx.prefix = ctx.me.mention
-        expected = f'@{ctx.me.display_name}'
+        expected = f"@{ctx.me.display_name}"
         got = clean_prefix(ctx)
         assert expected == got
 
     def test_regular_guild(self, ctx):
         ctx.guild = True
-        ctx.prefix = '?'
-        expected = '?'
+        ctx.prefix = "?"
+        expected = "?"
         got = clean_prefix(ctx)
         assert expected == got
 
     def test_mention_guild(self, ctx):
         ctx.guild = True
         ctx.prefix = ctx.me.mention
-        expected = f'@{ctx.me.display_name}'
+        expected = f"@{ctx.me.display_name}"
         got = clean_prefix(ctx)
         assert expected == got
 
@@ -107,8 +109,8 @@ class TestPrompt:
         assert ctx.bot.wait_for.call_count == 1
 
         args, kwargs = ctx.bot.wait_for.call_args
-        assert args == ('message',)
-        assert kwargs['timeout'] == 60.0
+        assert args == ("message",)
+        assert kwargs["timeout"] == 60.0
 
     async def test_custom_timeout(self, ctx, msg):
         await prompt(msg, ctx, 1234)
@@ -116,14 +118,14 @@ class TestPrompt:
         assert ctx.bot.wait_for.call_count == 1
 
         args, kwargs = ctx.bot.wait_for.call_args
-        assert args == ('message',)
-        assert kwargs['timeout'] == 1234
+        assert args == ("message",)
+        assert kwargs["timeout"] == 1234
 
     async def test_pred(self, ctx, msg):
         await prompt(msg, ctx)
 
         *_, kwargs = ctx.bot.wait_for.call_args
-        pred = kwargs['check']
+        pred = kwargs["check"]
         assert callable(pred)
 
         # Two conditions => four possible combinations
@@ -166,51 +168,43 @@ class TestPrompt:
 class TestMaybeSend:
     @fixture
     def target(self, mocker, request):
-        kwargs = getattr(request, 'param', {})
-        return_value = kwargs.get('return_value', mocker.DEFAULT)
-        side_effect = kwargs.get('side_effect')
+        kwargs = getattr(request, "param", {})
+        return_value = kwargs.get("return_value", mocker.DEFAULT)
+        side_effect = kwargs.get("side_effect")
 
         target = mocker.MagicMock()
 
         target.kwargs = kwargs  # Convenience for lookup
 
         # Allow tests to make this raise an exception
-        target.send = mocker.CoroMock(return_value=return_value, side_effect=side_effect)
+        target.send = mocker.CoroMock(
+            return_value=return_value, side_effect=side_effect
+        )
 
         return target
 
-    @fixture(params=[
-        (), ('',), ('asdf', '1234')
-    ])
+    @fixture(params=[(), ("",), ("asdf", "1234")])
     def args(self, request):
         return request.param
 
-    @fixture(params=[
-        {}, {'a': 'b'}, {'key': 'value', 'foo': 'bar'}
-    ])
+    @fixture(params=[{}, {"a": "b"}, {"key": "value", "foo": "bar"}])
     def kwargs(self, request):
         return request.param
 
-    @mark.parametrize(
-        ['target'],
-        [
-            [{'return_value': mock.Mock()}]
-        ],
-        indirect=True
-    )
+    @mark.parametrize(["target"], [[{"return_value": mock.Mock()}]], indirect=True)
     async def test_success(self, target, args, kwargs):
         msg = await maybe_send(target, *args, **kwargs)
 
         target.send.assert_called_once_with(*args, **kwargs)
-        assert msg is target.kwargs['return_value']
+        assert msg is target.kwargs["return_value"]
 
     @mark.parametrize(
-        ['target', 'use_id'],
+        ["target", "use_id"],
         [
-            [{'side_effect': HTTPException(mock.MagicMock(), mock.MagicMock())}, True],
-            [{'side_effect': HTTPException(mock.MagicMock(), mock.MagicMock())}, False]
+            [{"side_effect": HTTPException(mock.MagicMock(), mock.MagicMock())}, True],
+            [{"side_effect": HTTPException(mock.MagicMock(), mock.MagicMock())}, False],
         ],
-        indirect=['target']
+        indirect=["target"],
     )
     async def test_http_exception(self, caplog, target, args, kwargs, use_id):
         if use_id:
@@ -218,7 +212,7 @@ class TestMaybeSend:
         else:
             del target.id  # Ensure second path is selected
 
-        with caplog.at_level(logging.WARNING, logger='cardinal.utils'):
+        with caplog.at_level(logging.WARNING, logger="cardinal.utils"):
             msg = await maybe_send(target, *args, **kwargs)
 
         assert msg is None

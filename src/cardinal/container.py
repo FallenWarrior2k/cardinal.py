@@ -4,7 +4,11 @@ from logging import getLogger
 from aiohttp import ClientSession
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import (
-    Callable, Configuration, DelegatedFactory, Factory, Singleton
+    Callable,
+    Configuration,
+    DelegatedFactory,
+    Factory,
+    Singleton,
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session as _scoped_session
@@ -23,17 +27,21 @@ def _create_engine_wrapper(connect_string, options):
 class RootContainer(DeclarativeContainer):
     """Application IoC container"""
 
-    config = Configuration('config')
+    config = Configuration("config")
     loop = Singleton(get_event_loop)
 
     # Remote services
-    engine = Singleton(_create_engine_wrapper, config.db.connect_string, config.db.options)
+    engine = Singleton(
+        _create_engine_wrapper, config.db.connect_string, config.db.options
+    )
 
     http = Factory(ClientSession, loop=loop, raise_for_status=True)
 
     sessionmaker = Singleton(_sessionmaker, bind=engine)
 
-    scoped_session = Singleton(_scoped_session, sessionmaker, scopefunc=event_context.get)
+    scoped_session = Singleton(
+        _scoped_session, sessionmaker, scopefunc=event_context.get
+    )
 
     context_factory = DelegatedFactory(Context, scoped_session=scoped_session)
 
@@ -43,7 +51,7 @@ class RootContainer(DeclarativeContainer):
         context_factory=context_factory,
         default_game=config.default_game,
         loop=loop,
-        scoped_session=scoped_session
+        scoped_session=scoped_session,
     )
 
     # Main

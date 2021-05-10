@@ -13,7 +13,7 @@ class BotAdmin(Cog):
     def __init__(self, http: ClientSession):
         self._http = http
 
-    @command(aliases=['makeinvite', 'getinvite', 'invitelink'])
+    @command(aliases=["makeinvite", "getinvite", "invitelink"])
     @is_owner()
     async def invite(self, ctx):
         """
@@ -22,9 +22,12 @@ class BotAdmin(Cog):
         Required permissions:
             - Bot owner
         """
-        await ctx.send('Invite link for {0.mention}: '
-                       '<https://discordapp.com/oauth2/authorize?client_id={0.id}&scope=bot>'
-                       .format(ctx.me))
+        await ctx.send(
+            "Invite link for {0.mention}: "
+            "<https://discordapp.com/oauth2/authorize?client_id={0.id}&scope=bot>".format(
+                ctx.me
+            )
+        )
 
     @command()
     @is_owner()
@@ -45,7 +48,7 @@ class BotAdmin(Cog):
         await ctx.message.delete()
         await maybe_send(ctx, msg)
 
-    @command(aliases=['setpfp'])
+    @command(aliases=["setpfp"])
     @is_owner()
     async def setavatar(self, ctx, url: str = None):
         """
@@ -63,8 +66,8 @@ class BotAdmin(Cog):
 
         if url:
             async with self._http.get(url) as resp:
-                if not resp.content_type.startswith('image/'):
-                    await maybe_send(ctx, 'The given file or URL is not an image.')
+                if not resp.content_type.startswith("image/"):
+                    await maybe_send(ctx, "The given file or URL is not an image.")
                     return
 
                 data = await resp.read()
@@ -96,7 +99,7 @@ class BotAdmin(Cog):
         activity = Activity(type=activity_type, name=text)
         await ctx.bot.change_presence(activity=activity)
 
-    @command(aliases=['kill'])
+    @command(aliases=["kill"])
     @is_owner()
     async def shutdown(self, ctx):
         """
@@ -105,5 +108,5 @@ class BotAdmin(Cog):
         Required permissions:
             - Bot owner
         """
-        await maybe_send(ctx, 'Shutting down.')
+        await maybe_send(ctx, "Shutting down.")
         await ctx.bot.close()

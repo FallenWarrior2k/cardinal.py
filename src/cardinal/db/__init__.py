@@ -7,11 +7,15 @@ from .roles import JoinRole
 from .whitelist import WhitelistedChannel
 
 __all__ = [
-    'Base',
-    'JoinRole',
-    'MuteGuild', 'MuteUser',
-    'NewbieChannel', 'NewbieGuild', 'NewbieUser',
-    'Notification', 'NotificationKind',
-    'OptinChannel',
-    'WhitelistedChannel',
+    "Base",
+    "JoinRole",
+    "MuteGuild",
+    "MuteUser",
+    "NewbieChannel",
+    "NewbieGuild",
+    "NewbieUser",
+    "Notification",
+    "NotificationKind",
+    "OptinChannel",
+    "WhitelistedChannel",
 ]

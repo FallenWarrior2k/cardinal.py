@@ -27,7 +27,7 @@ target_metadata = Base.metadata
 
 # Credits to https://stackoverflow.com/a/41546942/5432349
 def get_url():
-    url = context.get_x_argument(as_dictionary=True).get('url')
+    url = context.get_x_argument(as_dictionary=True).get("url")
     assert url, "Database URL must be specified on command line with -x url=<DB_URL>"
     return url
 

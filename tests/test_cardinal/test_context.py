@@ -10,25 +10,18 @@ def scoped_session(mocker):
 
 @fixture
 def base_ctor(mocker):
-    return mocker.patch('cardinal.context.BaseContext.__init__')
+    return mocker.patch("cardinal.context.BaseContext.__init__")
 
 
 @fixture
 def ctx(base_ctor, request, scoped_session):
-    kwargs = getattr(request, 'param', {})
+    kwargs = getattr(request, "param", {})
 
     yield Context(scoped_session, **kwargs)
-    if hasattr(request, 'param'):  # Skip unnecessary assertions
+    if hasattr(request, "param"):  # Skip unnecessary assertions
         base_ctor.assert_called_once_with(**kwargs)
 
 
-@mark.parametrize(
-    ['ctx'],
-    [
-        ({},),
-        ({'asdf': 123},)
-    ],
-    indirect=True
-)
+@mark.parametrize(["ctx"], [({},), ({"asdf": 123},)], indirect=True)
 def test_ctor(ctx, scoped_session):
     assert ctx.session is scoped_session

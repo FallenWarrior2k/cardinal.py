@@ -9,10 +9,10 @@ from cardinal.errors import ChannelNotWhitelisted
 
 
 class TestChannelWhitelisted:
-    @fixture(scope='class')
+    @fixture(scope="class")
     def engine(self):
         # TODO: Clean up this god-forsaken mess
-        engine = create_engine('sqlite:///')
+        engine = create_engine("sqlite:///")
         Base.metadata.create_all(engine)
         return engine
 
@@ -28,7 +28,7 @@ class TestChannelWhitelisted:
         ctx = mocker.Mock()
         ctx.session = session
         ctx.channel.id = 123456789
-        ctx.channel.mention = '<#123456789>'
+        ctx.channel.mention = "<#123456789>"
 
         return ctx
 

@@ -21,7 +21,9 @@ def channel_whitelisted(exception_predicate=None):
     def predicate(ctx: Context):
         db_channel = ctx.session.query(WhitelistedChannel).get(ctx.channel.id)
 
-        if not (db_channel or (callable(exception_predicate) and exception_predicate(ctx))):
+        if not (
+            db_channel or (callable(exception_predicate) and exception_predicate(ctx))
+        ):
             raise ChannelNotWhitelisted(ctx)
 
         return True
