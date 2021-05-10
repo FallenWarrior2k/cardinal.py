@@ -32,7 +32,7 @@ pytest-mock = "^3.6"
 [tool.flakehell]
 format = "default"
 
-max_line_length = 100
+max_line_length = 80
 max_complexity = 10
 
 exclude = ["migrations"]
@@ -41,8 +41,9 @@ exclude = ["migrations"]
 extended_default_ignore = []
 
 [tool.flakehell.plugins]
+# E501: Covered by B950 (flake8-bugbear), provides automatic Black compat
 # E722: Covered by B001 (flake8-bugbear)
-pycodestyle = ["+*", "-E722"]
+pycodestyle = ["+*", "-E501","-E722"]
 pyflakes = ["+*"]
 mccabe = ["+*"]
 # B901: Forbid return in generators (disagree)
