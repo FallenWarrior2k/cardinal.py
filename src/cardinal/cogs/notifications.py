@@ -130,7 +130,7 @@ class Notifications(Cog):
         self,
         ctx,
         channel: Optional[TextChannel] = None,
-        kinds: Greedy[NotificationKind] = list(NotificationKind),
+        kinds: Greedy[NotificationKind] = None,
         *,
         template: str = None,
     ):
@@ -163,7 +163,7 @@ class Notifications(Cog):
         """
         channel = channel or ctx.channel
         # Dedupe, but preserve order to not cause confusion
-        kinds = list(dict.fromkeys(kinds))
+        kinds = list(dict.fromkeys(kinds or list(NotificationKind)))
 
         # Non-interactive mode
         if template:
@@ -224,15 +224,13 @@ class Notifications(Cog):
             await self._bind_notifications(ctx, channel, kind, template)
 
     @notifications.command()
-    async def disable(
-        self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind)
-    ):
+    async def disable(self, ctx, kinds: Greedy[NotificationKind] = None):
         """
         Disable one or more notification kinds.
         Defaults to disabling all of them.
         """
         # Dedupe kinds, but keep list type for SQLA in_ operator
-        kinds = list(set(kinds))
+        kinds = list(set(kinds or list(NotificationKind)))
 
         num_deleted = (
             self._session.query(Notification)
@@ -250,7 +248,7 @@ class Notifications(Cog):
     async def move(
         self,
         ctx,
-        kinds: Greedy[NotificationKind] = list(NotificationKind),
+        kinds: Greedy[NotificationKind] = None,
         channel: TextChannel = None,
     ):
         """
@@ -265,7 +263,7 @@ class Notifications(Cog):
         """
         channel = channel or ctx.channel
         # Same as above
-        kinds = list(set(kinds))
+        kinds = list(set(kinds or list(NotificationKind)))
 
         num_moved = (
             self._session.query(Notification)
