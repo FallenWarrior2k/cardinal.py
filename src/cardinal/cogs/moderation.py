@@ -1,7 +1,16 @@
 from logging import getLogger
 
 from discord import Member, NotFound, Object
-from discord.ext.commands import BadArgument, Cog, UserConverter, UserNotFound, bot_has_permissions, command, guild_only, has_permissions
+from discord.ext.commands import (
+    BadArgument,
+    Cog,
+    UserConverter,
+    UserNotFound,
+    bot_has_permissions,
+    command,
+    guild_only,
+    has_permissions,
+)
 
 from ..context import Context
 
@@ -24,7 +33,7 @@ class Moderation(Cog):
     A collection of general moderation commands to simplify the daily life of a mod.
     """
 
-    @command(aliases=['boot'])
+    @command(aliases=["boot"])
     @guild_only()
     @has_permissions(kick_members=True)
     @bot_has_permissions(kick_members=True)
@@ -47,18 +56,17 @@ class Moderation(Cog):
         """
 
         await user.kick(reason=reason)
-        await ctx.send('User **{0}** ({0.id}) was kicked by {1}.'.format(user, ctx.author.mention))
+        await ctx.send(
+            "User **{0}** ({0.id}) was kicked by {1}.".format(user, ctx.author.mention)
+        )
 
-    @command(aliases=['getout', 'gulag'])
+    @command(aliases=["getout", "gulag"])
     @guild_only()
     @has_permissions(ban_members=True)
     @bot_has_permissions(ban_members=True)
-    async def ban(self,
-                  ctx: Context,
-                  user: _UserOrId,
-                  prune_days: int = 1,
-                  *,
-                  reason: str = None):
+    async def ban(
+        self, ctx: Context, user: _UserOrId, prune_days: int = 1, *, reason: str = None
+    ):
         """
         Ban a user from the current server.
 
@@ -86,7 +94,11 @@ class Moderation(Cog):
             await ctx.guild.ban(user, reason=reason, delete_message_days=prune_days)
         # Undocumented: Discord returns 404 when trying to ban a nonexistent user
         except NotFound:
-            await ctx.send('Specified user does not exist.')
+            await ctx.send("Specified user does not exist.")
         else:
             # This outputs gibberish when user is an Object, but whatever
-            await ctx.send('User **{0}** ({0.id}) was banned by {1}.'.format(user, ctx.author.mention))
+            await ctx.send(
+                "User **{0}** ({0.id}) was banned by {1}.".format(
+                    user, ctx.author.mention
+                )
+            )

@@ -30,10 +30,14 @@ class NotificationKind(Enum):
 
 
 class Notification(Base):
-    __tablename__ = 'notifications'
+    __tablename__ = "notifications"
 
     guild_id = Column(BigInteger, primary_key=True, autoincrement=False)
     # Name for enum type necessary for Postgres
-    kind = Column(EnumCol(NotificationKind, name="notification_kind"), primary_key=True, autoincrement=False)
+    kind = Column(
+        EnumCol(NotificationKind, name="notification_kind"),
+        primary_key=True,
+        autoincrement=False,
+    )
     channel_id = Column(BigInteger, nullable=False)
     template = Column(UnicodeText, nullable=False)

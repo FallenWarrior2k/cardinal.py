@@ -5,7 +5,7 @@ from cardinal.cogs import cog_names, load_cogs
 
 @fixture
 def container(mocker):
-    return mocker.patch('cardinal.cogs.CogsContainer')
+    return mocker.patch("cardinal.cogs.CogsContainer")
 
 
 def test_load_cogs(container, mocker):

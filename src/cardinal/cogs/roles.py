@@ -1,7 +1,13 @@
 from logging import getLogger
 
 from discord import Embed, Role
-from discord.ext.commands import Cog, bot_has_permissions, group, guild_only, has_permissions
+from discord.ext.commands import (
+    Cog,
+    bot_has_permissions,
+    group,
+    guild_only,
+    has_permissions,
+)
 
 from ..checks import channel_whitelisted
 from ..context import Context
@@ -12,7 +18,7 @@ logger = getLogger(__name__)
 
 
 class Roles(Cog):
-    @group('role', aliases=['roles'])
+    @group("role", aliases=["roles"])
     @guild_only()
     @bot_has_permissions(manage_roles=True)
     @channel_whitelisted()
@@ -31,8 +37,8 @@ class Roles(Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send(
                 'Invalid command passed. Possible choices are "join", "leave",... \n'
-                f'Please refer to `{clean_prefix(ctx)}help {ctx.command.qualified_name}` '
-                'for further information.'
+                f"Please refer to `{clean_prefix(ctx)}help {ctx.command.qualified_name}` "
+                "for further information."
             )
             return
 
@@ -50,7 +56,7 @@ class Roles(Cog):
             await ctx.send(f'Role "{role}" is not marked as a joinable role.')
             return
 
-        await ctx.author.add_roles(role, reason='User joined role.')
+        await ctx.author.add_roles(role, reason="User joined role.")
 
         await ctx.send(f'User {ctx.author.mention} joined role "{role}"')
 
@@ -68,11 +74,11 @@ class Roles(Cog):
             await ctx.send(f'Role "{role}" cannot be left through this bot.')
             return
 
-        await ctx.author.remove_roles(role, reason='User left role.')
+        await ctx.author.remove_roles(role, reason="User left role.")
 
         await ctx.send(f'User {ctx.author.mention} left role "{role}"')
 
-    @roles.command('list')
+    @roles.command("list")
     async def _list(self, ctx: Context):
         """
         List the roles that can be joined through the bot,
@@ -83,12 +89,12 @@ class Roles(Cog):
         role_iter = filter(None, (ctx.guild.get_role(db_role.role_id) for db_role in q))
         role_list = sorted(role_iter, key=lambda r: r.position, reverse=True)
 
-        answer = 'Roles that can be joined through this bot:```\n'
+        answer = "Roles that can be joined through this bot:```\n"
 
         for role in role_list:
-            answer += f'{role}\n'
+            answer += f"{role}\n"
 
-        answer += '```'
+        answer += "```"
 
         await ctx.send(answer)
 
@@ -100,10 +106,12 @@ class Roles(Cog):
 
         q = ctx.session.query(JoinRole).filter_by(guild_id=ctx.guild.id)
         role_iter = filter(None, (ctx.guild.get_role(db_role.role_id) for db_role in q))
-        role_dict = {role: sum(1 for member in ctx.guild.members if role in member.roles)
-                     for role in role_iter}
+        role_dict = {
+            role: sum(1 for member in ctx.guild.members if role in member.roles)
+            for role in role_iter
+        }
 
-        em = Embed(title=f'Role stats for {ctx.guild}', color=0x38CBF0)
+        em = Embed(title=f"Role stats for {ctx.guild}", color=0x38CBF0)
         for role in sorted(role_dict.keys(), key=lambda r: r.position, reverse=True):
             em.add_field(name=role.name, value=str(role_dict[role]))
 
@@ -151,7 +159,7 @@ class Roles(Cog):
 
         ctx.session.delete(db_role)
 
-        logger.info(f'Marked role {role} on guild {ctx.guild} as non-joinable.')
+        logger.info(f"Marked role {role} on guild {ctx.guild} as non-joinable.")
         await ctx.send(f'Removed role "{role}" from list of joinable roles.')
 
     @roles.command()
@@ -194,5 +202,5 @@ class Roles(Cog):
             ctx.session.delete(role_db)
 
         await role.delete()
-        logger.info(f'Deleted role {role} on guild {ctx.guild}.')
+        logger.info(f"Deleted role {role} on guild {ctx.guild}.")
         await ctx.send(f'Successfully deleted role "{role}".')

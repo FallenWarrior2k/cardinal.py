@@ -12,7 +12,7 @@ _DEFAULT_TEMPLATES = {
     NotificationKind.JOIN: "Welcome to the server, $mention.",
     NotificationKind.LEAVE: "$fullname has left the server.",
     NotificationKind.BAN: "$fullname has been banned.",
-    NotificationKind.UNBAN: "$fullname has been unbanned."
+    NotificationKind.UNBAN: "$fullname has been unbanned.",
 }
 
 
@@ -34,7 +34,7 @@ class Notifications(Cog):
             "name": user.display_name,
             "fullname": f"{user.name}#{user.discriminator}",
             "mention": user.mention,
-            "id": user.id
+            "id": user.id,
         }
 
         await maybe_send(channel, template.safe_substitute(format_args))
@@ -59,7 +59,7 @@ class Notifications(Cog):
     async def on_member_unban(self, guild: Guild, user: User):
         await self._process_event(NotificationKind.UNBAN, guild, user)
 
-    @group(aliases=['greetings', 'joins', 'welcome', 'welcomes'])
+    @group(aliases=["greetings", "joins", "welcome", "welcomes"])
     @guild_only()
     @has_permissions(manage_guild=True)
     async def notifications(self, ctx):
@@ -72,8 +72,11 @@ class Notifications(Cog):
             - Manage Server
         """
         if ctx.invoked_subcommand is None:
-            await maybe_send(ctx, 'Invalid subcommand passed. '
-                                  'Possible options are "enable", "move", or "disable".')
+            await maybe_send(
+                ctx,
+                "Invalid subcommand passed. "
+                'Possible options are "enable", "move", or "disable".',
+            )
 
     async def _bind_notifications(
         self,
@@ -81,19 +84,19 @@ class Notifications(Cog):
         channel: TextChannel,
         kind: NotificationKind,
         # Regular function (not a command), so using optional like this is fine
-        template: Optional[str]
+        template: Optional[str],
     ):
         template = template or _DEFAULT_TEMPLATES[kind]
         channel_str = "this channel" if channel == ctx.channel else channel.mention
 
-        if (db_notif := self._session.query(Notification).get((ctx.guild.id, kind))):
+        if db_notif := self._session.query(Notification).get((ctx.guild.id, kind)):
             old_channel = ctx.guild.get_channel(db_notif.channel_id)
             move = False
             try:
                 resp_msg = await prompt(
                     f"Notifications for the {kind} event are currently bound to {old_channel.mention}. "
                     f"Move to {channel_str}? [y/n]",
-                    ctx
+                    ctx,
                 )
             except PromptTimeout:
                 await maybe_send(ctx, "Aborting due to timeout.")
@@ -112,14 +115,16 @@ class Notifications(Cog):
                 guild_id=ctx.guild.id,
                 kind=kind,
                 channel_id=channel.id,
-                template=template
+                template=template,
             )
             self._session.add(db_notif)
 
         # I know committing in a loop is bad, but we have at most 4 iterations with 1 insert/update max. each
         # One commit at the end (begin_nested() or not) would've been annoying af wrt error handling
         self._session.commit()
-        await maybe_send(ctx, f"Bound notifications for the {kind} event to {channel_str}.")
+        await maybe_send(
+            ctx, f"Bound notifications for the {kind} event to {channel_str}."
+        )
 
     @notifications.command()
     async def enable(
@@ -128,7 +133,7 @@ class Notifications(Cog):
         channel: Optional[TextChannel] = None,
         kinds: Greedy[NotificationKind] = list(NotificationKind),
         *,
-        template: str = None
+        template: str = None,
     ):
         """
         Enable one or more notification kinds in the given channel.
@@ -166,7 +171,7 @@ class Notifications(Cog):
             if len(kinds) != 1:
                 await maybe_send(
                     ctx,
-                    "You must specify exactly one kind of notification when passing a template."
+                    "You must specify exactly one kind of notification when passing a template.",
                 )
                 return
 
@@ -176,9 +181,13 @@ class Notifications(Cog):
         # Interactive mode starts here
         # Filter client-side because query returns 4 rows max
         # Sending entire channel list to server for filtering would probably be more expensive
-        db_notifs = [db_notif
-                     for db_notif in self._session.query(Notification).filter_by(guild_id=ctx.guild.id)
-                     if ctx.guild.get_channel(db_notif.channel_id)]
+        db_notifs = [
+            db_notif
+            for db_notif in self._session.query(Notification).filter_by(
+                guild_id=ctx.guild.id
+            )
+            if ctx.guild.get_channel(db_notif.channel_id)
+        ]
 
         # Exclude alr bound kinds from further setup
         for db_notif in db_notifs:
@@ -203,7 +212,7 @@ class Notifications(Cog):
                 resp_msg = await prompt(
                     f"Enter the desired template for the {kind} event, "
                     f'or "default" to use the default of "{_DEFAULT_TEMPLATES[kind]}".',
-                    ctx
+                    ctx,
                 )
             except PromptTimeout:
                 await maybe_send(ctx, "Aborting due to timeout.")
@@ -216,7 +225,9 @@ class Notifications(Cog):
             await self._bind_notifications(ctx, channel, kind, template)
 
     @notifications.command()
-    async def disable(self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind)):
+    async def disable(
+        self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind)
+    ):
         """
         Disable one or more notification kinds.
         Defaults to disabling all of them.
@@ -224,16 +235,25 @@ class Notifications(Cog):
         # Dedupe kinds, but keep list type for SQLA in_ operator
         kinds = list(set(kinds))
 
-        num_deleted = self._session.query(Notification).filter(
-            Notification.guild_id == ctx.guild.id,
-            Notification.kind.in_(kinds)
-        ).delete(synchronize_session=False)
+        num_deleted = (
+            self._session.query(Notification)
+            .filter(Notification.guild_id == ctx.guild.id, Notification.kind.in_(kinds))
+            .delete(synchronize_session=False)
+        )
         self._session.commit()
 
-        await maybe_send(ctx, f"Disabled {num_deleted} notification kind{'' if num_deleted == 1 else 's'}.")
+        await maybe_send(
+            ctx,
+            f"Disabled {num_deleted} notification kind{'' if num_deleted == 1 else 's'}.",
+        )
 
     @notifications.command()
-    async def move(self, ctx, kinds: Greedy[NotificationKind] = list(NotificationKind), channel: TextChannel = None):
+    async def move(
+        self,
+        ctx,
+        kinds: Greedy[NotificationKind] = list(NotificationKind),
+        channel: TextChannel = None,
+    ):
         """
         Move one or more notification kinds to the specified channel.
         Defaults to moving all kinds to the current channel.
@@ -248,10 +268,14 @@ class Notifications(Cog):
         # Same as above
         kinds = list(set(kinds))
 
-        num_moved = self._session.query(Notification).filter(
-            Notification.guild_id == ctx.guild.id,
-            Notification.kind.in_(kinds)
-        ).update({Notification.channel_id: channel.id}, synchronize_session=False)
+        num_moved = (
+            self._session.query(Notification)
+            .filter(Notification.guild_id == ctx.guild.id, Notification.kind.in_(kinds))
+            .update({Notification.channel_id: channel.id}, synchronize_session=False)
+        )
         self._session.commit()
 
-        await maybe_send(ctx, f"Moved {num_moved} notification kind{'' if num_moved == 1 else 's'} to {channel.mention}.")
+        await maybe_send(
+            ctx,
+            f"Moved {num_moved} notification kind{'' if num_moved == 1 else 's'} to {channel.mention}.",
+        )

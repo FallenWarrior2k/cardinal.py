@@ -11,7 +11,7 @@ logger = getLogger(__name__)
 
 
 class Whitelisting(Cog):
-    @group(aliases=['wl'])
+    @group(aliases=["wl"])
     @guild_only()
     async def whitelist(self, ctx: Context):
         """
@@ -23,8 +23,8 @@ class Whitelisting(Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send(
                 'Invalid command passed. Possible choices are "add" and "remove".\n'
-                f'Please refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` '
-                'for further information.'
+                f"Please refer to `{clean_prefix(ctx)}help {ctx.invoked_with}` "
+                "for further information."
             )
             return
 
@@ -46,14 +46,16 @@ class Whitelisting(Cog):
             channel = ctx.channel
 
         if ctx.session.query(WhitelistedChannel).get(channel.id):
-            await ctx.send(f'Channel {channel.mention} is already whitelisted.')
+            await ctx.send(f"Channel {channel.mention} is already whitelisted.")
             return
 
-        db_channel = WhitelistedChannel(channel_id=channel.id, guild_id=channel.guild.id)
+        db_channel = WhitelistedChannel(
+            channel_id=channel.id, guild_id=channel.guild.id
+        )
         ctx.session.add(db_channel)
 
-        logger.info(f'Added channel {channel} on guild {ctx.guild} to whitelist.')
-        await ctx.send(f'Whitelisted channel {channel.mention}.')
+        logger.info(f"Added channel {channel} on guild {ctx.guild} to whitelist.")
+        await ctx.send(f"Whitelisted channel {channel.mention}.")
 
     @whitelist.command()
     @has_permissions(manage_channels=True)
@@ -75,25 +77,27 @@ class Whitelisting(Cog):
 
         db_channel = ctx.session.query(WhitelistedChannel).get(channel.id)
         if not db_channel:
-            await ctx.send(f'Channel {channel.mention} is not whitelisted.')
+            await ctx.send(f"Channel {channel.mention} is not whitelisted.")
             return
 
         ctx.session.delete(db_channel)
 
-        logger.info(f'Removed channel {channel} on guild {ctx.guild} from whitelist.')
-        await ctx.send(f'Removed channel {channel.mention} from whitelist.')
+        logger.info(f"Removed channel {channel} on guild {ctx.guild} from whitelist.")
+        await ctx.send(f"Removed channel {channel.mention} from whitelist.")
 
-    @whitelist.command('list')
+    @whitelist.command("list")
     async def _list(self, ctx: Context):
         """
         Enumerate whitelisted channels on the current server.
         """
 
-        answer = 'Whitelisted channels on this server:```\n'
+        answer = "Whitelisted channels on this server:```\n"
 
         channel_list = []
 
-        for db_channel in ctx.session.query(WhitelistedChannel).filter_by(guild_id=ctx.guild.id):
+        for db_channel in ctx.session.query(WhitelistedChannel).filter_by(
+            guild_id=ctx.guild.id
+        ):
             channel = ctx.guild.get_channel(db_channel.channel_id)
             if not channel:
                 ctx.session.delete(db_channel)
@@ -104,9 +108,9 @@ class Whitelisting(Cog):
         channel_list.sort(key=lambda c: c.position)
 
         for channel in channel_list:
-            answer += '#'
+            answer += "#"
             answer += channel.name
-            answer += '\n'
+            answer += "\n"
 
-        answer += '```'
+        answer += "```"
         await ctx.send(answer)
