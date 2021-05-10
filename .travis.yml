@@ -3,8 +3,8 @@ python:
   - "3.8"
 install:
   - pip install -U pip
-  - pip install -e .
-  - pip install pytest>=5 pytest-asyncio pytest-cov pytest-mock coveralls
+  - pip install .
+  - pip install pytest-cov coveralls
 script:
   - pytest -v --cov=src/cardinal tests
 after_success:
