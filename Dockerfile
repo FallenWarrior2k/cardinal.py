@@ -6,12 +6,9 @@ RUN apk add \
     linux-headers \
     postgresql-dev
 
-WORKDIR /wheels
-RUN pip wheel psycopg2
-
 WORKDIR /app
 COPY . .
-RUN pip wheel -w /wheels .
+RUN pip wheel -w /wheels .[pgsql]
 
 FROM python:3.8-alpine
 
