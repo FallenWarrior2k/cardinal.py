@@ -29,9 +29,10 @@ pytest-asyncio = "^0.15"
 pytest-mock = "^3.6"
 
 [tool.flakehell]
+format = "default"
+
 max_line_length = 100
 max_complexity = 10
-show_source = true
 
 exclude = ["migrations"]
 
