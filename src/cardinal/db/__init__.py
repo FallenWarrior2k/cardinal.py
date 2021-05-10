@@ -11,7 +11,7 @@ __all__ = [
     'JoinRole',
     'MuteGuild', 'MuteUser',
     'NewbieChannel', 'NewbieGuild', 'NewbieUser',
-    'Notification', 'NotificationKind'
+    'Notification', 'NotificationKind',
     'OptinChannel',
     'WhitelistedChannel',
 ]
