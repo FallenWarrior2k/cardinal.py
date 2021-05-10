@@ -11,10 +11,6 @@ venv/
 .dockerignore
 Dockerfile
 
-# Git stuff
-.git/
-.gitignore
-
 # JetBrains IDE workspace info
 .idea/
 
